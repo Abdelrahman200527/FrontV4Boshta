@@ -1,0 +1,61 @@
+@import "tailwindcss";
+@import "theme.css";
+
+@font-face {
+  font-family: "Afeesh-Mesalwa";
+  src:
+    local("Afeesh Mesalwa"),
+    local("Afeesh-Mesalwa"),
+    url("./fonts/Afeesh-Mesalwa.woff2") format("woff2"),
+    url("./fonts/Afeesh-Mesalwa.woff") format("woff"),
+    url("./fonts/Afeesh-Mesalwa.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Afeesh-Mekalbaz";
+  src:
+    local("Afeesh Mekalbaz"),
+    local("Afeesh-Mekalbaz"),
+    url("./fonts/Afeesh-Mekalbaz.woff2") format("woff2"),
+    url("./fonts/Afeesh-Mekalbaz.woff") format("woff"),
+    url("./fonts/Afeesh-Mekalbaz.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-mesalwa {
+  font-family: "Afeesh-Mesalwa", sans-serif;
+}
+
+.font-mekalbaz {
+  font-family: "Afeesh-Mekalbaz", sans-serif;
+}
+
+.font-lalezar {
+  font-family: "Lalezar", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.jomhuria-regular {
+  font-family: "Jomhuria", serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 25px;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
