@@ -23,6 +23,7 @@ import {
   Filter,
   Check,
   ClipboardCheck,
+  Loader2,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import {
@@ -65,6 +66,7 @@ const Exams = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [examAttemptsMap, setExamAttemptsMap] = useState({});
+  const [isSaving, setIsSaving] = useState(false); // ✅ حالة الحفظ
 
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
@@ -430,6 +432,9 @@ const Exams = () => {
   };
 
   const saveExam = async () => {
+    // ✅ منع الحفظ المزدوج
+    if (isSaving) return;
+
     setMessage(null);
 
     if (
@@ -500,37 +505,86 @@ const Exams = () => {
       }
     }
 
-    const examData = {
-      title: examInfo.title,
-      description: examInfo.description || "",
-      grade_id: parseInt(examInfo.grade_id),
-      group_id: examInfo.group_id ? parseInt(examInfo.group_id) : null,
-      duration_minutes: parseInt(examInfo.duration_minutes),
-      start_at: examInfo.start_at || null,
-      end_at: examInfo.end_at || null,
-      full_mark: parseFloat(examInfo.full_mark),
-      randomize_questions: Number(examInfo.randomize_questions) === 1 ? 1 : 0,
-    };
+    // ✅ تفعيل حالة الحفظ
+    setIsSaving(true);
 
-    let examId = editingExam?.id;
+    try {
+      const examData = {
+        title: examInfo.title,
+        description: examInfo.description || "",
+        grade_id: parseInt(examInfo.grade_id),
+        group_id: examInfo.group_id ? parseInt(examInfo.group_id) : null,
+        duration_minutes: parseInt(examInfo.duration_minutes),
+        start_at: examInfo.start_at || null,
+        end_at: examInfo.end_at || null,
+        full_mark: parseFloat(examInfo.full_mark),
+        randomize_questions: Number(examInfo.randomize_questions) === 1 ? 1 : 0,
+      };
 
-    if (editingExam) {
-      const result = await updateOnlineExamInfo(examId, examData);
-      if (!result.success) {
-        setMessage({ type: "error", text: result.error });
-        return;
-      }
+      let examId = editingExam?.id;
 
-      for (const deletedId of deletedQuestionIds) {
-        await removeQuestion(deletedId);
-      }
+      if (editingExam) {
+        const result = await updateOnlineExamInfo(examId, examData);
+        if (!result.success) {
+          setMessage({ type: "error", text: result.error });
+          setIsSaving(false);
+          return;
+        }
 
-      for (const deletedOptId of deletedOptionIds) {
-        await removeOption(deletedOptId);
-      }
+        for (const deletedId of deletedQuestionIds) {
+          await removeQuestion(deletedId);
+        }
 
-      for (const q of questions) {
-        if (q.isNew) {
+        for (const deletedOptId of deletedOptionIds) {
+          await removeOption(deletedOptId);
+        }
+
+        for (const q of questions) {
+          if (q.isNew) {
+            const qResult = await saveQuestion(null, examId, q);
+            if (qResult.success) {
+              const questionId = qResult.data.id;
+              for (const o of q.options) {
+                await createNewOption({
+                  question_id: questionId,
+                  option_text: o.optionText,
+                  is_correct: o.isCorrect,
+                  order: o.order,
+                });
+              }
+            }
+          } else {
+            await saveQuestion(q.id, examId, q);
+
+            for (const o of q.options) {
+              if (o.isNew) {
+                await createNewOption({
+                  question_id: q.id,
+                  option_text: o.optionText,
+                  is_correct: o.isCorrect,
+                  order: o.order,
+                });
+              } else {
+                await updateOptionInfo(o.id, {
+                  question_id: q.id,
+                  option_text: o.optionText,
+                  is_correct: o.isCorrect,
+                  order: o.order,
+                });
+              }
+            }
+          }
+        }
+      } else {
+        const result = await createNewOnlineExam(examData);
+        if (!result.success) {
+          setMessage({ type: "error", text: result.error });
+          setIsSaving(false);
+          return;
+        }
+        examId = result.data.id;
+
+        for (const q of questions) {
           const qResult = await saveQuestion(null, examId, q);
           if (qResult.success) {
             const questionId = qResult.data.id;
@@ -543,58 +597,22 @@ const Exams = () => {
               });
             }
           }
-        } else {
-          await saveQuestion(q.id, examId, q);
-
-          for (const o of q.options) {
-            if (o.isNew) {
-              await createNewOption({
-                question_id: q.id,
-                option_text: o.optionText,
-                is_correct: o.isCorrect,
-                order: o.order,
-              });
-            } else {
-              await updateOptionInfo(o.id, {
-                question_id: q.id,
-                option_text: o.optionText,
-                is_correct: o.isCorrect,
-                order: o.order,
-              });
-            }
-          }
         }
       }
-    } else {
-      const result = await createNewOnlineExam(examData);
-      if (!result.success) {
-        setMessage({ type: "error", text: result.error });
-        return;
-      }
-      examId = result.data.id;
 
-      for (const q of questions) {
-        const qResult = await saveQuestion(null, examId, q);
-        if (qResult.success) {
-          const questionId = qResult.data.id;
-          for (const o of q.options) {
-            await createNewOption({
-              question_id: questionId,
-              option_text: o.optionText,
-              is_correct: o.isCorrect,
-              order: o.order,
-            });
-          }
-        }
-      }
+      setMessage({
+        type: "success",
+        text: editingExam ? "تم تحديث الامتحان بنجاح" : "تم إضافة الامتحان بنجاح",
+      });
+      setShowBuilder(false);
+      loadExams();
+    } catch (error) {
+      setMessage({ type: "error", text: "حدث خطأ أثناء الحفظ" });
+      console.error(error);
+    } finally {
+      // ✅ إلغاء حالة الحفظ بغض النظر عن النتيجة
+      setIsSaving(false);
     }
-
-    setMessage({
-      type: "success",
-      text: editingExam ? "تم تحديث الامتحان بنجاح" : "تم إضافة الامتحان بنجاح",
-    });
-    setShowBuilder(false);
-    loadExams();
   };
 
   const handleDelete = async (examId) => {
@@ -661,7 +679,6 @@ const Exams = () => {
         : Array.isArray(result.data?.data)
           ? result.data.data
           : [];
-      // الباك إند بيرجّع الـ id بأسماء مختلفة حسب الـ join، فبنوحّدها هنا
       setGradingAnswers(
         raw.map((a) => ({
           ...a,
@@ -793,11 +810,10 @@ const Exams = () => {
                 setFilterGroups([]);
                 setGradeStats(null);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                filterType === tab.key && !filterGradeId
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${filterType === tab.key && !filterGradeId
                   ? "bg-primary text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -982,8 +998,8 @@ const Exams = () => {
                       <div className="flex items-center gap-3">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-bold ${student.status === "submitted"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-yellow-100 text-yellow-600"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-yellow-100 text-yellow-600"
                             }`}
                         >
                           {student.status === "submitted" ? "خلص" : "جاري"}
@@ -1068,11 +1084,10 @@ const Exams = () => {
                           </div>
                           {graded && (
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                answer.is_correct === 1
+                              className={`px-2.5 py-1 rounded-full text-xs font-bold ${answer.is_correct === 1
                                   ? "bg-green-100 text-green-600"
                                   : "bg-red-100 text-red-600"
-                              }`}
+                                }`}
                             >
                               {answer.is_correct === 1 ? "صحيحة ✓" : "خاطئة ✗"}
                             </span>
@@ -1154,7 +1169,7 @@ const Exams = () => {
         <div
           className="fixed inset-0 z-9999 bg-black/40 flex items-center justify-center p-3"
           dir="rtl"
-          onClick={() => setShowBuilder(false)}
+          onClick={() => !isSaving && setShowBuilder(false)}
         >
           <div
             className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-xl"
@@ -1165,8 +1180,9 @@ const Exams = () => {
                 {editingExam ? "تعديل الامتحان" : "إضافة امتحان"}
               </h2>
               <button
-                onClick={() => setShowBuilder(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"
+                onClick={() => !isSaving && setShowBuilder(false)}
+                disabled={isSaving}
+                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 disabled:opacity-50"
               >
                 <X size={18} />
               </button>
@@ -1181,12 +1197,14 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, title: e.target.value })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB] sm:col-span-2"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB] sm:col-span-2 disabled:bg-gray-50"
                 />
                 <select
                   value={examInfo.grade_id}
                   onChange={(e) => handleGradeChange(e.target.value)}
-                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
                 >
                   <option value="">الصف *</option>
                   {grades.map((grade) => (
@@ -1200,7 +1218,8 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, group_id: e.target.value })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
                 >
                   <option value="">كل المجموعات</option>
                   {groups.map((group) => (
@@ -1219,7 +1238,8 @@ const Exams = () => {
                       duration_minutes: e.target.value,
                     })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
                 />
                 <input
                   type="number"
@@ -1228,7 +1248,8 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, full_mark: e.target.value })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
                 />
                 <input
                   type="datetime-local"
@@ -1236,7 +1257,8 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, start_at: e.target.value })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
                 />
                 <input
                   type="datetime-local"
@@ -1244,7 +1266,8 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, end_at: e.target.value })
                   }
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
                 />
                 <textarea
                   placeholder="وصف الامتحان (اختياري)"
@@ -1252,10 +1275,11 @@ const Exams = () => {
                   onChange={(e) =>
                     setExamInfo({ ...examInfo, description: e.target.value })
                   }
+                  disabled={isSaving}
                   rows={2}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none sm:col-span-2 resize-none"
+                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none sm:col-span-2 resize-none disabled:bg-gray-50"
                 />
-                <label className="sm:col-span-2 flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <label className="sm:col-span-2 flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 disabled:opacity-50">
                   <input
                     type="checkbox"
                     checked={Number(examInfo.randomize_questions) === 1}
@@ -1265,6 +1289,7 @@ const Exams = () => {
                         randomize_questions: e.target.checked ? 1 : 0,
                       })
                     }
+                    disabled={isSaving}
                     className="w-4 h-4 accent-[#9224EB]"
                   />
                   <Shuffle size={15} className="text-[#9224EB]" />
@@ -1288,7 +1313,8 @@ const Exams = () => {
                       placeholder={`السؤال ${idx + 1}`}
                       value={q.questionText}
                       onChange={(e) => updateQuestionText(q.id, e.target.value)}
-                      className="flex-1 p-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB]"
+                      disabled={isSaving}
+                      className="flex-1 p-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB] disabled:bg-gray-50"
                     />
                     <select
                       value={q.type}
@@ -1326,7 +1352,8 @@ const Exams = () => {
                           ),
                         );
                       }}
-                      className="p-2 rounded-lg border border-gray-200 text-xs bg-white outline-none"
+                      disabled={isSaving}
+                      className="p-2 rounded-lg border border-gray-200 text-xs bg-white outline-none disabled:bg-gray-50"
                     >
                       <option value="mcq">اختيارات</option>
                       <option value="true_false">صح/خطأ</option>
@@ -1334,7 +1361,8 @@ const Exams = () => {
                     </select>
                     <button
                       onClick={() => removeQuestionFromList(q.id)}
-                      className="p-1 text-red-400 hover:bg-red-50 rounded"
+                      disabled={isSaving}
+                      className="p-1 text-red-400 hover:bg-red-50 rounded disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1348,13 +1376,14 @@ const Exams = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-dashed border-orange-400 text-orange-600 text-xs font-bold cursor-pointer hover:bg-orange-50">
+                        <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-dashed border-orange-400 text-orange-600 text-xs font-bold cursor-pointer hover:bg-orange-50 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <Upload size={13} />
                           {q.file ? "تغيير الملف" : "رفع ملف السؤال"}
                           <input
                             type="file"
                             accept="image/*,application/pdf"
                             className="hidden"
+                            disabled={isSaving}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) setQuestionFile(q.id, file);
@@ -1368,7 +1397,8 @@ const Exams = () => {
                             <button
                               type="button"
                               onClick={() => clearQuestionFile(q.id)}
-                              className="text-red-400"
+                              disabled={isSaving}
+                              className="text-red-400 disabled:opacity-50"
                             >
                               <X size={12} />
                             </button>
@@ -1380,14 +1410,16 @@ const Exams = () => {
                             <button
                               type="button"
                               onClick={() => handlePreviewQuestionFile(q.id)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100"
+                              disabled={isSaving}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100 disabled:opacity-50"
                             >
                               <Eye size={12} /> عرض
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDownloadQuestionFile(q.id)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 text-xs font-bold hover:bg-green-100"
+                              disabled={isSaving}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-600 text-xs font-bold hover:bg-green-100 disabled:opacity-50"
                             >
                               <Download size={12} /> تحميل
                             </button>
@@ -1401,9 +1433,10 @@ const Exams = () => {
                         <div key={opt.id} className="flex items-center gap-2">
                           <button
                             onClick={() => setCorrectOption(q.id, opt.id)}
-                            className={`shrink-0 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center ${opt.isCorrect === 1
-                              ? "bg-green-500 border-green-500"
-                              : "border-gray-300"
+                            disabled={isSaving}
+                            className={`shrink-0 w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center disabled:opacity-50 ${opt.isCorrect === 1
+                                ? "bg-green-500 border-green-500"
+                                : "border-gray-300"
                               }`}
                           >
                             {opt.isCorrect === 1 && (
@@ -1417,12 +1450,14 @@ const Exams = () => {
                             onChange={(e) =>
                               updateOptionText(q.id, opt.id, e.target.value)
                             }
-                            className="flex-1 p-2 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#9224EB]"
+                            disabled={isSaving}
+                            className="flex-1 p-2 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#9224EB] disabled:bg-gray-50"
                           />
                           {q.options.length > 2 && (
                             <button
                               onClick={() => removeOptionFromList(q.id, opt.id)}
-                              className="text-red-400"
+                              disabled={isSaving}
+                              className="text-red-400 disabled:opacity-50"
                             >
                               <X size={12} />
                             </button>
@@ -1432,7 +1467,8 @@ const Exams = () => {
                       {q.type === "mcq" && (
                         <button
                           onClick={() => addOption(q.id)}
-                          className="flex items-center gap-1 text-[#9224EB] text-xs font-bold w-fit"
+                          disabled={isSaving}
+                          className="flex items-center gap-1 text-[#9224EB] text-xs font-bold w-fit disabled:opacity-50"
                         >
                           <PlusCircle size={12} /> اختيار
                         </button>
@@ -1445,19 +1481,22 @@ const Exams = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => addQuestion("mcq")}
-                  className="flex-1 py-2.5 border-2 border-dashed border-primary text-primary rounded-lg text-xs font-bold hover:bg-purple-50"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 border-2 border-dashed border-primary text-primary rounded-lg text-xs font-bold hover:bg-purple-50 disabled:opacity-50"
                 >
                   + اختيارات
                 </button>
                 <button
                   onClick={() => addQuestion("true_false")}
-                  className="flex-1 py-2.5 border-2 border-dashed border-blue-500 text-blue-500 rounded-lg text-xs font-bold hover:bg-blue-50"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 border-2 border-dashed border-blue-500 text-blue-500 rounded-lg text-xs font-bold hover:bg-blue-50 disabled:opacity-50"
                 >
                   + صح/خطأ
                 </button>
                 <button
                   onClick={() => addQuestion("essay")}
-                  className="flex-1 py-2.5 border-2 border-dashed border-orange-500 text-orange-500 rounded-lg text-xs font-bold hover:bg-orange-50"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 border-2 border-dashed border-orange-500 text-orange-500 rounded-lg text-xs font-bold hover:bg-orange-50 disabled:opacity-50"
                 >
                   + مقالي
                 </button>
@@ -1467,13 +1506,25 @@ const Exams = () => {
             <div className="shrink-0 px-4 py-3 border-t border-gray-100 flex gap-2">
               <button
                 onClick={saveExam}
-                className="flex-1 bg-primary text-white py-2.5 rounded-lg font-bold text-sm hover:bg-primary/90"
+                disabled={isSaving}
+                className={`flex-1 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 ${isSaving
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : "bg-primary text-white hover:bg-primary/90"
+                  }`}
               >
-                {editingExam ? "تحديث" : "حفظ"}
+                {isSaving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  editingExam ? "تحديث" : "حفظ"
+                )}
               </button>
               <button
-                onClick={() => setShowBuilder(false)}
-                className="px-4 border border-gray-200 rounded-lg text-sm font-semibold text-gray-500"
+                onClick={() => !isSaving && setShowBuilder(false)}
+                disabled={isSaving}
+                className="px-4 border border-gray-200 rounded-lg text-sm font-semibold text-gray-500 disabled:opacity-50"
               >
                 إلغاء
               </button>
@@ -1569,8 +1620,8 @@ const Exams = () => {
                     onClick={() => openBuilder(exam)}
                     disabled={isEditLocked}
                     className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 ${isEditLocked
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100"
                       }`}
                   >
                     <Pencil size={12} /> تعديل
@@ -1579,8 +1630,8 @@ const Exams = () => {
                     onClick={() => handleDelete(exam.id)}
                     disabled={isDeleteLocked}
                     className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 ${isDeleteLocked
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-red-50 text-red-600 hover:bg-red-100"
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-red-50 text-red-600 hover:bg-red-100"
                       }`}
                   >
                     <Trash2 size={12} /> حذف
