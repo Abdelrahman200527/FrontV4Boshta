@@ -69,7 +69,7 @@ const WatchVideo = () => {
         let foundPlaylist = null;
 
         for (const playlist of playlists) {
-          const playlistId = playlist.playlist_id || playlist.id;
+          const playlistId = playlist.playlist_id || playlist.playlist_id;
           const videosResult = await fetchPlaylistVideos(playlistId);
 
           if (videosResult.success) {

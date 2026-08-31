@@ -76,7 +76,7 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(playlist.id);
+                  onDelete(playlist.playlist_id);
                 }}
                 className="flex-1 py-1.5 bg-red-50 text-red-600 rounded-md text-[10px] sm:text-xs font-bold hover:bg-red-100 flex items-center justify-center gap-1"
               >

@@ -132,7 +132,7 @@ const Courses = () => {
     setSelectedPlaylist(playlist);
     setActiveTab("playlistVideos");
     setLoadingPlaylist(true);
-    const result = await fetchPlaylistDetails(playlist.id);
+    const result = await fetchPlaylistDetails(playlist.playlist_id);
     if (result.success) {
       setPlaylistVideos(result.data.videos || []);
     }
@@ -442,7 +442,7 @@ const Courses = () => {
               </div>
             ) : (
               filteredPlaylists.map((playlist) => (
-                <motion.div key={playlist.id} whileHover={{ y: -3 }}>
+                <motion.div key={playlist.playlist_id} whileHover={{ y: -3 }}>
                   <PlaylistCard
                     playlist={playlist}
                     onClick={() => handlePlaylistClick(playlist)}

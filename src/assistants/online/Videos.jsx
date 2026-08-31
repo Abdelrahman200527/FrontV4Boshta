@@ -185,7 +185,7 @@ const Videos = () => {
 
     let result;
     if (editingPlaylist) {
-      result = await updatePlaylistInfo(editingPlaylist.id, formData);
+      result = await updatePlaylistInfo(editingplaylist.playlist_id, formData);
     } else {
       result = await createNewPlaylist(formData);
     }
@@ -209,7 +209,7 @@ const Videos = () => {
   const openPlaylist = async (playlist) => {
     setSelectedPlaylist(playlist);
     setActiveTab("playlistVideos");
-    const result = await fetchPlaylistVideos(playlist.id);
+    const result = await fetchPlaylistVideos(playlist.playlist_id);
     if (result.success) setSelectedPlaylistVideos(result.data);
   };
 
@@ -411,7 +411,7 @@ const Videos = () => {
           ) : (
             filteredPlaylists.map((playlist) => (
               <PlaylistCard
-                key={playlist.id}
+                key={playlist.playlist_id}
                 playlist={playlist}
                 onClick={() => openPlaylist(playlist)}
                 onEdit={() => handleEditPlaylist(playlist)}

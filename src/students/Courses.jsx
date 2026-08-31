@@ -65,7 +65,7 @@ const Courses = () => {
 
   const openPlaylist = async (playlist) => {
     // ✅ استخدام playlist_id الصحيح
-    const playlistId = playlist.playlist_id || playlist.id;
+    const playlistId = playlist.playlist_id || playlist.playlist_id;
 
     if (!playlistId) {
       console.error("No playlist ID found:", playlist);
@@ -305,7 +305,7 @@ const Courses = () => {
             ) : (
               filteredPlaylists.map((playlist) => (
                 <motion.div
-                  key={playlist.playlist_id || playlist.id}
+                  key={playlist.playlist_id || playlist.playlist_id}
                   whileHover={{ y: -2 }}
                 >
                   <PlaylistCard
