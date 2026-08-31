@@ -126,7 +126,10 @@ const ExamTaking = () => {
 
       if (result.success) {
         notifySuccess("انتهى الوقت! تم تسليم الامتحان تلقائياً");
-        navigate("/student/exams", { replace: true });
+        // ✅ يودي لصفحة المراجعة
+        navigate(`/student/exams/review/${attemptInfo?.attempt_id}`, {
+          replace: true,
+        });
       } else {
         notifyError(result.error || "فشل التسليم التلقائي");
         navigate("/student/exams", { replace: true });
@@ -149,7 +152,10 @@ const ExamTaking = () => {
 
       if (result.success) {
         notifySuccess("تم تسليم الامتحان بنجاح!");
-        navigate("/student/exams", { replace: true });
+        // ✅ يودي لصفحة المراجعة
+        navigate(`/student/exams/review/${attemptInfo?.attempt_id}`, {
+          replace: true,
+        });
       } else {
         submittingRef.current = false;
         notifyError(result.error || "فشل التسليم");
@@ -198,7 +204,6 @@ const ExamTaking = () => {
     }
   };
 
-  // Upload essay answer with loader
   const handleEssayUpload = async (questionId, file) => {
     if (uploadingFile) return;
     setUploadingFile(true);
@@ -211,7 +216,6 @@ const ExamTaking = () => {
       );
 
       if (result.success) {
-        // Replace old answer with new one
         setAnswers((prev) => ({
           ...prev,
           [questionId]: {
@@ -255,21 +259,18 @@ const ExamTaking = () => {
 
   const currentQuestion = questions[currentIndex];
 
-  // Handle file preview
   const handlePreviewFile = async (filePath) => {
     if (!filePath) return;
     const fullUrl = getFileUrl(filePath);
     await previewFile(fullUrl);
   };
 
-  // Handle file download
   const handleDownloadFile = async (filePath) => {
     if (!filePath) return;
     const fullUrl = getFileUrl(filePath);
     await downloadFile(fullUrl);
   };
 
-  // Build full file URL
   const getFileUrl = (filePath) => {
     if (!filePath) return null;
     const apiUrl = "https://backend.benb3n.cloud";
@@ -436,7 +437,6 @@ const ExamTaking = () => {
                   </span>
                 </div>
 
-                {/* Question File Actions */}
                 {currentQuestion?.file_path && (
                   <div className="mb-4 flex items-center gap-2 flex-wrap">
                     <button
@@ -468,7 +468,6 @@ const ExamTaking = () => {
                   {currentQuestion?.question_text}
                 </h2>
 
-                {/* MCQ/True-False Options */}
                 {currentQuestion?.type !== "essay" && (
                   <div className="flex flex-col gap-2 sm:gap-3">
                     {currentQuestion?.options?.map((opt, optIndex) => {
@@ -507,7 +506,6 @@ const ExamTaking = () => {
                   </div>
                 )}
 
-                {/* Essay Upload with Loader */}
                 {currentQuestion?.type === "essay" && (
                   <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-6 text-center">
                     {uploadingFile ? (
@@ -561,7 +559,6 @@ const ExamTaking = () => {
                   </div>
                 )}
 
-                {/* Navigation Buttons */}
                 <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
                   <button
                     onClick={goToPrev}

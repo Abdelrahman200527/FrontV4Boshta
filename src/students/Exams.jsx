@@ -14,6 +14,7 @@ import {
   BarChart3,
   Calendar,
   ChevronDown,
+  Eye,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +43,6 @@ const Exams = () => {
   const [error, setError] = useState(null);
   const [startingExam, setStartingExam] = useState(null);
 
-  // Pagination states
   const [historyPage, setHistoryPage] = useState(1);
   const [resultsPage, setResultsPage] = useState(1);
   const [paperPage, setPaperPage] = useState(1);
@@ -63,9 +63,7 @@ const Exams = () => {
           fetchExamResults("", 1),
         ]);
 
-      if (availableRes.success) {
-        setAvailableExams(availableRes.data || []);
-      }
+      if (availableRes.success) setAvailableExams(availableRes.data || []);
       if (historyRes.success) {
         setHistoryExams(historyRes.data || []);
         setHasMoreHistory((historyRes.data || []).length >= PAGE_SIZE);
@@ -99,7 +97,6 @@ const Exams = () => {
     setRefreshing(false);
   };
 
-  // Load more history
   const loadMoreHistory = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
@@ -114,7 +111,6 @@ const Exams = () => {
     setLoadingMore(false);
   };
 
-  // Load more results
   const loadMoreResults = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
@@ -129,7 +125,6 @@ const Exams = () => {
     setLoadingMore(false);
   };
 
-  // Load more paper exams
   const loadMorePaper = async () => {
     if (loadingMore) return;
     setLoadingMore(true);
@@ -212,6 +207,10 @@ const Exams = () => {
     } finally {
       setStartingExam(null);
     }
+  };
+
+  const handleReviewExam = (attemptId) => {
+    navigate(`/student/exams/review/${attemptId}`);
   };
 
   const getExamStatus = useCallback((exam) => {
@@ -630,12 +629,21 @@ const Exams = () => {
                               </span>
                             </>
                           )}
+
+                          {/* ✅ Review Button */}
+                          <button
+                            onClick={() => handleReviewExam(exam.attempt_id)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 transition shrink-0"
+                            title="مراجعة الامتحان"
+                          >
+                            <Eye size={13} />
+                            مراجعة
+                          </button>
                         </div>
                       </motion.div>
                     );
                   })}
 
-                  {/* Load More Button */}
                   {hasMoreHistory && (
                     <button
                       onClick={loadMoreHistory}
@@ -729,7 +737,6 @@ const Exams = () => {
                   </motion.div>
                 ))}
 
-                {/* Load More Button */}
                 {hasMorePaper && (
                   <button
                     onClick={loadMorePaper}
@@ -812,7 +819,6 @@ const Exams = () => {
                   </motion.div>
                 ))}
 
-                {/* Load More Button */}
                 {hasMoreResults && (
                   <button
                     onClick={loadMoreResults}

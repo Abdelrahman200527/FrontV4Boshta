@@ -17,7 +17,6 @@ import {
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPlaylists, fetchPlaylistVideos } from "../api/student/actions";
-import getImageUrl from "../utils/imageUrl";
 import { downloadFile, previewFile } from "../utils/fileHandler";
 import config from "../config";
 import PlaylistCard from "../components/PlaylistCard";
@@ -45,8 +44,6 @@ const Courses = () => {
     const result = await fetchPlaylists();
     if (result.success) {
       setPlaylists(result.data || []);
-      // ✅ Debug - شوف شكل البيانات
-      console.log("Playlists data:", result.data);
     } else {
       setError(result.error || "فشل تحميل المحاضرات");
     }
@@ -64,15 +61,12 @@ const Courses = () => {
   };
 
   const openPlaylist = async (playlist) => {
-    // ✅ استخدام playlist_id الصحيح
-    const playlistId = playlist.playlist_id || playlist.playlist_id;
+    const playlistId = playlist.playlist_id || playlist.id;
 
     if (!playlistId) {
       console.error("No playlist ID found:", playlist);
       return;
     }
-
-    console.log("Opening playlist with ID:", playlistId);
 
     setSelectedPlaylist(playlist);
     setLoadingVideos(true);
@@ -81,7 +75,6 @@ const Courses = () => {
 
     if (result.success) {
       setPlaylistVideos(result.data || []);
-      console.log("Playlist videos:", result.data);
     } else {
       setError(result.error || "فشل تحميل الفيديوهات");
     }
@@ -101,20 +94,22 @@ const Courses = () => {
     navigate(`/student/courses/watch/${videoId}`);
   };
 
+  const getFullFileUrl = (filePath) => {
+    if (!filePath) return null;
+    if (filePath.startsWith("http")) return filePath;
+    return `${apiUrl.replace("/api", "")}/${filePath.replace(/^\//, "")}`;
+  };
+
   const handlePreview = async (video) => {
-    const videoId = video.video_id || video.id;
-    // ✅ استخدام المسار الصحيح للملف
     if (video.file_url) {
-      const url = `${apiUrl.replace("/api", "")}/${video.file_url.replace(/^\//, "")}`;
+      const url = getFullFileUrl(video.file_url);
       await previewFile(url);
     }
   };
 
   const handleDownload = async (video) => {
-    const videoId = video.video_id || video.id;
-    // ✅ استخدام المسار الصحيح للملف
     if (video.file_url) {
-      const url = `${apiUrl.replace("/api", "")}/${video.file_url.replace(/^\//, "")}`;
+      const url = getFullFileUrl(video.file_url);
       await downloadFile(url);
     }
   };
@@ -305,7 +300,7 @@ const Courses = () => {
             ) : (
               filteredPlaylists.map((playlist) => (
                 <motion.div
-                  key={playlist.playlist_id || playlist.playlist_id}
+                  key={playlist.playlist_id || playlist.id}
                   whileHover={{ y: -2 }}
                 >
                   <PlaylistCard

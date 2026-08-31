@@ -3,14 +3,22 @@ import React from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
-const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, canEdit = false }) => {
+const PlaylistCard = ({
+  playlist,
+  onClick,
+  onDelete,
+  onEdit,
+  canDelete = false,
+  canEdit = false,
+}) => {
+  // ✅ الصورة المرفوعة فقط
   const getThumbnailUrl = (thumbnailPath) => {
     if (!thumbnailPath) return null;
     if (thumbnailPath.startsWith("http")) return thumbnailPath;
-    return `https://backend.benb3n.cloud/${thumbnailPath}`;
+    return `https://backend.benb3n.cloud/${thumbnailPath.replace(/^\//, "")}`;
   };
 
-  const thumbnailUrl = playlist.thumbnail_url ? getThumbnailUrl(playlist.thumbnail_url) : null;
+  const thumbnailUrl = getThumbnailUrl(playlist.thumbnail_url);
 
   return (
     <motion.div
@@ -22,7 +30,10 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
       onClick={onClick}
       className="group bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-md transition cursor-pointer"
     >
-      <motion.div variants={itemVariants} className="relative aspect-video bg-gray-100">
+      <motion.div
+        variants={itemVariants}
+        className="relative aspect-video bg-gray-100"
+      >
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -31,6 +42,11 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
             loading="lazy"
             onError={(e) => {
               e.target.style.display = "none";
+              e.target.parentElement.classList.add(
+                "bg-gradient-to-br",
+                "from-orange-50",
+                "to-orange-100",
+              );
             }}
           />
         ) : (
@@ -38,11 +54,14 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
             <FolderOpen size={40} className="text-orange-500" />
           </div>
         )}
-        
+
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition flex items-center justify-center">
-          <Play size={32} className="text-white opacity-0 group-hover:opacity-100 transition" />
+          <Play
+            size={32}
+            className="text-white opacity-0 group-hover:opacity-100 transition"
+          />
         </div>
-        
+
         <div className="absolute bottom-2 left-2 bg-black/80 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded">
           {playlist.videos_count || 0} فيديو
         </div>
@@ -57,7 +76,7 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
             {playlist.grade_name}
           </span>
         )}
-        
+
         {(canDelete || canEdit) && (
           <div className="flex gap-1 mt-1.5">
             {canEdit && onEdit && (
@@ -76,7 +95,7 @@ const PlaylistCard = ({ playlist, onClick, onDelete, onEdit, canDelete = false, 
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(playlist.playlist_id);
+                  onDelete(playlist.playlist_id || playlist.id);
                 }}
                 className="flex-1 py-1.5 bg-red-50 text-red-600 rounded-md text-[10px] sm:text-xs font-bold hover:bg-red-100 flex items-center justify-center gap-1"
               >

@@ -22,6 +22,45 @@ import { pageVariants, itemVariants } from "../motion";
 
 const PAGE_SIZE = 10;
 
+// ✅ Build image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith("http")) return imagePath;
+  return `https://backend.benb3n.cloud/${imagePath.replace(/^\//, "")}`;
+};
+
+const getInitial = (name) => (name ? name.trim()[0] || "؟" : "؟");
+
+const AssistantAvatar = ({ assistant, size = "md" }) => {
+  const [imgError, setImgError] = useState(false);
+  const imageUrl = getImageUrl(assistant?.profile_image);
+
+  const sizes = {
+    sm: "w-8 h-8 text-sm",
+    md: "w-10 h-10 text-base",
+    lg: "w-14 h-14 text-xl",
+  };
+
+  return (
+    <div
+      className={`${sizes[size]} rounded-full bg-green-50 flex items-center justify-center overflow-hidden border border-green-100 shrink-0`}
+    >
+      {imageUrl && !imgError ? (
+        <img
+          src={imageUrl}
+          alt={assistant?.full_name}
+          className="w-full h-full object-cover rounded-full"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span className="font-bold text-green-600">
+          {getInitial(assistant?.full_name)}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const AssistantRow = memo(function AssistantRow({ assistant, index, onView }) {
   return (
     <motion.tr
@@ -37,9 +76,7 @@ const AssistantRow = memo(function AssistantRow({ assistant, index, onView }) {
       </td>
       <td className="text-right py-3.5 font-medium text-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-linear-to-br from-green-50 to-emerald-50 flex items-center justify-center shrink-0">
-            <User size={18} className="text-green-600" />
-          </div>
+          <AssistantAvatar assistant={assistant} size="md" />
           <div className="min-w-0">
             <span className="block truncate">{assistant.full_name}</span>
           </div>
@@ -291,9 +328,7 @@ const Assistants = () => {
               className="bg-white rounded-xl border border-gray-200 p-3.5 flex items-center justify-between"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center shrink-0">
-                  <User size={18} className="text-green-600" />
-                </div>
+                <AssistantAvatar assistant={assistant} size="md" />
                 <div className="min-w-0">
                   <span className="font-bold text-sm text-gray-900 block truncate">
                     {assistant.full_name}
@@ -453,9 +488,10 @@ const Assistants = () => {
                 <div className="flex flex-col gap-3">
                   {/* Profile Header */}
                   <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                    <div className="w-14 h-14 rounded-full bg-linear-to-br from-green-50 to-emerald-50 flex items-center justify-center">
-                      <User size={26} className="text-green-600" />
-                    </div>
+                    <AssistantAvatar
+                      assistant={viewingDetails || viewing}
+                      size="lg"
+                    />
                     <div>
                       <h4 className="font-bold text-gray-900 text-lg">
                         {viewingDetails?.full_name || viewing.full_name}

@@ -398,11 +398,20 @@ const fetchCurrentSubscription = async () => {
     return { success: false, error: error.message };
   }
 };
-
+// Get exam review
+const fetchExamReview = async (attemptId) => {
+  try {
+    const data = await studentServices.getExamReview(attemptId);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 export {
   fetchStudentDashboard,
   fetchStudentProfile,
   fetchStudentStats,
+  fetchExamReview,
   updateStudentProfileImage,
   deleteStudentProfileImage,
   changeStudentPassword,

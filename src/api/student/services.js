@@ -263,10 +263,15 @@ const getCurrentSubscription = async () => {
   const response = await httpGet("/student/payments/current-subscription");
   return response.data;
 };
+const getExamReview = async (attemptId) => {
+  const response = await httpGet(`/student/exams/online/${attemptId}/review`);
+  return response.data;
+};
 
 export {
   getDashboard,
   getProfile,
+  getExamReview,
   getQuickStats,
   updateProfileImage,
   deleteProfileImage,

@@ -4,30 +4,24 @@ import {
   Search,
   X,
   ArrowRight,
-  ArrowLeft,
   Download,
   Eye,
-  Clock,
-  BookOpen,
   Filter,
   Grid3x3,
   List,
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  GraduationCap,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchCourses,
   fetchPlaylistDetails,
-  fetchVideoById,
-  fetchVideosByGrade,
-  fetchPlaylistsByGrade,
   downloadVideoFileAction,
   previewVideoFileAction,
 } from "../api/teacher/actions";
-import getImageUrl from "../utils/imageUrl";
 import PlaylistCard from "../components/PlaylistCard";
 import VideoCard from "../components/VideoCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +31,7 @@ const Courses = () => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("videos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,7 +42,6 @@ const Courses = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [showFilter, setShowFilter] = useState(false);
   const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -61,6 +55,22 @@ const Courses = () => {
     if (result.success) {
       setVideos(result.data.videos || []);
       setPlaylists(result.data.playlists || []);
+      
+      // ✅ استخراج الصفوف الفريدة من الفيديوهات والقوائم
+      const allGrades = new Map();
+      
+      [...(result.data.videos || []), ...(result.data.playlists || [])].forEach(
+        (item) => {
+          if (item.grade_id && item.grade_name) {
+            allGrades.set(item.grade_id, {
+              id: item.grade_id,
+              name: item.grade_name,
+            });
+          }
+        },
+      );
+      
+      setGrades(Array.from(allGrades.values()));
     } else {
       setError(result.error || "فشل تحميل المحاضرات");
     }
@@ -73,22 +83,6 @@ const Courses = () => {
     setRefreshing(false);
   };
 
-  const allGrades = useMemo(() => {
-    const gradesSet = new Set();
-    videos.forEach((v) => {
-      if (v.grade_name) gradesSet.add(v.grade_name);
-    });
-    playlists.forEach((p) => {
-      if (p.grade_name) gradesSet.add(p.grade_name);
-    });
-    return Array.from(gradesSet).sort();
-  }, [videos, playlists]);
-
-  const filterByGrade = (items, grade) => {
-    if (grade === "all") return items;
-    return items.filter((item) => item.grade_name === grade);
-  };
-
   const filterBySearch = (items) => {
     if (searchQuery.trim() === "") return items;
     return items.filter(
@@ -99,43 +93,39 @@ const Courses = () => {
     );
   };
 
-  const filteredVideos = filterBySearch(filterByGrade(videos, selectedGrade));
-  const filteredPlaylists = filterBySearch(
-    filterByGrade(playlists, selectedGrade),
-  );
-
-  const handleGradeFilter = async (grade) => {
-    setSelectedGrade(grade);
-    setLoading(true);
-    try {
-      if (grade === "all") {
-        const result = await fetchCourses();
-        if (result.success) {
-          setVideos(result.data.videos || []);
-          setPlaylists(result.data.playlists || []);
-        }
-      } else {
-        const [videosResult, playlistsResult] = await Promise.all([
-          fetchVideosByGrade(grade),
-          fetchPlaylistsByGrade(grade),
-        ]);
-        if (videosResult.success) setVideos(videosResult.data || []);
-        if (playlistsResult.success) setPlaylists(playlistsResult.data || []);
-      }
-    } catch (err) {
-      console.error("Filter error:", err);
-    }
-    setLoading(false);
+  const filterByGrade = (items) => {
+    if (selectedGrade === "all") return items;
+    return items.filter(
+      (item) => String(item.grade_id) === String(selectedGrade),
+    );
   };
 
+  const filteredVideos = filterByGrade(filterBySearch(videos));
+  const filteredPlaylists = filterByGrade(filterBySearch(playlists));
+
+  const getPlaylistId = (playlist) => playlist?.playlist_id || playlist?.id;
+  const getVideoId = (video) => video?.video_id || video?.id;
+
   const handlePlaylistClick = async (playlist) => {
+    const playlistId = getPlaylistId(playlist);
+
+    if (!playlistId) {
+      console.error("No playlist ID found:", playlist);
+      return;
+    }
+
     setSelectedPlaylist(playlist);
     setActiveTab("playlistVideos");
     setLoadingPlaylist(true);
-    const result = await fetchPlaylistDetails(playlist.playlist_id);
+
+    const result = await fetchPlaylistDetails(playlistId);
+
     if (result.success) {
-      setPlaylistVideos(result.data.videos || []);
+      setPlaylistVideos(
+        filterByGrade(result.data.videos || []),
+      );
     }
+
     setLoadingPlaylist(false);
   };
 
@@ -145,38 +135,23 @@ const Courses = () => {
     setPlaylistVideos([]);
   };
 
-  // ✅ استخدام video_id الصحيح
-  const getVideoId = (video) => {
-    return video.video_id || video.id;
-  };
-
   const openWatch = (video) => {
     const actualVideoId = getVideoId(video);
-    navigate(`/teacher/courses/watch/${actualVideoId}`);
+    if (actualVideoId) {
+      navigate(`/teacher/courses/watch/${actualVideoId}`);
+    }
   };
 
   const handlePreview = async (video) => {
     const actualVideoId = getVideoId(video);
-    setActionLoading(`${actualVideoId}-preview`);
-    const result = await previewVideoFileAction(actualVideoId);
-    setActionLoading(null);
-    if (!result.success) {
-      alert(result.error || "فشل المعاينة");
-    }
+    if (!actualVideoId) return;
+    await previewVideoFileAction(actualVideoId);
   };
 
   const handleDownload = async (video) => {
     const actualVideoId = getVideoId(video);
-    setActionLoading(`${actualVideoId}-download`);
-    const result = await downloadVideoFileAction(actualVideoId);
-    setActionLoading(null);
-    if (!result.success) {
-      alert(result.error || "فشل التحميل");
-    }
-  };
-
-  const handleRetry = () => {
-    loadData();
+    if (!actualVideoId) return;
+    await downloadVideoFileAction(actualVideoId);
   };
 
   if (loading && !refreshing) {
@@ -197,7 +172,7 @@ const Courses = () => {
           <FolderOpen size={48} className="text-gray-300" />
           <p className="text-gray-600">{error}</p>
           <button
-            onClick={handleRetry}
+            onClick={loadData}
             className="px-4 py-2 bg-[#009966] text-white rounded-lg hover:bg-[#007a52] transition"
           >
             إعادة المحاولة
@@ -222,8 +197,8 @@ const Courses = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
               المحاضرات
             </h1>
-            <span className="text-sm sm:text-base text-gray-500">
-              {videos.length} فيديو • {playlists.length} قائمة تشغيل
+            <span className="text-sm text-gray-500">
+              {filteredVideos.length} فيديو • {filteredPlaylists.length} قائمة تشغيل
             </span>
           </div>
 
@@ -241,15 +216,13 @@ const Courses = () => {
             <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg transition ${viewMode === "grid" ? "bg-[#009966] text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
-                title="عرض شبكي"
+                className={`p-2 rounded-lg transition ${viewMode === "grid" ? "bg-[#009966] text-white" : "text-gray-500"}`}
               >
                 <Grid3x3 size={15} />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg transition ${viewMode === "list" ? "bg-[#009966] text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
-                title="عرض قائمة"
+                className={`p-2 rounded-lg transition ${viewMode === "list" ? "bg-[#009966] text-white" : "text-gray-500"}`}
               >
                 <List size={15} />
               </button>
@@ -257,9 +230,10 @@ const Courses = () => {
           </div>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex flex-col lg:flex-row gap-2">
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 flex-1 lg:flex-none lg:w-96 focus-within:border-[#009966] transition">
+        {/* Search + Filter */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Search */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 flex-1">
             <Search size={16} className="text-gray-400 shrink-0" />
             <input
               type="text"
@@ -271,51 +245,30 @@ const Courses = () => {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-gray-400 hover:text-gray-600 shrink-0"
+                className="text-gray-400 shrink-0 hover:text-red-500 transition"
               >
                 <X size={15} />
               </button>
             )}
           </div>
 
-          <button
-            onClick={() => setShowFilter(!showFilter)}
-            className="flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:border-[#009966] transition"
-          >
-            <Filter size={14} />
-            تصفية
-            {showFilter ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {showFilter && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+          {/* Grade Filter */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 sm:w-56">
+            <GraduationCap size={16} className="text-gray-400 shrink-0" />
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="bg-transparent focus:outline-none text-sm w-full cursor-pointer"
             >
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <label className="text-sm text-gray-600 mb-2 block font-bold">
-                  الصف الدراسي
-                </label>
-                <select
-                  value={selectedGrade}
-                  onChange={(e) => handleGradeFilter(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:border-[#009966]"
-                >
-                  <option value="all">كل الصفوف</option>
-                  {allGrades.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <option value="all">كل الصفوف</option>
+              {grades.map((grade) => (
+                <option key={grade.id} value={grade.id}>
+                  {grade.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </motion.header>
 
       {/* Tabs */}
@@ -329,7 +282,7 @@ const Courses = () => {
             setSelectedPlaylist(null);
             setPlaylistVideos([]);
           }}
-          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === "videos" ? "bg-[#009966] text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === "videos" ? "bg-[#009966] text-white" : "text-gray-500"}`}
         >
           <PlayCircle size={16} />
           الفيديوهات
@@ -345,7 +298,7 @@ const Courses = () => {
             setSelectedPlaylist(null);
             setPlaylistVideos([]);
           }}
-          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === "playlists" ? "bg-[#009966] text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === "playlists" ? "bg-[#009966] text-white" : "text-gray-500"}`}
         >
           <FolderOpen size={16} />
           قوائم التشغيل
@@ -358,7 +311,7 @@ const Courses = () => {
         {selectedPlaylist && (
           <button
             onClick={handleBackToPlaylists}
-            className="shrink-0 px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold bg-blue-50 text-blue-600 flex items-center gap-1"
+            className="shrink-0 px-4 py-2.5 rounded-lg text-sm font-bold bg-blue-50 text-blue-600 flex items-center gap-1"
           >
             <ArrowRight size={12} />
             <span className="truncate max-w-40">{selectedPlaylist.title}</span>
@@ -366,29 +319,26 @@ const Courses = () => {
         )}
       </motion.div>
 
-      {/* Content Area */}
+      {/* Content */}
       <AnimatePresence mode="wait">
+        {/* Videos */}
         {activeTab === "videos" && (
           <motion.div
             key="videos"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`grid gap-3 sm:gap-4 ${viewMode === "grid" ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
+            className={`grid gap-3 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
           >
             {filteredVideos.length === 0 ? (
               <div className="col-span-full text-center py-16 text-gray-400">
                 <PlayCircle size={48} className="text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">
-                  {searchQuery || selectedGrade !== "all"
-                    ? "لا توجد نتائج مطابقة"
-                    : "لا توجد فيديوهات"}
-                </p>
+                <p className="text-sm">لا توجد فيديوهات</p>
               </div>
             ) : (
               filteredVideos.map((video) => (
                 <motion.div
-                  key={video.id}
+                  key={getVideoId(video)}
                   whileHover={{ y: -3 }}
                   className="relative group"
                 >
@@ -401,17 +351,13 @@ const Courses = () => {
                     <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handlePreview(video)}
-                        disabled={actionLoading === `${video.id}-preview`}
-                        className="p-2 bg-white/95 rounded-lg shadow-sm hover:bg-white transition disabled:opacity-50"
-                        title="معاينة الملف"
+                        className="p-2 bg-white/95 rounded-lg shadow-sm"
                       >
                         <Eye size={14} className="text-blue-500" />
                       </button>
                       <button
                         onClick={() => handleDownload(video)}
-                        disabled={actionLoading === `${video.id}-download`}
-                        className="p-2 bg-white/95 rounded-lg shadow-sm hover:bg-white transition disabled:opacity-50"
-                        title="تحميل الملف"
+                        className="p-2 bg-white/95 rounded-lg shadow-sm"
                       >
                         <Download size={14} className="text-green-500" />
                       </button>
@@ -423,26 +369,26 @@ const Courses = () => {
           </motion.div>
         )}
 
+        {/* Playlists */}
         {activeTab === "playlists" && (
           <motion.div
             key="playlists"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`grid gap-3 sm:gap-4 ${viewMode === "grid" ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
+            className={`grid gap-3 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
           >
             {filteredPlaylists.length === 0 ? (
               <div className="col-span-full text-center py-16 text-gray-400">
                 <FolderOpen size={48} className="text-gray-200 mx-auto mb-2" />
-                <p className="text-sm">
-                  {searchQuery || selectedGrade !== "all"
-                    ? "لا توجد نتائج مطابقة"
-                    : "لا توجد قوائم تشغيل"}
-                </p>
+                <p className="text-sm">لا توجد قوائم تشغيل</p>
               </div>
             ) : (
               filteredPlaylists.map((playlist) => (
-                <motion.div key={playlist.playlist_id} whileHover={{ y: -3 }}>
+                <motion.div
+                  key={getPlaylistId(playlist)}
+                  whileHover={{ y: -3 }}
+                >
                   <PlaylistCard
                     playlist={playlist}
                     onClick={() => handlePlaylistClick(playlist)}
@@ -454,6 +400,7 @@ const Courses = () => {
           </motion.div>
         )}
 
+        {/* Playlist Videos */}
         {activeTab === "playlistVideos" && selectedPlaylist && (
           <motion.div
             key="playlistVideos"
@@ -467,7 +414,7 @@ const Courses = () => {
               </div>
             ) : (
               <div
-                className={`grid gap-3 sm:gap-4 ${viewMode === "grid" ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
+                className={`grid gap-3 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
               >
                 {playlistVideos.length === 0 ? (
                   <div className="col-span-full text-center py-16 text-gray-400">
@@ -476,7 +423,7 @@ const Courses = () => {
                 ) : (
                   playlistVideos.map((video) => (
                     <motion.div
-                      key={video.id}
+                      key={getVideoId(video)}
                       whileHover={{ y: -3 }}
                       className="relative group"
                     >
@@ -489,15 +436,13 @@ const Courses = () => {
                         <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handlePreview(video)}
-                            className="p-2 bg-white/95 rounded-lg shadow-sm hover:bg-white transition"
-                            title="معاينة"
+                            className="p-2 bg-white/95 rounded-lg shadow-sm"
                           >
                             <Eye size={14} className="text-blue-500" />
                           </button>
                           <button
                             onClick={() => handleDownload(video)}
-                            className="p-2 bg-white/95 rounded-lg shadow-sm hover:bg-white transition"
-                            title="تحميل"
+                            className="p-2 bg-white/95 rounded-lg shadow-sm"
                           >
                             <Download size={14} className="text-green-500" />
                           </button>

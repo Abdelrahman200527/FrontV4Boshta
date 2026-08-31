@@ -1,16 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 import {
-  Check,
   CircleCheck,
   CircleX,
   CirclePercent,
-  CalendarDays,
   Clock,
   AlertCircle,
   RefreshCw,
   TrendingUp,
-  Calendar,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -68,6 +67,35 @@ const Attendance = () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+
+  // Format time - remove milliseconds
+  const formatTime = (timeString) => {
+    if (!timeString) return "-";
+    const match = timeString.match(/^(\d{2}):(\d{2})/);
+    if (match) return `${match[1]}:${match[2]}`;
+    return timeString;
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("ar-EG", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  // Format month for display
+  const formatMonth = (monthString) => {
+    if (!monthString) return "-";
+    const [year, month] = monthString.split("-");
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString("ar-EG", {
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const pieData = useMemo(
@@ -164,17 +192,17 @@ const Attendance = () => {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 flex items-center gap-3"
+            className="bg-red-50 border border-red-200 rounded-xl p-3 sm:p-4 flex items-center gap-3 justify-center"
           >
             <AlertCircle size={20} className="text-red-500 shrink-0" />
-            <div>
+            <div className="text-center">
               <span className="font-bold text-sm text-red-700 block">
                 تنبيه: لديك {consecutiveAbsences.consecutive_absences} أيام غياب
                 متتالية
               </span>
               <span className="text-xs text-red-500">
-                من {consecutiveAbsences.from_date} إلى{" "}
-                {consecutiveAbsences.to_date}
+                من {formatDate(consecutiveAbsences.from_date)} إلى{" "}
+                {formatDate(consecutiveAbsences.to_date)}
               </span>
             </div>
           </motion.div>
@@ -185,32 +213,40 @@ const Attendance = () => {
         variants={itemVariants}
         className="grid grid-cols-3 gap-2 sm:gap-3"
       >
-        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 text-center">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
+        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 flex flex-col items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-green-50 flex items-center justify-center mb-1.5 sm:mb-2">
             <CircleCheck className="text-green-600" size={16} />
           </div>
-          <span className="font-bold text-xl sm:text-2xl block">
+          <span className="font-bold text-xl sm:text-2xl block text-center">
             {stats?.present_days || 0}
           </span>
-          <span className="text-[10px] sm:text-sm text-gray-500">حضور</span>
+          <span className="text-[10px] sm:text-sm text-gray-500 text-center">
+            حضور
+          </span>
         </div>
-        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 text-center">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
+
+        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 flex flex-col items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-50 flex items-center justify-center mb-1.5 sm:mb-2">
             <CircleX className="text-red-600" size={16} />
           </div>
-          <span className="font-bold text-xl sm:text-2xl block">
+          <span className="font-bold text-xl sm:text-2xl block text-center">
             {stats?.absent_days || 0}
           </span>
-          <span className="text-[10px] sm:text-sm text-gray-500">غياب</span>
+          <span className="text-[10px] sm:text-sm text-gray-500 text-center">
+            غياب
+          </span>
         </div>
-        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 text-center">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-purple-50 flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
+
+        <div className="bg-white border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl shadow-[5px_2px_0_#009966] p-3 sm:p-4 flex flex-col items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-purple-50 flex items-center justify-center mb-1.5 sm:mb-2">
             <CirclePercent className="text-purple-600" size={16} />
           </div>
-          <span className="font-bold text-xl sm:text-2xl block">
+          <span className="font-bold text-xl sm:text-2xl block text-center">
             {stats?.attendance_percentage || 0}%
           </span>
-          <span className="text-[10px] sm:text-sm text-gray-500">النسبة</span>
+          <span className="text-[10px] sm:text-sm text-gray-500 text-center">
+            النسبة
+          </span>
         </div>
       </motion.div>
 
@@ -222,7 +258,7 @@ const Attendance = () => {
         <h2 className="font-bold text-sm sm:text-base mb-2 text-center">
           توزيع الحضور
         </h2>
-        <div className="h-45 sm:h-55">
+        <div className="h-44 sm:h-52 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -263,15 +299,15 @@ const Attendance = () => {
           variants={itemVariants}
           className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4"
         >
-          <h2 className="font-bold text-sm sm:text-base mb-3 flex items-center gap-2">
+          <h2 className="font-bold text-sm sm:text-base mb-3 flex items-center gap-2 justify-center">
             <TrendingUp size={16} className="text-[#009966]" />
             الإحصائيات الشهرية
           </h2>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-3">
             {monthlyStats.slice(0, 6).map((month, idx) => (
               <div key={idx} className="flex items-center gap-2 sm:gap-3">
-                <span className="text-xs sm:text-sm text-gray-600 w-16 sm:w-20 shrink-0">
-                  {month.month}
+                <span className="text-xs sm:text-sm text-gray-600 w-20 sm:w-24 shrink-0 text-center">
+                  {formatMonth(month.month)}
                 </span>
                 <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
@@ -281,7 +317,7 @@ const Attendance = () => {
                     className="h-full bg-green-500 rounded-full"
                   />
                 </div>
-                <span className="text-xs sm:text-sm font-bold text-green-600 w-12 text-left shrink-0">
+                <span className="text-xs sm:text-sm font-bold text-green-600 w-12 text-center shrink-0">
                   {month.attendance_percentage}%
                 </span>
               </div>
@@ -293,11 +329,11 @@ const Attendance = () => {
       {/* Filter Tabs */}
       <motion.div
         variants={itemVariants}
-        className="flex gap-1.5 sm:gap-2 border-b border-gray-200 pb-2 flex-wrap"
+        className="flex gap-1.5 sm:gap-2 pb-2 flex-wrap justify-center"
       >
         <button
           onClick={() => setFilter("all")}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition ${
+          className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition ${
             filter === "all"
               ? "bg-blue-600 text-white"
               : "bg-white text-gray-500 border border-gray-200 hover:border-blue-300"
@@ -307,7 +343,7 @@ const Attendance = () => {
         </button>
         <button
           onClick={() => setFilter("present")}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition ${
+          className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition ${
             filter === "present"
               ? "bg-green-600 text-white"
               : "bg-white text-gray-500 border border-gray-200 hover:border-green-300"
@@ -317,7 +353,7 @@ const Attendance = () => {
         </button>
         <button
           onClick={() => setFilter("absent")}
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition ${
+          className={`px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold transition ${
             filter === "absent"
               ? "bg-red-600 text-white"
               : "bg-white text-gray-500 border border-gray-200 hover:border-red-300"
@@ -327,86 +363,28 @@ const Attendance = () => {
         </button>
       </motion.div>
 
-      {/* History List - Mobile */}
-      <motion.div variants={itemVariants} className="sm:hidden">
-        {filteredHistory.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-8">لا يوجد سجل</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {filteredHistory.map((record, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                      record.status === "present" ? "bg-green-50" : "bg-red-50"
-                    }`}
-                  >
-                    <Check
-                      size={16}
-                      className={
-                        record.status === "present"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-sm font-bold block truncate">
-                      {new Date(record.attendance_date).toLocaleDateString(
-                        "ar-EG",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        },
-                      )}
-                    </span>
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <Clock size={11} />
-                      {record.attendance_time || "-"}
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
-                    record.status === "present"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {record.status === "present" ? "حاضر" : "غائب"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </motion.div>
-
-      {/* History Table - Desktop */}
+      {/* History Table */}
       <motion.div
         variants={itemVariants}
-        className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden"
+        className="bg-white rounded-xl border border-gray-200 overflow-hidden"
       >
-        <div className="overflow-x-auto max-h-100 overflow-y-auto">
-          <table className="w-full min-w-100">
+        <div className="overflow-x-auto overflow-y-auto max-h-100">
+          <table className="w-full min-w-125">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
                   التاريخ
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
                   اليوم
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
                   الوقت
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
                   الطريقة
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">
+                <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
                   الحالة
                 </th>
               </tr>
@@ -424,30 +402,26 @@ const Attendance = () => {
               ) : (
                 filteredHistory.map((record, idx) => (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-gray-800">
-                      {new Date(record.attendance_date).toLocaleDateString(
-                        "ar-EG",
-                        {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        },
-                      )}
+                    <td className="px-4 py-3 text-sm text-center text-gray-800 whitespace-nowrap">
+                      {formatDate(record.attendance_date)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap">
                       {record.day_name || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {record.attendance_time || "-"}
+                    <td
+                      className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap"
+                      dir="ltr"
+                    >
+                      {formatTime(record.attendance_time)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap">
                       {record.method === "barcode"
                         ? "باركود"
                         : record.method === "manual"
                           ? "يدوي"
                           : "-"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
                       <span
                         className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
                           record.status === "present"
@@ -473,23 +447,25 @@ const Attendance = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition"
+            className="flex items-center gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-gray-50 transition text-gray-600"
           >
+            <ChevronRight size={14} />
             السابق
           </button>
-          <span className="text-sm text-gray-600">
-            {page} / {totalPages}
+          <span className="text-sm text-gray-600 font-bold">
+            {page} من {totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition"
+            className="flex items-center gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-gray-50 transition text-gray-600"
           >
             التالي
+            <ChevronLeft size={14} />
           </button>
         </div>
       )}

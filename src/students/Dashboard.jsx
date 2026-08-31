@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Accent from "../assets/Accent.svg";
+import { notifySuccess } from "../lib/notify"; // ✅ جديد
 import {
   CalendarCheck2,
   BarChart3,
@@ -17,7 +18,7 @@ import {
   AlertCircle,
   Clock,
   GraduationCap,
-  Users,
+  Loader2,
 } from "lucide-react";
 import {
   PieChart,
@@ -42,7 +43,6 @@ import {
   fetchPaperExams,
 } from "../api/student/actions";
 import getUser from "../utils/getUser";
-import getImageUrl from "../utils/imageUrl";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
@@ -52,7 +52,7 @@ const Dashboard = () => {
   const user = getUser();
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState(null);
-  const [availableExams, setAvailableExams] = useState([]);
+  const [allExams, setAllExams] = useState([]);
   const [playlists, setPlaylists] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
@@ -88,7 +88,7 @@ const Dashboard = () => {
 
       if (profileRes.success) setProfile(profileRes.data);
       if (statsRes.success) setStats(statsRes.data);
-      if (examsRes.success) setAvailableExams(examsRes.data || []);
+      if (examsRes.success) setAllExams(examsRes.data || []);
       if (playlistsRes.success) setPlaylists(playlistsRes.data || []);
       if (paymentsRes.success) setPaymentHistory(paymentsRes.data || []);
       if (attendanceRes.success) setAttendanceHistory(attendanceRes.data || []);
@@ -106,11 +106,22 @@ const Dashboard = () => {
     loadData();
   }, [loadData]);
 
+  // ✅ تحديث مع لودر ورسالة نجاح
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+    notifySuccess("تم تحديث البيانات بنجاح");
   };
+
+  const availableExams = useMemo(() => {
+    const now = Date.now();
+    return allExams.filter((exam) => {
+      const startTime = new Date(exam.start_at).getTime();
+      const endTime = new Date(exam.end_at).getTime();
+      return now >= startTime && now <= endTime && !exam.attempted;
+    });
+  }, [allExams]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -247,15 +258,23 @@ const Dashboard = () => {
                 year: "numeric",
               })}
             </span>
+            {/* ✅ زرار التحديث مع لودر */}
             <button
               onClick={handleRefresh}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition self-start sm:self-auto"
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition self-start sm:self-auto disabled:opacity-70"
             >
-              <RefreshCw
-                size={12}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              تحديث
+              {refreshing ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  جاري التحديث...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={12} />
+                  تحديث
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -418,7 +437,7 @@ const Dashboard = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs sm:text-sm font-bold block truncate">
-                  {nextExam.title}
+                  {nextExam.title || nextExam.exam_title}
                 </span>
                 <span className="text-[10px] sm:text-xs text-gray-500 flex items-center gap-1">
                   <Clock size={10} />

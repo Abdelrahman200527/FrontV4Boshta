@@ -14,6 +14,7 @@ import StudentCourses from "./students/Courses.jsx";
 import StudentDegrees from "./students/Degrees.jsx";
 import StudentExams from "./students/Exams.jsx";
 import StudentExamTaking from "./students/ExamTaking.jsx";
+import StudentExamReview from "./students/ExamReview.jsx"; // ✅ جديد
 import StudentHomework from "./students/Homework.jsx";
 import StudentProfile from "./students/Profile.jsx";
 import StudentWatchVideo from "./students/WatchVideo.jsx";
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
       { path: "degrees", Component: StudentDegrees },
       { path: "exams", Component: StudentExams },
       { path: "exams/:examId", Component: StudentExamTaking },
+      { path: "exams/review/:attemptId", Component: StudentExamReview }, // ✅ جديد
       { path: "homework", Component: StudentHomework },
       { path: "profile", Component: StudentProfile },
     ],
@@ -117,7 +119,6 @@ export const router = createBrowserRouter([
       { index: true, Component: AssistantManagementDashboard },
       { path: "profile", Component: AssistantProfile },
 
-      // Online section
       { path: "online/videos", Component: AssistantOnlineVideos },
       {
         path: "online/videos/watch/:videoId",
@@ -126,7 +127,6 @@ export const router = createBrowserRouter([
       { path: "online/exams", Component: AssistantOnlineExams },
       { path: "online/homework", Component: AssistantOnlineHomework },
 
-      // Management section
       { path: "management", Component: AssistantManagementDashboard },
       { path: "management/students", Component: AssistantManagementStudents },
       {
