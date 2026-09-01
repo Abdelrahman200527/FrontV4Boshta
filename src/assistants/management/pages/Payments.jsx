@@ -100,6 +100,7 @@ const Payments = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [studentSubscriptions, setStudentSubscriptions] = useState([]);
+  
   // ✅ الوقت بتوقيت القاهرة (UTC+3)
   const getCurrentDateTime = () => {
     const now = new Date();
@@ -116,6 +117,50 @@ const Payments = () => {
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
   const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+
+  // ✅ دالة لتحويل التاريخ لصيغة datetime-local
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return getCurrentDateTime();
+    
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().slice(0, 16);
+      }
+    } catch (e) {}
+    
+    // لو التاريخ بصيغة ISO
+    if (typeof dateStr === 'string' && dateStr.includes('T')) {
+      return dateStr.slice(0, 16);
+    }
+    
+    // لو التاريخ بصيغة 'MM/DD/YYYY, HH:MM:SS AM'
+    if (typeof dateStr === 'string' && dateStr.includes('/')) {
+      try {
+        const parts = dateStr.split(', ');
+        const dateParts = parts[0].split('/');
+        const timeParts = parts[1].split(' ');
+        const time = timeParts[0].split(':');
+        const period = timeParts[1];
+        
+        let hours = parseInt(time[0]);
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        
+        const date = new Date(
+          parseInt(dateParts[2]),
+          parseInt(dateParts[0]) - 1,
+          parseInt(dateParts[1]),
+          hours,
+          parseInt(time[1])
+        );
+        
+        return date.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+    
+    return getCurrentDateTime();
+  };
 
   const loadData = () =>
     invalidate(qk.payments.statuses, ["payments"], qk.assistant.dashboard);
@@ -355,15 +400,14 @@ const Payments = () => {
     }
   };
 
+  // ✅ تعديل الدالة editPayment عشان تحول التاريخ للصيغة الصحيحة
   const editPayment = (paymentData) => {
     setPayment({
       id: paymentData.id,
       student_id: paymentData.student_id,
       subscription_id: paymentData.subscription_id,
       amount: paymentData.amount,
-      payment_date: paymentData.payment_date
-        ? paymentData.payment_date.slice(0, 16)
-        : getCurrentDateTime(),
+      payment_date: formatDateForInput(paymentData.payment_date),
       notes: paymentData.notes || "",
     });
     setIsEditing(true);
@@ -1025,15 +1069,6 @@ const Payments = () => {
                                     >
                                       <Pencil size={14} />
                                     </motion.button>
-                                    {/* <motion.button
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      onClick={() => removePaymentById(p.id)}
-                                      className="p-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all"
-                                      title="حذف"
-                                    >
-                                      <Trash2 size={14} />
-                                    </motion.button> */}
                                   </div>
                                 </td>
                               </motion.tr>
