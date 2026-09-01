@@ -118,49 +118,56 @@ const Payments = () => {
   const currentYear = now.getFullYear();
   const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
-  // ✅ دالة لتحويل التاريخ لصيغة datetime-local
-  const formatDateForInput = (dateStr) => {
-    if (!dateStr) return getCurrentDateTime();
-    
+  // ✅ دالة لتحويل التاريخ لصيغة datetime-local مع تعويض فرق التوقيت
+const formatDateForInput = (dateStr) => {
+  if (!dateStr) return getCurrentDateTime();
+  
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      // ✅ نضيف 3 ساعات عشان نعوض فرق التوقيت
+      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+      return cairoDate.toISOString().slice(0, 16);
+    }
+  } catch (e) {}
+  
+  // لو التاريخ بصيغة ISO
+  if (typeof dateStr === 'string' && dateStr.includes('T')) {
     try {
       const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().slice(0, 16);
-      }
+      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+      return cairoDate.toISOString().slice(0, 16);
     } catch (e) {}
-    
-    // لو التاريخ بصيغة ISO
-    if (typeof dateStr === 'string' && dateStr.includes('T')) {
-      return dateStr.slice(0, 16);
-    }
-    
-    // لو التاريخ بصيغة 'MM/DD/YYYY, HH:MM:SS AM'
-    if (typeof dateStr === 'string' && dateStr.includes('/')) {
-      try {
-        const parts = dateStr.split(', ');
-        const dateParts = parts[0].split('/');
-        const timeParts = parts[1].split(' ');
-        const time = timeParts[0].split(':');
-        const period = timeParts[1];
-        
-        let hours = parseInt(time[0]);
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        
-        const date = new Date(
-          parseInt(dateParts[2]),
-          parseInt(dateParts[0]) - 1,
-          parseInt(dateParts[1]),
-          hours,
-          parseInt(time[1])
-        );
-        
-        return date.toISOString().slice(0, 16);
-      } catch (e) {}
-    }
-    
-    return getCurrentDateTime();
-  };
+  }
+  
+  // لو التاريخ بصيغة 'MM/DD/YYYY, HH:MM:SS AM'
+  if (typeof dateStr === 'string' && dateStr.includes('/')) {
+    try {
+      const parts = dateStr.split(', ');
+      const dateParts = parts[0].split('/');
+      const timeParts = parts[1].split(' ');
+      const time = timeParts[0].split(':');
+      const period = timeParts[1];
+      
+      let hours = parseInt(time[0]);
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      const date = new Date(
+        parseInt(dateParts[2]),
+        parseInt(dateParts[0]) - 1,
+        parseInt(dateParts[1]),
+        hours,
+        parseInt(time[1])
+      );
+      
+      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+      return cairoDate.toISOString().slice(0, 16);
+    } catch (e) {}
+  }
+  
+  return getCurrentDateTime();
+};
 
   const loadData = () =>
     invalidate(qk.payments.statuses, ["payments"], qk.assistant.dashboard);
