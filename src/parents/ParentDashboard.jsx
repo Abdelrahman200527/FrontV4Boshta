@@ -203,7 +203,7 @@ const ParentDashboard = () => {
             </div>
 
             {/* Stats in Hero */}
-            <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="grid grid-cols-2 gap-2 mt-4">
               <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
                 <span className="text-xl sm:text-2xl font-bold text-white block">
                   {attendance?.attendance_percentage || 0}%
@@ -216,12 +216,10 @@ const ParentDashboard = () => {
                 </span>
                 <span className="text-[10px] sm:text-xs text-white/70">الامتحانات</span>
               </div>
-              <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
+              {/* <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center">
                 <span className="text-xl sm:text-2xl font-bold text-white block">
-                  {payments?.remaining || 0}
                 </span>
-                <span className="text-[10px] sm:text-xs text-white/70">المتبقي</span>
-              </div>
+              </div> */}
             </div>
           </div>
 
@@ -272,7 +270,7 @@ const ParentDashboard = () => {
                 </span>
               </div>
             </div>
-
+{/* 
             <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2.5">
               <Wallet className="text-orange-600 w-5 h-5 shrink-0" />
               <div className="min-w-0">
@@ -283,7 +281,7 @@ const ParentDashboard = () => {
                   مطلوب: {payments?.total_required || 0}
                 </span>
               </div>
-            </div>
+            </div> */}
 
             <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2.5">
               <FileCheck2 className="text-purple-600 w-5 h-5 shrink-0" />

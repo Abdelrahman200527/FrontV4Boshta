@@ -586,8 +586,8 @@ const formatDateForInput = (dateStr) => {
               color: "red",
             },
             {
-              label: "إجمالي المطلوب",
-              value: `${overallStats.total_required || 0} ج`,
+              label: "إجمالي المدفوع",
+              value: `${overallStats.total_paid || 0} ج`,
               icon: DollarSign,
               color: "green",
             },
@@ -760,6 +760,7 @@ const formatDateForInput = (dateStr) => {
                                 </div>
                                 <div className="text-xs text-gray-500 flex items-center gap-1">
                                   <Building2 size={10} />
+                                  سعر :{" "}
                                   {student.grade_name || "—"} •{" "}
                                   {student.group_name || "بدون مجموعة"}
                                 </div>

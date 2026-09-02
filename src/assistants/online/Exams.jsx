@@ -66,7 +66,7 @@ const Exams = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [examAttemptsMap, setExamAttemptsMap] = useState({});
-  const [isSaving, setIsSaving] = useState(false); // ✅ حالة الحفظ
+  const [isSaving, setIsSaving] = useState(false);
 
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
@@ -102,6 +102,30 @@ const Exams = () => {
   const [gradingAnswers, setGradingAnswers] = useState([]);
   const [gradingLoading, setGradingLoading] = useState(false);
   const [gradingSubmittingId, setGradingSubmittingId] = useState(null);
+
+  // ✅ دالة لتحويل التاريخ لصيغة datetime-local مع تعويض فرق التوقيت
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        // نضيف 3 ساعات عشان نعوض فرق التوقيت
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      }
+    } catch (e) {}
+    
+    if (typeof dateStr === 'string' && dateStr.includes('T')) {
+      try {
+        const date = new Date(dateStr);
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+    
+    return "";
+  };
 
   useEffect(() => {
     loadGrades();
@@ -210,8 +234,8 @@ const Exams = () => {
         grade_id: exam.grade_id || "",
         group_id: exam.group_id || "",
         duration_minutes: exam.duration_minutes || "",
-        start_at: exam.start_at ? exam.start_at.slice(0, 16) : "",
-        end_at: exam.end_at ? exam.end_at.slice(0, 16) : "",
+        start_at: formatDateForInput(exam.start_at),
+        end_at: formatDateForInput(exam.end_at),
         full_mark: exam.full_mark || "",
         randomize_questions: Number(exam.randomize_questions) === 1 ? 1 : 0,
       });
@@ -432,7 +456,6 @@ const Exams = () => {
   };
 
   const saveExam = async () => {
-    // ✅ منع الحفظ المزدوج
     if (isSaving) return;
 
     setMessage(null);
@@ -505,7 +528,6 @@ const Exams = () => {
       }
     }
 
-    // ✅ تفعيل حالة الحفظ
     setIsSaving(true);
 
     try {
@@ -610,7 +632,6 @@ const Exams = () => {
       setMessage({ type: "error", text: "حدث خطأ أثناء الحفظ" });
       console.error(error);
     } finally {
-      // ✅ إلغاء حالة الحفظ بغض النظر عن النتيجة
       setIsSaving(false);
     }
   };
