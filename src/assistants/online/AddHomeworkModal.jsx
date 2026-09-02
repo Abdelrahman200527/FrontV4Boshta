@@ -12,7 +12,7 @@ const AddHomeworkModal = ({
   onSubmit = async (data) => console.log("homework:", data),
   requireFile = false,
   accept = ".pdf,.doc,.docx",
-  editingAssignment = null, // ✅ جديد
+  editingAssignment = null,
 }) => {
   const fileRef = useRef(null);
   const [form, setForm] = useState({
@@ -22,15 +22,39 @@ const AddHomeworkModal = ({
     groupId: "",
     deadline: "",
     maxScore: "",
-    isClosed: 0, // ✅ جديد
+    isClosed: 0,
   });
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [localGroups, setLocalGroups] = useState(groups); // ✅ مجموعات محلية
+  const [localGroups, setLocalGroups] = useState(groups);
 
-  // ✅ تعبئة البيانات عند التعديل
+  // ✅ دالة لتحويل التاريخ لصيغة datetime-local
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        // نضيف 3 ساعات عشان نعوض فرق التوقيت
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      }
+    } catch (e) {}
+    
+    if (typeof dateStr === 'string' && dateStr.includes('T')) {
+      try {
+        const date = new Date(dateStr);
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+    
+    return "";
+  };
+
+  // ✅ تعبئة البيانات عند التعديل مع تحويل التاريخ
   useEffect(() => {
     if (editingAssignment) {
       setForm({
@@ -38,7 +62,7 @@ const AddHomeworkModal = ({
         description: editingAssignment.description || "",
         gradeId: editingAssignment.grade_id || "",
         groupId: editingAssignment.group_id || "",
-        deadline: editingAssignment.deadline?.slice(0, 16) || "",
+        deadline: formatDateForInput(editingAssignment.deadline),
         maxScore: editingAssignment.full_mark || "",
         isClosed: editingAssignment.is_closed || 0,
       });
@@ -219,7 +243,7 @@ const AddHomeworkModal = ({
             </div>
           </div>
 
-          {/* ✅ is_closed toggle */}
+          {/* is_closed toggle */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700">
               إغلاق الواجب (منع التسليم)
