@@ -179,7 +179,7 @@ const TemplateCard = memo(function TemplateCard({ meta, template, onChange, onSa
 
       <p className="text-xs text-gray-400 mb-3">{meta.hint}</p>
 
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      {/* <div className="flex items-center gap-2 mb-3 flex-wrap">
         <span className="text-xs text-gray-500">تتبعت لمين؟</span>
         {SEND_TO.map((option) => {
           const OptionIcon = option.icon;
@@ -199,7 +199,7 @@ const TemplateCard = memo(function TemplateCard({ meta, template, onChange, onSa
             </button>
           );
         })}
-      </div>
+      </div> */}
 
 
       <div className="flex items-center justify-end gap-2 mt-3 flex-wrap">
