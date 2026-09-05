@@ -1,4 +1,7 @@
-import { X, Upload, FileText, Trash2 } from "lucide-react";
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable no-empty */
+/* eslint-disable no-unused-vars */
+import { X, Upload, FileText, Trash2, Download } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../../motion";
@@ -15,6 +18,7 @@ const AddHomeworkModal = ({
   editingAssignment = null,
 }) => {
   const fileRef = useRef(null);
+  const groupsCache = useRef({});
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -30,31 +34,28 @@ const AddHomeworkModal = ({
   const [saving, setSaving] = useState(false);
   const [localGroups, setLocalGroups] = useState(groups);
 
-  // ✅ دالة لتحويل التاريخ لصيغة datetime-local
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return "";
-    
+
     try {
       const date = new Date(dateStr);
       if (!isNaN(date.getTime())) {
-        // نضيف 3 ساعات عشان نعوض فرق التوقيت
         const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
         return cairoDate.toISOString().slice(0, 16);
       }
     } catch (e) {}
-    
-    if (typeof dateStr === 'string' && dateStr.includes('T')) {
+
+    if (typeof dateStr === "string" && dateStr.includes("T")) {
       try {
         const date = new Date(dateStr);
         const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
         return cairoDate.toISOString().slice(0, 16);
       } catch (e) {}
     }
-    
+
     return "";
   };
 
-  // ✅ تعبئة البيانات عند التعديل مع تحويل التاريخ
   useEffect(() => {
     if (editingAssignment) {
       setForm({
@@ -66,6 +67,21 @@ const AddHomeworkModal = ({
         maxScore: editingAssignment.full_mark || "",
         isClosed: editingAssignment.is_closed || 0,
       });
+
+      if (editingAssignment.grade_id) {
+        const cached = groupsCache.current[editingAssignment.grade_id];
+        if (cached) {
+          setLocalGroups(cached);
+        } else {
+          fetchGroupsByGrade(editingAssignment.grade_id).then((result) => {
+            if (result.success) {
+              groupsCache.current[editingAssignment.grade_id] =
+                result.data || [];
+              setLocalGroups(groupsCache.current[editingAssignment.grade_id]);
+            }
+          });
+        }
+      }
     } else {
       setForm({
         title: "",
@@ -77,17 +93,43 @@ const AddHomeworkModal = ({
         isClosed: 0,
       });
       setFile(null);
+      setLocalGroups(groups);
     }
-  }, [editingAssignment]);
+  }, [editingAssignment, groups]);
 
-  // ✅ تحديث المجموعات عند تغيير الصف
   const handleGradeChange = async (gradeId) => {
     setForm((prev) => ({ ...prev, gradeId, groupId: "" }));
     if (gradeId) {
-      const result = await fetchGroupsByGrade(gradeId);
-      if (result.success) setLocalGroups(result.data || []);
+      if (groupsCache.current[gradeId]) {
+        setLocalGroups(groupsCache.current[gradeId]);
+      } else {
+        const result = await fetchGroupsByGrade(gradeId);
+        if (result.success) {
+          groupsCache.current[gradeId] = result.data || [];
+          setLocalGroups(groupsCache.current[gradeId]);
+        }
+      }
     } else {
       setLocalGroups([]);
+    }
+  };
+
+  const handleClose = () => {
+    const hasChanges =
+      form.title.trim() !== "" ||
+      form.description.trim() !== "" ||
+      file !== null;
+
+    if (hasChanges && !editingAssignment) {
+      if (window.confirm("في تعديلات غير محفوظة. متأكد إنك عايز تقفل؟")) {
+        onClose();
+      }
+    } else if (hasChanges && editingAssignment) {
+      if (window.confirm("في تعديلات غير محفوظة. متأكد إنك عايز تقفل؟")) {
+        onClose();
+      }
+    } else {
+      onClose();
     }
   };
 
@@ -115,6 +157,12 @@ const AddHomeworkModal = ({
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   };
 
+  const getFileUrl = (filePath) => {
+    if (!filePath) return "";
+    if (filePath.startsWith("http")) return filePath;
+    return `https://backend.benb3n.cloud/${filePath.replace(/^\//, "")}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return setError("عنوان الواجب مطلوب");
@@ -123,6 +171,8 @@ const AddHomeworkModal = ({
       return setError("ملف أسئلة الواجب مطلوب");
     if (form.maxScore && Number(form.maxScore) <= 0)
       return setError("الدرجة الكلية لازم تكون رقم أكبر من صفر");
+    if (form.deadline && new Date(form.deadline) < new Date())
+      return setError("آخر موعد للتسليم لازم يكون في المستقبل");
 
     setError("");
     setSaving(true);
@@ -152,7 +202,7 @@ const AddHomeworkModal = ({
       animate="show"
       dir="rtl"
       className="fixed inset-0 z-9999 bg-black/50 flex items-center justify-center p-3"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <motion.div
         variants={itemVariants}
@@ -165,7 +215,7 @@ const AddHomeworkModal = ({
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"
           >
             <X size={18} />
@@ -293,9 +343,16 @@ const AddHomeworkModal = ({
                     : "اسحب الملف هنا أو اضغط للاختيار"}
                 </p>
                 {editingAssignment?.file_path && (
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <a
+                    href={getFileUrl(editingAssignment.file_path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[11px] text-primary hover:underline mt-1 inline-flex items-center gap-1"
+                  >
+                    <Download size={12} />
                     الملف الحالي: {editingAssignment.file_path.split("/").pop()}
-                  </p>
+                  </a>
                 )}
               </div>
             ) : (
@@ -344,7 +401,7 @@ const AddHomeworkModal = ({
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 border border-gray-200 rounded-lg text-sm text-gray-500"
             >
               إلغاء

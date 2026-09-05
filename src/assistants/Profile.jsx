@@ -1,5 +1,18 @@
-import { useState, useEffect } from "react";
-import { User, Lock, Eye, EyeOff, Phone, Camera, X, Shield, Calendar } from "lucide-react";
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable no-unused-vars */
+import { useState, useEffect, useCallback } from "react";
+import {
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Phone,
+  Camera,
+  X,
+  Shield,
+  Calendar,
+  RefreshCw,
+} from "lucide-react";
 import {
   changeAssistantPassword,
   fetchAssistantProfile,
@@ -9,13 +22,13 @@ import {
 import getUser from "../utils/getUser";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
-
-const BACKEND_URL = "https://backend.benb3n.cloud";
+import config from "../config";
 
 function resolveImageUrl(path) {
   if (!path) return null;
   if (path.startsWith("http") || path.startsWith("data:")) return path;
-  return `${BACKEND_URL}/${path.replace(/^\/+/, "")}`;
+  const baseUrl = config.apiUrl.replace("/api", "");
+  return `${baseUrl}/${path.replace(/^\/+/, "")}`;
 }
 
 const Profile = () => {
@@ -36,16 +49,12 @@ const Profile = () => {
   const [imageUploading, setImageUploading] = useState(false);
   const [imageMessage, setImageMessage] = useState(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const result = await fetchAssistantProfile();
-      if (result.success) {
+      if (result.success && result.data) {
         setProfileData(result.data);
         if (result.data.profile_image) {
           setProfileImage(resolveImageUrl(result.data.profile_image));
@@ -59,7 +68,16 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const getInitial = (name) => {
+    if (!name) return "؟";
+    return String(name).trim().charAt(0).toUpperCase() || "؟";
+  };
 
   const handleChangePassword = async () => {
     setMessage(null);
@@ -87,7 +105,7 @@ const Profile = () => {
       const result = await changeAssistantPassword(
         oldPassword,
         newPassword,
-        confirmPassword
+        confirmPassword,
       );
 
       if (result.success) {
@@ -96,7 +114,10 @@ const Profile = () => {
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        setMessage({ type: "error", text: result.error || "حدث خطأ في تغيير كلمة السر" });
+        setMessage({
+          type: "error",
+          text: result.error || "حدث خطأ في تغيير كلمة السر",
+        });
       }
     } catch (error) {
       console.error("Error changing password:", error);
@@ -110,32 +131,40 @@ const Profile = () => {
     const file = event.target.files[0];
     if (!file) return;
 
+    // ✅ Validation: تأكد إن الملف صورة
+    if (!file.type.startsWith("image/")) {
+      setImageMessage({ type: "error", text: "يرجى اختيار ملف صورة" });
+      return;
+    }
+
     setImageUploading(true);
     setImageMessage(null);
     try {
-      // اعرض معاينة فورية
       const reader = new FileReader();
       reader.onload = (e) => setProfileImage(e.target.result);
       reader.readAsDataURL(file);
 
-      // ارفع الصورة للسيرفر
       const formData = new FormData();
       formData.append("image", file);
       const result = await updateAssistantProfileImageAction(formData);
 
       if (result.success) {
-        // لو الـ API رجّع المسار الجديد، حدّث البيانات بيه
-        const newPath = result.data?.profile_image || result.data?.data?.profile_image;
+        const newPath =
+          result.data?.profile_image || result.data?.data?.profile_image;
         if (newPath) {
           setProfileImage(resolveImageUrl(newPath));
-          setProfileData((prev) => (prev ? { ...prev, profile_image: newPath } : prev));
+          setProfileData((prev) =>
+            prev ? { ...prev, profile_image: newPath } : prev,
+          );
         }
-        setImageMessage({ type: "success", text: "تم تحديث الصورة بنجاح ✅" });
+        setImageMessage({ type: "success", text: "تم تحديث الصورة بنجاح" });
         setShowImageOptions(false);
       } else {
-        // فشل الرفع — رجّع الصورة القديمة
         setProfileImage(resolveImageUrl(profileData?.profile_image));
-        setImageMessage({ type: "error", text: result.error || "فشل رفع الصورة" });
+        setImageMessage({
+          type: "error",
+          text: result.error || "فشل رفع الصورة",
+        });
       }
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -153,11 +182,16 @@ const Profile = () => {
       const result = await deleteAssistantProfileImageAction();
       if (result.success) {
         setProfileImage(null);
-        setProfileData((prev) => (prev ? { ...prev, profile_image: null } : prev));
-        setImageMessage({ type: "success", text: "تم حذف الصورة ✅" });
+        setProfileData((prev) =>
+          prev ? { ...prev, profile_image: null } : prev,
+        );
+        setImageMessage({ type: "success", text: "تم حذف الصورة" });
         setShowImageOptions(false);
       } else {
-        setImageMessage({ type: "error", text: result.error || "فشل حذف الصورة" });
+        setImageMessage({
+          type: "error",
+          text: result.error || "فشل حذف الصورة",
+        });
       }
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -170,40 +204,41 @@ const Profile = () => {
   const displayName = profileData?.full_name || user?.full_name || "غير معروف";
   const displayPhone = profileData?.phone || user?.phone || "غير معروف";
   const displayRole = profileData?.role || user?.role || "غير معروف";
-  const displayPermissions = profileData?.permissions || user?.permissions || "-";
+  const displayPermissions =
+    profileData?.permissions || user?.permissions || "-";
   const displayImage = resolveImageUrl(profileData?.profile_image);
 
   const getRoleName = (role) => {
     const roles = {
-      'super_admin': 'مدير عام',
-      'admin': 'مدير',
-      'assistant': 'مساعد',
-      'teacher': 'معلم',
-      'student': 'طالب',
-      'parent': 'ولي أمر',
+      super_admin: "مدير عام",
+      admin: "مدير",
+      assistant: "مساعد",
+      teacher: "معلم",
+      student: "طالب",
+      parent: "ولي أمر",
     };
-    return roles[role] || role || 'غير معروف';
+    return roles[role] || role || "غير معروف";
   };
 
   const getPermissionsName = (permissions) => {
     const perms = {
-      'center_management': 'إدارة المركز',
-      'online_management': 'إدارة أونلاين',
-      'full_access': 'صلاحية كاملة',
-      'view_only': 'عرض فقط',
+      center_management: "إدارة المركز",
+      online_management: "إدارة أونلاين",
+      full_access: "صلاحية كاملة",
+      view_only: "عرض فقط",
     };
-    return perms[permissions] || permissions || '-';
+    return perms[permissions] || permissions || "-";
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     const date = new Date(dateStr);
-    return date.toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -226,21 +261,38 @@ const Profile = () => {
       className="w-full min-h-screen"
       dir="rtl"
     >
-      <motion.div variants={itemVariants} className="max-w-xl mx-auto flex flex-col gap-4">
-        {/* Header */}
-        <header>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            الملف الشخصي
-          </h1>
-          <span className="text-gray-500 text-sm">بيانات الحساب</span>
+      <motion.div
+        variants={itemVariants}
+        className="max-w-xl mx-auto flex flex-col gap-4"
+      >
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              الملف الشخصي
+            </h1>
+            <span className="text-gray-500 text-sm">بيانات الحساب</span>
+          </div>
+          <button
+            onClick={loadProfile}
+            disabled={loading}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+            title="تحديث"
+          >
+            <RefreshCw
+              size={18}
+              className={
+                loading ? "animate-spin text-primary" : "text-gray-400"
+              }
+            />
+          </button>
         </header>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-            {error}
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center justify-between">
+            <span>{error}</span>
             <button
               onClick={() => setError(null)}
-              className="mr-4 text-red-500 hover:text-red-700"
+              className="text-red-500 hover:text-red-700"
             >
               ✕
             </button>
@@ -252,7 +304,7 @@ const Profile = () => {
           <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
             <div className="relative group">
               <div
-                className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-green-600 flex items-center justify-center text-white overflow-hidden border-2 border-green-200 cursor-pointer relative shadow-md"
+                className="w-16 h-16 rounded-full bg-linear-to-br from-primary to-green-600 flex items-center justify-center text-white overflow-hidden border-2 border-green-200 cursor-pointer relative shadow-md"
                 onClick={() => setShowImageOptions(true)}
               >
                 {profileImage ? (
@@ -269,7 +321,7 @@ const Profile = () => {
                   />
                 ) : (
                   <span className="text-2xl font-bold">
-                    {displayName.charAt(0).toUpperCase()}
+                    {getInitial(displayName)}
                   </span>
                 )}
 
@@ -309,14 +361,18 @@ const Profile = () => {
               </span>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 sm:col-span-2">
-              <span className="text-xs text-gray-500 block mb-1">الصلاحيات</span>
+              <span className="text-xs text-gray-500 block mb-1">
+                الصلاحيات
+              </span>
               <span className="font-bold text-sm text-gray-800">
                 {getPermissionsName(displayPermissions)}
               </span>
             </div>
             {profileData?.created_at && (
               <div className="bg-gray-50 rounded-lg p-3 sm:col-span-2">
-                <span className="text-xs text-gray-500 block mb-1">تاريخ التسجيل</span>
+                <span className="text-xs text-gray-500 block mb-1">
+                  تاريخ التسجيل
+                </span>
                 <div className="flex items-center gap-2">
                   <Calendar size={14} className="text-gray-400" />
                   <span className="font-bold text-sm text-gray-800">
@@ -413,7 +469,9 @@ const Profile = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-lg text-gray-900">صورة الملف الشخصي</h3>
+              <h3 className="font-bold text-lg text-gray-900">
+                صورة الملف الشخصي
+              </h3>
               <button
                 onClick={() => setShowImageOptions(false)}
                 disabled={imageUploading}
@@ -425,7 +483,7 @@ const Profile = () => {
 
             <div className="flex flex-col gap-3">
               <div className="flex justify-center">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-green-600 flex items-center justify-center text-white overflow-hidden border-2 border-green-200 shadow-md">
+                <div className="w-24 h-24 rounded-full bg-linear-to-br from-primary to-green-600 flex items-center justify-center text-white overflow-hidden border-2 border-green-200 shadow-md">
                   {profileImage ? (
                     <img
                       src={profileImage}
@@ -440,7 +498,7 @@ const Profile = () => {
                     />
                   ) : (
                     <span className="text-3xl font-bold">
-                      {displayName.charAt(0).toUpperCase()}
+                      {getInitial(displayName)}
                     </span>
                   )}
                 </div>

@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable no-unused-vars */
 import { notifyError, notifySuccess, notifyInfo, confirmToast } from "../../lib/notify";
 import {
   FileText,

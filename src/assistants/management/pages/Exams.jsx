@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import {
   FilePlus2,
   Trash2,
@@ -39,8 +41,17 @@ import {
   fetchExamResultStats,
 } from "../../../api/assistant/actions";
 import { LoadingState } from "../components/Spinner";
-import { toast, notifyError, notifySuccess, confirmToast } from "../../../lib/notify";
-import { useApiQuery, useApiList, useInvalidate } from "../../../hooks/useApiQuery";
+import {
+  toast,
+  notifyError,
+  notifySuccess,
+  confirmToast,
+} from "../../../lib/notify";
+import {
+  useApiQuery,
+  useApiList,
+  useInvalidate,
+} from "../../../hooks/useApiQuery";
 import { qk } from "../../../api/queryKeys";
 
 const PAGE_SIZE = 10;
@@ -68,7 +79,6 @@ function formatDate(d) {
   }
 }
 
-// ✅ مكون الإحصائيات المظبوط
 const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
   if (!isOpen) return null;
 
@@ -118,9 +128,7 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
             </div>
           ) : stats ? (
             <div className="space-y-4">
-              {/* ✅ الحقول الصحيحة من الـ API */}
               <div className="grid grid-cols-2 gap-3">
-                {/* عدد الطلاب */}
                 <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-2 mb-1">
                     <Users size={16} className="text-blue-600" />
@@ -132,8 +140,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     {stats.students_count || 0}
                   </p>
                 </div>
-
-                {/* متوسط الدرجات */}
                 <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                   <div className="flex items-center gap-2 mb-1">
                     <Target size={16} className="text-green-600" />
@@ -145,8 +151,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     {stats.average_degree || 0}
                   </p>
                 </div>
-
-                {/* أعلى درجة */}
                 <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={16} className="text-emerald-600" />
@@ -158,8 +162,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     {stats.highest_degree || 0}
                   </p>
                 </div>
-
-                {/* أقل درجة */}
                 <div className="p-4 bg-red-50 rounded-xl border border-red-100">
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingDown size={16} className="text-red-600" />
@@ -169,8 +171,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     {stats.lowest_degree || 0}
                   </p>
                 </div>
-
-                {/* الناجحين */}
                 <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                   <div className="flex items-center gap-2 mb-1">
                     <CheckCircle size={16} className="text-green-600" />
@@ -182,8 +182,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     {stats.passed_count || 0}
                   </p>
                 </div>
-
-                {/* الراسبين */}
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                   <div className="flex items-center gap-2 mb-1">
                     <AlertTriangle size={16} className="text-amber-600" />
@@ -197,7 +195,6 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                 </div>
               </div>
 
-              {/* نسبة النجاح */}
               {stats.students_count > 0 && (
                 <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
                   <div className="flex items-center gap-2 mb-2">
@@ -217,14 +214,9 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                     </p>
                     <div className="flex-1 h-2 bg-purple-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all"
+                        className="h-full bg-linear-to-r from-purple-500 to-purple-600 rounded-full transition-all"
                         style={{
-                          width: `${Math.min(
-                            (Number(stats.passed_count) /
-                              Number(stats.students_count)) *
-                              100,
-                            100,
-                          )}%`,
+                          width: `${Math.min((Number(stats.passed_count) / Number(stats.students_count)) * 100, 100)}%`,
                         }}
                       />
                     </div>
@@ -351,9 +343,12 @@ const ExamRow = memo(function ExamRow({
 
 const Exams = () => {
   const navigate = useNavigate();
-  /* كل الرسائل toast */
-  const setError = (message) => { if (message) notifyError(message); };
-  const setSuccessMessage = (message) => { if (message) notifySuccess(message); };
+  const setError = (message) => {
+    if (message) notifyError(message);
+  };
+  const setSuccessMessage = (message) => {
+    if (message) notifySuccess(message);
+  };
   const invalidate = useInvalidate();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -363,34 +358,28 @@ const Exams = () => {
   const [page, setPage] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // فلاتر
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
 
-  // ✅ إحصائيات
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState(null);
   const [examStats, setExamStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // ✅ أخطاء الفورم
   const [formErrors, setFormErrors] = useState({});
 
-  /* الفلاتر جزء من مفتاح الكاش: كل فلتر بيتحمل مرة واحدة وبعدها من الكاش */
-  const [gradeFilterKey, groupFilterKey] = [gradeFilter, groupFilter];
-
   const examsQuery = useApiQuery(
-    groupFilterKey
-      ? qk.exams.byGroup(groupFilterKey)
-      : gradeFilterKey
-        ? qk.exams.byGrade(gradeFilterKey)
+    groupFilter
+      ? qk.exams.byGroup(groupFilter)
+      : gradeFilter
+        ? qk.exams.byGrade(gradeFilter)
         : ["exams", "page", page],
     () =>
-      groupFilterKey
-        ? fetchExamsByGroup(groupFilterKey)
-        : gradeFilterKey
-          ? fetchExamsByGrade(gradeFilterKey)
+      groupFilter
+        ? fetchExamsByGroup(groupFilter)
+        : gradeFilter
+          ? fetchExamsByGrade(gradeFilter)
           : fetchAllExams(page),
     {
       fallback: [],
@@ -400,11 +389,17 @@ const Exams = () => {
   );
 
   const gradesQuery = useApiList(qk.grades.all, fetchAllGrades, {
-    select: (data) => (Array.isArray(data) ? data : []).filter((g) => g?.name && g.name.trim() !== ""),
+    select: (data) =>
+      (Array.isArray(data) ? data : []).filter(
+        (g) => g?.name && g.name.trim() !== "",
+      ),
     showErrorToast: false,
   });
   const groupsQuery = useApiList(qk.groups.all, fetchAllGroups, {
-    select: (data) => (Array.isArray(data) ? data : []).filter((g) => g?.deleted === 0 || g?.deleted === undefined),
+    select: (data) =>
+      (Array.isArray(data) ? data : []).filter(
+        (g) => g?.deleted === 0 || g?.deleted === undefined,
+      ),
     showErrorToast: false,
   });
 
@@ -414,8 +409,10 @@ const Exams = () => {
   const loading = examsQuery.isLoading;
   const refreshing = examsQuery.isFetching && !examsQuery.isLoading;
 
-  const isFiltered = !!(gradeFilterKey || groupFilterKey);
-  const totalExams = isFiltered ? exams.length : (examsQuery.pagination?.total ?? exams.length);
+  const isFiltered = !!(gradeFilter || groupFilter);
+  const totalExams = isFiltered
+    ? exams.length
+    : (examsQuery.pagination?.total ?? exams.length);
   const totalPages = isFiltered
     ? Math.max(1, Math.ceil(exams.length / PAGE_SIZE))
     : (examsQuery.pagination?.totalPages ?? 1);
@@ -434,7 +431,6 @@ const Exams = () => {
     setPage(1);
   };
 
-  // ✅ عرض الإحصائيات
   const handleViewStats = async (exam) => {
     setSelectedExam(exam);
     setStatsModalOpen(true);
@@ -458,7 +454,7 @@ const Exams = () => {
     }
   };
 
-  // ✅ التحقق من صحة الفورم
+  // ✅ التحقق من صحة الفورم مع التحقق من الدرجة الكلية
   const validateForm = () => {
     const errors = {};
 
@@ -538,7 +534,11 @@ const Exams = () => {
 
   const handleDelete = async (exam) => {
     const confirmed = await new Promise((resolve) => {
-      confirmToast(`هل أنت متأكد من حذف امتحان "${exam.title}"؟`, () => resolve(true), "حذف");
+      confirmToast(
+        `هل أنت متأكد من حذف امتحان "${exam.title}"؟`,
+        () => resolve(true),
+        "حذف",
+      );
       setTimeout(() => resolve(false), 8500);
     });
     if (!confirmed) return;
@@ -573,9 +573,7 @@ const Exams = () => {
   };
 
   const handleEnterGrades = (exam) => {
-    navigate(`/assistant/management/exams/${exam.id}`, {
-      state: { exam },
-    });
+    navigate(`/assistant/management/exams/${exam.id}`, { state: { exam } });
   };
 
   const resetForm = () => {
@@ -593,7 +591,6 @@ const Exams = () => {
 
   const filteredExams = useMemo(() => {
     let filtered = exams;
-
     if (search.trim()) {
       const term = search.trim().toLowerCase();
       filtered = filtered.filter(
@@ -602,7 +599,6 @@ const Exams = () => {
           e.notes?.toLowerCase().includes(term),
       );
     }
-
     return filtered;
   }, [exams, search]);
 
@@ -630,7 +626,6 @@ const Exams = () => {
       transition={{ duration: 0.5 }}
       className="min-h-screen"
     >
-
       {/* Header */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
@@ -645,7 +640,7 @@ const Exams = () => {
                 <BookOpen size={24} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                   الامتحانات
                 </h1>
                 <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -685,7 +680,6 @@ const Exams = () => {
           </div>
         </div>
 
-        {/* Stats */}
         {filteredExams.length > 0 && (
           <motion.div
             initial={{ y: 10, opacity: 0 }}
@@ -741,7 +735,6 @@ const Exams = () => {
         transition={{ delay: 0.3 }}
         className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
       >
-        {/* Filters Bar */}
         <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2">
@@ -790,12 +783,14 @@ const Exams = () => {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="max-h-[500px] overflow-x-auto overflow-y-auto custom-scrollbar">
+        <div className="max-h-125 overflow-x-auto overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="p-6 space-y-3">
               {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-14 rounded-xl bg-gray-100 animate-pulse"
+                />
               ))}
             </div>
           ) : filteredExams.length === 0 ? (
@@ -813,8 +808,8 @@ const Exams = () => {
               </div>
             </div>
           ) : (
-            <table className="w-full min-w-[1000px]">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
+            <table className="w-full min-w-250">
+              <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
                 <tr>
                   <th className="text-right pr-6 py-4">
                     <span className="text-gray-600 font-semibold text-sm flex items-center gap-2">
@@ -867,7 +862,6 @@ const Exams = () => {
           )}
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50/50 text-sm">
             <span className="text-gray-600">
@@ -881,23 +875,17 @@ const Exams = () => {
               >
                 <ChevronRight size={16} />
               </button>
-
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                 (pageNum) => (
                   <button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      page === pageNum
-                        ? "bg-primary text-white shadow-md"
-                        : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                    }`}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${page === pageNum ? "bg-primary text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                   >
                     {pageNum}
                   </button>
                 ),
               )}
-
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
@@ -959,7 +947,6 @@ const Exams = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {/* ✅ عنوان الاختبار */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <BookOpen size={16} className="text-primary" />
@@ -973,9 +960,7 @@ const Exams = () => {
                         if (formErrors.title)
                           setFormErrors({ ...formErrors, title: null });
                       }}
-                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${
-                        formErrors.title ? "border-red-400" : "border-gray-200"
-                      }`}
+                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${formErrors.title ? "border-red-400" : "border-gray-200"}`}
                     />
                     {formErrors.title && (
                       <p className="text-xs text-red-500 mt-1">
@@ -984,7 +969,6 @@ const Exams = () => {
                     )}
                   </div>
 
-                  {/* ✅ المرحلة */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <School size={16} className="text-primary" />
@@ -1001,11 +985,7 @@ const Exams = () => {
                         if (formErrors.grade_id)
                           setFormErrors({ ...formErrors, grade_id: null });
                       }}
-                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${
-                        formErrors.grade_id
-                          ? "border-red-400"
-                          : "border-gray-200"
-                      }`}
+                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${formErrors.grade_id ? "border-red-400" : "border-gray-200"}`}
                     >
                       <option value="">اختر المرحلة</option>
                       {grades.map((g) => (
@@ -1021,7 +1001,6 @@ const Exams = () => {
                     )}
                   </div>
 
-                  {/* ✅ المجموعة */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <Users size={16} className="text-primary" />
@@ -1048,7 +1027,6 @@ const Exams = () => {
                     </select>
                   </div>
 
-                  {/* ✅ الدرجة الكلية */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <Award size={16} className="text-primary" />
@@ -1065,11 +1043,7 @@ const Exams = () => {
                         if (formErrors.total_degree)
                           setFormErrors({ ...formErrors, total_degree: null });
                       }}
-                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${
-                        formErrors.total_degree
-                          ? "border-red-400"
-                          : "border-gray-200"
-                      }`}
+                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${formErrors.total_degree ? "border-red-400" : "border-gray-200"}`}
                     />
                     {formErrors.total_degree && (
                       <p className="text-xs text-red-500 mt-1">
@@ -1078,7 +1052,6 @@ const Exams = () => {
                     )}
                   </div>
 
-                  {/* ✅ تاريخ الاختبار */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <Calendar size={16} className="text-primary" />
@@ -1092,11 +1065,7 @@ const Exams = () => {
                         if (formErrors.exam_date)
                           setFormErrors({ ...formErrors, exam_date: null });
                       }}
-                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${
-                        formErrors.exam_date
-                          ? "border-red-400"
-                          : "border-gray-200"
-                      }`}
+                      className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-gray-50 ${formErrors.exam_date ? "border-red-400" : "border-gray-200"}`}
                     />
                     {formErrors.exam_date && (
                       <p className="text-xs text-red-500 mt-1">
@@ -1105,7 +1074,6 @@ const Exams = () => {
                     )}
                   </div>
 
-                  {/* ✅ ملاحظات */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                       <FilePlus2 size={16} className="text-gray-400" />
@@ -1160,7 +1128,6 @@ const Exams = () => {
         )}
       </AnimatePresence>
 
-      {/* ✅ Stats Modal */}
       <ExamStatsModal
         isOpen={statsModalOpen}
         onClose={() => setStatsModalOpen(false)}

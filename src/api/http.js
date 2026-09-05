@@ -5,6 +5,23 @@ const { apiUrl, apiUserName, apiPassword } = config;
 
 const credential = btoa(`${apiUserName}:${apiPassword}`);
 
+function clearAuthCookies() {
+  document.cookie =
+    "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie =
+    "super_admin_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+function forceLogout() {
+  clearAuthCookies();
+  localStorage.clear();
+  sessionStorage.clear();
+
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
 function getHeaders(isFormData = false) {
   const token = getCookie("auth_token");
   const superAdminKey = getCookie("super_admin_key");
@@ -15,7 +32,6 @@ function getHeaders(isFormData = false) {
     ...(superAdminKey ? { "x-super-admin-key": superAdminKey } : {}),
   };
 
-  // ✅ إزالة Content-Type للـ FormData - المتصفح بيضيفه تلقائياً
   if (!isFormData) {
     headers["Content-Type"] = "application/json";
   }
@@ -40,6 +56,15 @@ async function httpRequest(path, options = {}) {
     }
 
     const data = await response.json().catch(() => null);
+
+    // Check for platform paused - force logout
+    if (response.status === 403 && data?.force_logout) {
+      forceLogout();
+      const error = new Error(data?.message || "المنصة متوقفة حالياً");
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
 
     if (!response.ok) {
       const error = new Error(data?.message || `HTTP ${response.status}`);

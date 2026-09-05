@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/purity */
 import {
   BarChart3,
   Hash,

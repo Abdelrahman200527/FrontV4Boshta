@@ -7,6 +7,49 @@ import {
   httpPostFormData,
   httpPutFormData,
 } from "../http";
+import { getCookie } from "../../utils/cookies";
+import config from "../../config";
+
+const { apiUrl, apiUserName, apiPassword } = config;
+
+const getAuthHeaders = () => {
+  const token = getCookie("auth_token");
+  const credential = btoa(`${apiUserName}:${apiPassword}`);
+
+  return {
+    Authorization: `Basic ${credential}`,
+    "x-client-key": token || "",
+  };
+};
+
+const downloadBlobFile = async (url, fileName) => {
+  const response = await fetch(`${apiUrl}${url}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "فشل تحميل الملف");
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = fileName;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 1000);
+
+  return { success: true };
+};
 
 const getAssistantProfile = async () => {
   const response = await httpGet("/assistant/profile");
@@ -370,15 +413,7 @@ const getStudentFullDetails = async (studentId) => {
       getStudentPaperExams(studentId),
       getStudentOnlineExams(studentId),
     ]);
-
-  return {
-    profile,
-    stats,
-    attendance,
-    payments,
-    paperExams,
-    onlineExams,
-  };
+  return { profile, stats, attendance, payments, paperExams, onlineExams };
 };
 
 const createStudent = async (studentData) => {
@@ -649,9 +684,7 @@ const getGroupSubscriptionStats = async (groupId) => {
 const updateSubscriptionStatus = async (subscriptionId, status) => {
   const response = await httpPut(
     `/assistant/subscriptions/${subscriptionId}/status`,
-    {
-      status,
-    },
+    { status },
   );
   return response.data;
 };
@@ -726,9 +759,7 @@ const upsertExamResult = async (resultData) => {
 const upsertBatchExamResults = async (examId, records) => {
   const response = await httpPost(
     `/assistant/exam-results/upsert-batch/${examId}`,
-    {
-      records,
-    },
+    { records },
   );
   return response.data;
 };
@@ -859,9 +890,7 @@ const createQuestion = async (questionData) => {
 const buildQuestionFormData = (questionData, file) => {
   const formData = new FormData();
   Object.entries(questionData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, value);
-    }
+    if (value !== undefined && value !== null) formData.append(key, value);
   });
   if (file) formData.append("file", file);
   return formData;
@@ -934,8 +963,6 @@ const getEssayAnswersByExam = async (examId) => {
 };
 
 const gradeEssayAnswer = async (answerId, isCorrect) => {
-  // الباك إند ممكن يتوقع is_correct بأشكال مختلفة حسب الـ validation
-  // بنجرّب بالترتيب: boolean -> رقم 1/0 -> نص "1"/"0"
   const attempts = [
     { is_correct: Boolean(isCorrect) },
     { is_correct: isCorrect ? 1 : 0 },
@@ -951,7 +978,6 @@ const gradeEssayAnswer = async (answerId, isCorrect) => {
       return response.data;
     } catch (error) {
       lastError = error;
-      // لو الخطأ مش مشكلة في شكل البيانات (400) نرميه فوراً
       if (error.status && error.status !== 400) throw error;
     }
   }
@@ -1102,10 +1128,7 @@ const getSubmissionStats = async (assignmentId) => {
 const gradeSubmission = async (submissionId, score, feedback) => {
   const response = await httpPut(
     `/assistant/assignment-submissions/${submissionId}/grade`,
-    {
-      score,
-      feedback,
-    },
+    { score, feedback },
   );
   return response.data;
 };
@@ -1203,17 +1226,111 @@ const removeVideoFromPlaylist = async (id) => {
 
 const getWhatsappTemplates = async () => {
   const response = await httpGet("/assistant/whatsapp-messages");
-  return response.data;
+  return response;
 };
 
-const getWhatsappTemplateById = async (templateId) => {
-  const response = await httpGet(`/assistant/whatsapp-messages/${templateId}`);
-  return response.data;
+const toggleWhatsappTemplate = async (templateId) => {
+  const response = await httpPut(
+    `/assistant/whatsapp-messages/${templateId}/toggle`,
+  );
+  return response;
 };
 
-const createWhatsappTemplate = async (templateData) => {
-  const response = await httpPost("/assistant/whatsapp-messages", templateData);
-  return response.data;
+const getWhatsappStatus = async () => {
+  const response = await httpGet("/assistant/whatsapp/status");
+  return response;
+};
+
+const sendWelcomeWhatsapp = async (studentId, instant = false) => {
+  const response = await httpPost(
+    `/assistant/whatsapp/send/welcome/${studentId}?instant=${instant ? "true" : "false"}`,
+    {},
+  );
+  return response;
+};
+
+const sendAbsenceWhatsapp = async (studentId, date, instant = false) => {
+  const params = new URLSearchParams();
+  if (date) params.set("date", date);
+  params.set("instant", instant ? "true" : "false");
+  const response = await httpPost(
+    `/assistant/whatsapp/send/absence/${studentId}?${params.toString()}`,
+    {},
+  );
+  return response;
+};
+
+const sendPaymentWhatsapp = async (paymentId, instant = false) => {
+  const response = await httpPost(
+    `/assistant/whatsapp/send/payment/${paymentId}?instant=${instant ? "true" : "false"}`,
+    {},
+  );
+  return response;
+};
+
+const sendExamWhatsapp = async (resultId, instant = false) => {
+  const response = await httpPost(
+    `/assistant/whatsapp/send/exam/${resultId}?instant=${instant ? "true" : "false"}`,
+    {},
+  );
+  return response;
+};
+
+const sendWhatsappQueue = async ({
+  delaySeconds = 5,
+  limit = 100,
+  statuses = ["pending"],
+} = {}) => {
+  const response = await httpPost("/assistant/whatsapp/queue/send", {
+    delaySeconds,
+    limit,
+    statuses,
+  });
+  return response;
+};
+
+const getWhatsappStats = async () => {
+  const response = await httpGet("/assistant/whatsapp/queue/stats");
+  return response;
+};
+
+const resetFailedWhatsappMessages = async () => {
+  const response = await httpPost("/assistant/whatsapp/queue/reset-failed", {});
+  return response;
+};
+
+const getWhatsappMessages = async ({
+  status,
+  type,
+  page = 1,
+  limit = 20,
+} = {}) => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (type) params.set("type", type);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  const response = await httpGet(
+    `/assistant/whatsapp/messages?${params.toString()}`,
+  );
+  return response;
+};
+
+const getWhatsappMessageById = async (messageId) => {
+  const response = await httpGet(`/assistant/whatsapp/messages/${messageId}`);
+  return response;
+};
+
+const deleteWhatsappMessage = async (messageId) => {
+  const response = await httpDelete(
+    `/assistant/whatsapp/messages/${messageId}`,
+  );
+  return response;
+};
+
+const getWhatsappDashboard = async () => {
+  const response = await httpGet("/assistant/whatsapp/dashboard");
+  return response;
 };
 
 const updateWhatsappTemplate = async (templateId, templateData) => {
@@ -1221,18 +1338,69 @@ const updateWhatsappTemplate = async (templateId, templateData) => {
     `/assistant/whatsapp-messages/${templateId}`,
     templateData,
   );
-  return response.data;
+  return response;
 };
 
-const toggleWhatsappTemplate = async (templateId) => {
-  const response = await httpPut(
-    `/assistant/whatsapp-messages/${templateId}/toggle`,
+const downloadStudentsTemplate = async () => {
+  return downloadBlobFile(
+    "/assistant/students/template",
+    "students_template.xlsx",
   );
-  return response.data;
 };
 
+const downloadGradesTemplate = async () => {
+  return downloadBlobFile("/assistant/grades/template", "grades_template.xlsx");
+};
+
+const downloadGroupsTemplate = async () => {
+  return downloadBlobFile("/assistant/groups/template", "groups_template.xlsx");
+};
+
+const downloadExamResultsTemplate = async () => {
+  return downloadBlobFile(
+    "/assistant/exam-results/template",
+    "exam_results_template.xlsx",
+  );
+};
+
+const bulkUploadStudents = async (formData) => {
+  const response = await httpPostFormData(
+    "/assistant/students/bulk-upload",
+    formData,
+  );
+  return response;
+};
+
+const bulkUploadGrades = async (formData) => {
+  const response = await httpPostFormData(
+    "/assistant/grades/bulk-upload",
+    formData,
+  );
+  return response;
+};
+
+const bulkUploadGroups = async (formData) => {
+  const response = await httpPostFormData(
+    "/assistant/groups/bulk-upload",
+    formData,
+  );
+  return response;
+};
+
+const bulkUploadExamResults = async (examId, formData) => {
+  const response = await httpPostFormData(
+    `/assistant/exam-results/bulk-upload/${examId}`,
+    formData,
+  );
+  return response;
+};
+const updateWhatsappSettings = async (settingsData) => {
+  const response = await httpPut("/assistant/whatsapp/settings", settingsData);
+  return response;
+};
 export {
   getAssistantProfile,
+  updateWhatsappSettings,
   getAssistantDashboard,
   getActivityLog,
   getAssistantProfileImage,
@@ -1422,8 +1590,26 @@ export {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   getWhatsappTemplates,
-  getWhatsappTemplateById,
-  createWhatsappTemplate,
-  updateWhatsappTemplate,
   toggleWhatsappTemplate,
+  getWhatsappStatus,
+  sendWelcomeWhatsapp,
+  sendAbsenceWhatsapp,
+  sendPaymentWhatsapp,
+  sendExamWhatsapp,
+  sendWhatsappQueue,
+  getWhatsappStats,
+  resetFailedWhatsappMessages,
+  getWhatsappMessages,
+  getWhatsappMessageById,
+  deleteWhatsappMessage,
+  getWhatsappDashboard,
+  updateWhatsappTemplate,
+  downloadStudentsTemplate,
+  downloadGradesTemplate,
+  downloadGroupsTemplate,
+  downloadExamResultsTemplate,
+  bulkUploadStudents,
+  bulkUploadGrades,
+  bulkUploadGroups,
+  bulkUploadExamResults,
 };

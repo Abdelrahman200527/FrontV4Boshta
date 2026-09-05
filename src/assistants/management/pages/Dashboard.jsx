@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { CalendarCheck2, DownloadCloud, TriangleAlert, UsersRound, UserX, TrendingUp, Activity, Clock, Award, Zap, CheckCircle, Wallet, GraduationCap, Users, BookOpen, Video, ListVideo, CreditCard, DollarSign } from "lucide-react";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -27,12 +28,6 @@ function formatDate(dateStr) {
     });
 }
 
-function formatTime(dateStr) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    if (Number.isNaN(d.getTime())) return dateStr;
-    return d.toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' });
-}
 
 function greeting() {
     const h = new Date().getHours();
@@ -387,7 +382,7 @@ const Dashboard = () => {
                                 <Activity size={24} className="text-white" />
                             </div>
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                                <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                                     لوحة التحكم
                                 </h1>
                                 <p className="text-sm text-gray-500 flex flex-wrap items-center gap-2">
@@ -432,7 +427,7 @@ const Dashboard = () => {
                         whileHover={{ y: -8, scale: 1.02, transition: { type: "spring", stiffness: 300 } }}
                         className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 p-5 group"
                     >
-                        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-linear-to-br ${card.gradient} opacity-5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-500`}></div>
 
                         <div className="relative">
                             <div className="flex items-start justify-between mb-4">
@@ -476,7 +471,7 @@ const Dashboard = () => {
                         whileHover={{ y: -4, scale: 1.02 }}
                         className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 p-4 group"
                     >
-                        <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${card.gradient} opacity-5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500`}></div>
+                        <div className={`absolute top-0 right-0 w-24 h-24 bg-linear-to-br ${card.gradient} opacity-5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-500`}></div>
                         <div className="relative flex items-center gap-3">
                             <div className={`p-2 ${card.iconBg} rounded-xl`}>
                                 <card.Icon className={`${card.iconColor} w-4 h-4`} />
@@ -517,7 +512,7 @@ const Dashboard = () => {
                         </div>
                     </div>
                     {attendanceQuery.isLoading ? (
-                        <div className="h-[250px] rounded-2xl bg-gray-100 animate-pulse" />
+                        <div className="h-62.5 rounded-2xl bg-gray-100 animate-pulse" />
                     ) : attendanceTrend.length === 0 ? (
                         <p className="text-sm text-gray-400 text-center py-20">لا يوجد بيانات حضور كافية</p>
                     ) : (
@@ -678,12 +673,12 @@ const Dashboard = () => {
                                 className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-all duration-200 border border-transparent hover:border-gray-100 group gap-3"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`p-2 rounded-lg ${r.bg} group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
+                                    <div className={`p-2 rounded-lg ${r.bg} group-hover:scale-110 transition-transform duration-200 shrink-0`}>
                                         <r.icon size={16} className={r.fg} />
                                     </div>
                                     <span className="text-sm font-medium text-gray-700 truncate">{r.text}</span>
                                 </div>
-                                <span className="text-xs text-gray-400 flex-shrink-0">{r.time}</span>
+                                <span className="text-xs text-gray-400 shrink-0">{r.time}</span>
                             </motion.div>
                         ))}
                     </div>

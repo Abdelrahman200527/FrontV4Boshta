@@ -1,530 +1,786 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import {
-  MessageCircle, RotateCcw, Save, Clock, CheckCircle, XCircle,
-  MessageSquare, QrCode, BarChart3, Bell, LogOut, SendHorizontal, AlertCircle,
-  ChevronRight, ChevronLeft, Users, User, UsersRound, Square, Timer, Trash2
+  MessageCircle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  MessageSquare,
+  BarChart3,
+  Bell,
+  SendHorizontal,
+  RotateCcw,
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
+  Wifi,
+  TrendingUp,
+  AlertCircle,
+  Zap,
+  Users,
+  Timer,
+  Gauge,
+  RefreshCw,
+  Settings2,
 } from "lucide-react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Spinner, LoadingState } from "../components/Spinner.jsx";
+import {
+  useApiQuery,
+  useApiMutation,
+  useInvalidate,
+} from "../../../hooks/useApiQuery";
+import { qk } from "../../../api/queryKeys";
+import {
+  notifySuccess,
+  notifyError,
+  confirmToast,
+  toast,
+} from "../../../lib/notify";
+import {
+  fetchWhatsappTemplates,
+  toggleWhatsappTemplateAction,
+  fetchWhatsappStatus,
+  fetchWhatsappStats,
+  fetchWhatsappMessages,
+  resetFailedWhatsappAction,
+  deleteWhatsappMessageAction,
+  fetchWhatsappDashboard,
+  updateWhatsappTemplateAction,
+  updateWhatsappSettingsAction,
+} from "../../../api/assistant/actions";
 
-// ============ Config ============
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
+const REFRESH_INTERVAL = 45000;
+const STATS_INTERVAL = 30000;
 
-const TEMPLATE_TYPES = [
-  {
-    key: "welcome",
+const TYPE_META = {
+  welcome: {
     title: "رسالة الترحيب",
-    hint: "بتتبعت مرة واحدة بس أول ما الطالب يتسجل في السيستم",
+    hint: "بتتبعت أول ما الطالب يتسجل في السيستم",
     icon: MessageCircle,
-    color: "blue",
   },
-  {
-    key: "absence",
+  absence: {
     title: "رسالة الغياب",
-    hint: "بتتبعت للغائبين فقط بعد إنهاء الجلسة",
+    hint: "بتتبعت للغائبين بعد تسجيل الغياب",
     icon: XCircle,
-    color: "red",
   },
-  {
-    key: "exam",
+  exam: {
     title: "رسالة الاختبار",
-    hint: "بتتبعت لكل اختبار بعد رصد درجات الطلبة",
+    hint: "بتتبعت بعد رصد درجات الامتحان الورقي",
     icon: Bell,
-    color: "purple",
   },
-  {
-    key: "payment",
+  payment: {
     title: "رسالة المصاريف",
-    hint: "بتتبعت أوتوماتيك لما تتسجل دفعة للطالب",
+    hint: "بتتبعت لما تتسجل دفعة للطالب",
     icon: SendHorizontal,
-    color: "green",
   },
-];
-
-const SEND_TO = [
-  { key: "student", label: "الطالب", icon: User },
-  { key: "parent", label: "ولي الأمر", icon: Users },
-  { key: "both", label: "الاتنين", icon: UsersRound },
-];
+};
 
 const TABS = [
-  { key: "Pending", label: "معلقة", color: "amber" },
-  { key: "Sent", label: "مرسلة", color: "green" },
-  { key: "Failed", label: "فاشلة", color: "red" },
+  { key: "pending", label: "معلقة" },
+  { key: "sent", label: "مرسلة" },
+  { key: "failed", label: "فاشلة" },
 ];
 
-const MOCK_STATS = { total: 42, pending: 5, sent: 33, failed: 4 };
+const TYPE_FILTERS = [
+  { key: "", label: "الكل" },
+  { key: "welcome", label: "ترحيب" },
+  { key: "absence", label: "غياب" },
+  { key: "exam", label: "درجات" },
+  { key: "payment", label: "مصاريف" },
+];
 
-const MOCK_MESSAGES = {
-  Pending: [
-    { Id: 1, StudentName: "أحمد محمد علي", Recipient: "parent", Phone: "01012345678", Status: "Pending", Content: "مرحباً، تم تسجيل ابنكم أحمد في السنتر بنجاح." },
-    { Id: 2, StudentName: "سارة إبراهيم فؤاد", Recipient: "student", Phone: "01098765432", Status: "Pending", Content: "تذكير: موعد اختبار الغد الساعة 5 مساءً." },
-  ],
-  Sent: [
-    { Id: 3, StudentName: "محمود سيد حسن", Recipient: "parent", Phone: "01111222333", Status: "Sent", Content: "تم تسجيل دفعة بقيمة 300 جنيه لشهر يناير." },
-  ],
-  Failed: [
-    { Id: 4, StudentName: "منة الله عادل", Recipient: "parent", Phone: "01055556666", Status: "Failed", Content: "تم تسجيل غياب اليوم", ErrorMessage: "رقم الهاتف غير صحيح" },
-  ],
-};
-
-const MOCK_TEMPLATES = {
-  welcome: { Id: 1, Type: "welcome", Name: "رسالة الترحيب", Content: "أهلاً بك {student} في {center}!", SendTo: "parent", IsActive: 1 },
-  absence: { Id: 2, Type: "absence", Name: "رسالة الغياب", Content: "نأسف لغياب {student} بتاريخ {date}.", SendTo: "parent", IsActive: 1 },
-  exam: { Id: 3, Type: "exam", Name: "رسالة الاختبار", Content: "درجة {student} في {exam}: {score}/{max}.", SendTo: "both", IsActive: 0 },
-  payment: { Id: 4, Type: "payment", Name: "رسالة المصاريف", Content: "تم استلام {amount} ج من {student} لشهر {month}.", SendTo: "parent", IsActive: 1 },
-};
-
-// ============ Helpers ============
 function statusColor(status) {
-  if (status === "Sent") return "text-green-600 bg-green-50";
-  if (status === "Failed") return "text-red-600 bg-red-50";
+  const s = String(status || "").toLowerCase();
+  if (s === "sent" || s === "delivered") return "text-green-600 bg-green-50";
+  if (s === "failed") return "text-red-600 bg-red-50";
   return "text-amber-600 bg-amber-50";
 }
+
 function statusIcon(status) {
-  if (status === "Sent") return <CheckCircle size={16} className="text-green-600" />;
-  if (status === "Failed") return <XCircle size={16} className="text-red-600" />;
+  const s = String(status || "").toLowerCase();
+  if (s === "sent" || s === "delivered")
+    return <CheckCircle size={16} className="text-green-600" />;
+  if (s === "failed") return <XCircle size={16} className="text-red-600" />;
   return <Clock size={16} className="text-amber-600" />;
 }
+
 function statusLabel(status) {
-  if (status === "Sent") return "مرسلة";
-  if (status === "Failed") return "فاشلة";
+  const s = String(status || "").toLowerCase();
+  if (s === "sent") return "مرسلة";
+  if (s === "delivered") return "تم التسليم";
+  if (s === "failed") return "فاشلة";
   return "معلقة";
 }
+
+function typeLabel(type) {
+  return TYPE_META[String(type || "").toLowerCase()]?.title || type || "رسالة";
+}
+
 function recipientLabel(recipient) {
   return recipient === "student" ? "الطالب" : "ولي الأمر";
 }
 
-// ============ عنصر الرسالة ============
-const MessageItem = memo(function MessageItem({ msg, index }) {
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  return d.toLocaleString("ar-EG", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+const MessageItem = memo(function MessageItem({
+  msg,
+  index,
+  onDelete,
+  deleting,
+}) {
+  const name = msg?.student_name || `طالب #${msg.student_id ?? ""}`;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.015, 0.25) }}
-      className="flex items-start justify-between gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all border border-gray-100 mb-2"
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ delay: Math.min(index * 0.01, 0.15) }}
+      className="flex items-start justify-between gap-3 p-4 rounded-xl hover:bg-gray-50 transition-all border border-gray-100 mb-2 bg-white shadow-sm"
     >
-      <div className="flex items-start gap-3 min-w-0">
-        <div className={`p-2 rounded-lg shrink-0 ${statusColor(msg.Status)}`}>
-          {statusIcon(msg.Status)}
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        <div className={`p-2 rounded-lg shrink-0 ${statusColor(msg.status)}`}>
+          {statusIcon(msg.status)}
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-800 truncate">
-            {msg.StudentName || "طالب"}
-            <span className="text-xs text-gray-400 mr-2">
-              {recipientLabel(msg.Recipient)} • {msg.Phone || "بدون رقم"}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
+            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full shrink-0">
+              {typeLabel(msg.type)}
             </span>
-          </p>
-          <p className="text-xs text-gray-500 line-clamp-2 whitespace-pre-wrap">
-            {String(msg.Content || msg.Title || "").slice(0, 120)}
-          </p>
-          {msg.Status === "Failed" && msg.ErrorMessage && (
-            <p className="text-[11px] text-red-500 mt-1">{msg.ErrorMessage}</p>
+            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
+              {recipientLabel(msg.recipient)}
+            </span>
+            <span className="text-xs text-gray-400 shrink-0" dir="ltr">
+              {msg.phone || "بدون رقم"}
+            </span>
+          </div>
+          {msg.message && (
+            <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap line-clamp-2">
+              {msg.message}
+            </p>
           )}
+          {String(msg.status).toLowerCase() === "failed" &&
+            msg.error_message && (
+              <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle size={12} /> {msg.error_message}
+              </p>
+            )}
+          <p className="text-[10px] text-gray-300 mt-1">
+            {formatDate(msg.created_at)}
+          </p>
         </div>
       </div>
-      <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${statusColor(msg.Status)}`}>
-        {statusLabel(msg.Status)}
-      </span>
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(msg.status)}`}
+        >
+          {statusLabel(msg.status)}
+        </span>
+        <button
+          type="button"
+          onClick={() => onDelete(msg.id)}
+          disabled={deleting}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+          title="حذف الرسالة"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
     </motion.div>
   );
 });
 
-// ============ كارت القالب ============
-const TemplateCard = memo(function TemplateCard({ meta, template, onChange, onSave, saving }) {
-  const Icon = meta.icon;
-  const textareaRef = useRef(null);
+function detectType(template) {
+  const realType = String(template?.type || template?.Type || "").toLowerCase();
+  if (["welcome", "absence", "exam", "payment"].includes(realType)) {
+    return realType;
+  }
 
-  const insertVar = useCallback((token) => {
-    const field = textareaRef.current;
-    const current = String(template.Content || "");
-    if (!field) {
-      onChange(meta.key, { Content: `${current}${token}` });
-      return;
-    }
-    const start = field.selectionStart ?? current.length;
-    const end = field.selectionEnd ?? current.length;
-    const next = `${current.slice(0, start)}${token}${current.slice(end)}`;
-    onChange(meta.key, { Content: next });
-    requestAnimationFrame(() => {
-      field.focus();
-      const caret = start + token.length;
-      field.setSelectionRange(caret, caret);
-    });
-  }, [meta.key, onChange, template.Content]);
+  const raw = [
+    template?.name,
+    template?.Name,
+    template?.template,
+    template?.Template,
+    template?.template_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (/welcome|ترحيب/.test(raw)) return "welcome";
+  if (/absen|غياب/.test(raw)) return "absence";
+  if (/exam|امتحان|اختبار|درج/.test(raw)) return "exam";
+  if (/pay|مصاريف|دفع|سداد/.test(raw)) return "payment";
+  return "";
+}
+
+const TemplateToggle = memo(function TemplateToggle({
+  template,
+  onToggle,
+  toggling,
+  onUpdateSentTo,
+}) {
+  const type = detectType(template);
+  const meta = TYPE_META[type] || {
+    title: "قالب رسالة",
+    hint: "رسالة واتساب تلقائية",
+    icon: MessageSquare,
+  };
+  const Icon = meta.icon;
+  const active = Number(template.is_active ?? template.IsActive ?? 0) === 1;
+  const sentTo = String(template.sent_to || "parents").toLowerCase();
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200"
+    <div
+      className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 shadow-sm transition-all ${active ? "border-green-200 bg-green-50/30" : "border-gray-200 bg-white"}`}
     >
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
-        <div className="p-1.5 rounded-lg bg-gray-100">
-          <Icon size={16} className="text-primary" />
+      <div className="flex-1 flex items-center gap-3 text-right min-w-0">
+        <div
+          className={`p-2 rounded-full shrink-0 ${active ? "bg-green-100" : "bg-gray-100"}`}
+        >
+          <Icon
+            size={16}
+            className={active ? "text-green-600" : "text-gray-400"}
+          />
         </div>
-        <span className="font-semibold text-gray-800">{meta.title}</span>
+        <div className="min-w-0">
+          <p className="font-bold text-gray-800 text-sm truncate">
+            {meta.title}
+          </p>
+          <p className="text-xs text-gray-400 truncate">{meta.hint}</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 shrink-0 flex-wrap">
+        <select
+          value={sentTo}
+          onChange={(e) =>
+            onUpdateSentTo(template.id ?? template.Id, e.target.value)
+          }
+          disabled={toggling}
+          className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+        >
+          <option value="parents">ولي الأمر فقط</option>
+          <option value="both">الطالب + ولي الأمر</option>
+        </select>
 
         <button
           type="button"
-          onClick={() => onChange(meta.key, { IsActive: template.IsActive ? 0 : 1 })}
-          className={`mr-auto relative w-12 h-6 rounded-full transition-colors ${template.IsActive ? "bg-primary" : "bg-gray-300"}`}
-          title={template.IsActive ? "القالب مفعّل" : "القالب متوقف"}
+          disabled={toggling}
+          onClick={() => onToggle(template.id ?? template.Id)}
+          className={`relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 ${active ? "bg-green-500" : "bg-gray-300"}`}
+          title={active ? "إيقاف" : "تفعيل"}
         >
-          <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${template.IsActive ? "translate-x-6" : ""}`}></span>
+          <span
+            className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${active ? "right-0.5" : "right-6.5"}`}
+          />
         </button>
-        <span className={`text-xs font-medium ${template.IsActive ? "text-primary" : "text-gray-400"}`}>
-          {template.IsActive ? "مفعّل" : "متوقف"}
+        <span
+          className={`text-xs font-semibold ${active ? "text-green-600" : "text-gray-400"}`}
+        >
+          {active ? "مفعل" : "موقوف"}
         </span>
       </div>
-
-      <p className="text-xs text-gray-400 mb-3">{meta.hint}</p>
-
-      {/* <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <span className="text-xs text-gray-500">تتبعت لمين؟</span>
-        {SEND_TO.map((option) => {
-          const OptionIcon = option.icon;
-          const active = (template.SendTo || "parent") === option.key;
-          return (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => onChange(meta.key, { SendTo: option.key })}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                active
-                  ? "bg-primary/10 text-primary border-primary/40"
-                  : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
-              }`}
-            >
-              <OptionIcon size={13} /> {option.label}
-            </button>
-          );
-        })}
-      </div> */}
-
-
-      <div className="flex items-center justify-end gap-2 mt-3 flex-wrap">
-        <button
-          type="button"
-          onClick={() => onSave(meta.key)}
-          disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-white text-xs font-medium hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50"
-        >
-          {saving ? <Spinner size={14} className="text-white" /> : <Save size={14} />}
-          حفظ القالب
-        </button>
-      </div>
-    </motion.div>
+    </div>
   );
 });
 
 const WhatsApp = () => {
-  const [activeTab, setActiveTab] = useState("Pending");
+  const [activeTab, setActiveTab] = useState("pending");
+  const [typeFilter, setTypeFilter] = useState("");
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState({ isReady: false, isAuthenticated: false, isSending: false });
-  const [progress] = useState(null);
-  const [connecting, setConnecting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState("");
-  const [templates, setTemplates] = useState(MOCK_TEMPLATES);
-  const [delaySeconds, setDelaySeconds] = useState(60);
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [stats, setStats] = useState(MOCK_STATS);
-  const [messages, setMessages] = useState(MOCK_MESSAGES);
+  const [delayInput, setDelayInput] = useState("");
+  const [limitInput, setLimitInput] = useState("");
+  const invalidate = useInvalidate();
 
-  const isConnected = Boolean(status.isReady);
-  const isAuthenticated = Boolean(status.isAuthenticated);
-  const isSending = Boolean(status.isSending);
+  const dashboardQuery = useApiQuery(
+    qk.whatsapp.dashboard,
+    fetchWhatsappDashboard,
+    {
+      fallback: { stats: {}, templates: [] },
+      select: (d) => d?.data ?? d,
+      errorMessage: "فشل تحميل بيانات الواتساب",
+      refetchInterval: STATS_INTERVAL,
+      staleTime: 15000,
+    },
+  );
 
-  // ============ أفعال (no-ops في وضع العرض) ============
-  const refreshPage = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
-  }, []);
+  const messagesQuery = useApiQuery(
+    qk.whatsapp.messages(activeTab, typeFilter, page),
+    () =>
+      fetchWhatsappMessages({
+        status: activeTab,
+        type: typeFilter || undefined,
+        page,
+        limit: PAGE_SIZE,
+      }),
+    {
+      fallback: [],
+      select: (d) => (Array.isArray(d) ? d : []),
+      refetchInterval: REFRESH_INTERVAL,
+      staleTime: 20000,
+    },
+  );
 
-  const connect = useCallback(() => {
-    setConnecting(true);
-    setTimeout(() => {
-      setStatus({ isReady: true, isAuthenticated: true, isSending: false });
-      setConnecting(false);
-    }, 800);
-  }, []);
+  const templatesQuery = useApiQuery(
+    qk.whatsapp.templates,
+    fetchWhatsappTemplates,
+    {
+      fallback: [],
+      select: (d) => (Array.isArray(d) ? d : (d?.data ?? [])),
+      staleTime: 30000,
+    },
+  );
 
-  const logout = useCallback(() => {
-    setStatus({ isReady: false, isAuthenticated: false, isSending: false });
-  }, []);
+  const refreshQueue = useCallback(() => {
+    invalidate(qk.whatsapp.all);
+  }, [invalidate]);
 
-  const sendPending = useCallback(() => {}, []);
-  const retryFailed = useCallback(() => {}, []);
-  const stopSending = useCallback(() => {}, []);
+  const toggleMutation = useApiMutation(
+    (id) => toggleWhatsappTemplateAction(id),
+    {
+      invalidateKeys: [qk.whatsapp.templates, qk.whatsapp.dashboard],
+      successMessage: "تم تحديث حالة القالب",
+      errorMessage: "فشل تحديث حالة القالب",
+    },
+  );
 
-  const clearSent = useCallback(() => {
-    setMessages((prev) => ({ ...prev, Sent: [] }));
-    setStats((prev) => ({ ...prev, sent: 0 }));
-  }, []);
+  const updateSentToMutation = useApiMutation(
+    ({ id, sent_to }) => updateWhatsappTemplateAction(id, { sent_to }),
+    {
+      invalidateKeys: [qk.whatsapp.templates, qk.whatsapp.dashboard],
+      successMessage: "تم تحديث الإرسال",
+      errorMessage: "فشل تحديث الإرسال",
+    },
+  );
 
-  const changeTemplate = useCallback((key, patch) => {
-    setTemplates((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), ...patch } }));
-  }, []);
+  const updateSettingsMutation = useApiMutation(
+    (settingsData) => updateWhatsappSettingsAction(settingsData),
+    {
+      invalidateKeys: [qk.whatsapp.dashboard],
+      onSuccess: () => {
+        notifySuccess("تم تحديث الإعدادات");
+        setDelayInput("");
+        setLimitInput("");
+      },
+      errorMessage: "فشل تحديث الإعدادات",
+    },
+  );
 
-  const saveTemplate = useCallback((key) => {
-    setSavingTemplate(key);
-    setTimeout(() => setSavingTemplate(""), 500);
-  }, []);
+  const resetFailedMutation = useApiMutation(
+    () => resetFailedWhatsappAction(),
+    {
+      onSuccess: (data) => {
+        notifySuccess(
+          `تم إعادة تعيين ${Array.isArray(data) ? data.length : 0} رسالة`,
+        );
+        refreshQueue();
+      },
+      errorMessage: "فشل إعادة تعيين الرسائل الفاشلة",
+    },
+  );
 
-  const saveSettings = useCallback(() => {
-    setSavingSettings(true);
-    setTimeout(() => setSavingSettings(false), 500);
-  }, []);
+  const deleteMutation = useApiMutation(
+    (id) => deleteWhatsappMessageAction(id),
+    {
+      onSuccess: () => {
+        notifySuccess("تم حذف الرسالة");
+        refreshQueue();
+      },
+      errorMessage: "فشل حذف الرسالة",
+    },
+  );
 
-  const refreshMessages = useCallback(() => {}, []);
+  const handleDelete = async (id) => {
+    const ok = await confirmToast("متأكد إنك عايز تحذف الرسالة؟");
+    if (ok) deleteMutation.mutate(id);
+  };
 
-  // ============ بيانات العرض ============
-  const rows = messages[activeTab] || [];
-  const total = rows.length;
-  const totalPages = 1;
-  const currentPage = 1;
+  const handleUpdateSentTo = (id, sent_to) => {
+    updateSentToMutation.mutate({ id, sent_to });
+  };
 
-  const statCards = useMemo(() => ([
-    { label: "إجمالي الرسائل", value: stats.total, icon: MessageSquare },
-    { label: "رسائل معلقة", value: stats.pending, icon: Clock },
-    { label: "رسائل مرسلة", value: stats.sent, icon: CheckCircle },
-    { label: "رسائل فاشلة", value: stats.failed, icon: XCircle },
-  ]), [stats]);
+  const handleUpdateDelay = () => {
+    const value = Number(delayInput);
+    if (Number.isFinite(value) && value > 0) {
+      updateSettingsMutation.mutate({ whatsapp_delay_seconds: value });
+    } else {
+      toast.error("يرجى إدخال رقم صحيح أكبر من صفر");
+    }
+  };
+
+  const handleUpdateLimit = () => {
+    const value = Number(limitInput);
+    if (Number.isFinite(value) && value > 0) {
+      updateSettingsMutation.mutate({ whatsapp_daily_limit: value });
+    } else {
+      toast.error("يرجى إدخال رقم صحيح أكبر من صفر");
+    }
+  };
+
+  const dashboardData = dashboardQuery.data || {};
+  const stats = dashboardData.stats || {};
+  const templates = dashboardData.templates || templatesQuery.data || [];
+  const messages = messagesQuery.data || [];
+  const pagination = messagesQuery.pagination;
+  const totalPages = pagination?.totalPages || 1;
+
+  const refreshing =
+    dashboardQuery.isFetching ||
+    messagesQuery.isFetching ||
+    templatesQuery.isFetching;
+
+  const statCards = useMemo(
+    () => [
+      {
+        label: "إجمالي الرسائل",
+        value: stats.total ?? 0,
+        icon: BarChart3,
+        color: "bg-gray-100 text-gray-600",
+      },
+      {
+        label: "معلقة",
+        value: stats.pending ?? 0,
+        icon: Clock,
+        color: "bg-amber-50 text-amber-600",
+      },
+      {
+        label: "مرسلة",
+        value: stats.sent ?? 0,
+        icon: CheckCircle,
+        color: "bg-green-50 text-green-600",
+      },
+      {
+        label: "فاشلة",
+        value: stats.failed ?? 0,
+        icon: XCircle,
+        color: "bg-red-50 text-red-600",
+      },
+      {
+        label: "تم التسليم",
+        value: stats.delivered ?? 0,
+        icon: SendHorizontal,
+        color: "bg-blue-50 text-blue-600",
+      },
+      {
+        label: "أرسلت اليوم",
+        value: stats.sent_today ?? 0,
+        icon: Zap,
+        color: "bg-purple-50 text-purple-600",
+      },
+      {
+        label: "الحد اليومي",
+        value: `${stats.sent_today ?? 0}/${stats.daily_limit ?? 250}`,
+        icon: Gauge,
+        color: "bg-cyan-50 text-cyan-600",
+      },
+      {
+        label: "التأخير (ثانية)",
+        value: stats.delay_seconds ?? 45,
+        icon: Timer,
+        color: "bg-orange-50 text-orange-600",
+      },
+    ],
+    [stats],
+  );
 
   return (
-    <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="min-h-screen">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="p-3 md:p-6 space-y-5 md:space-y-6"
+      dir="rtl"
+    >
       {/* Header */}
-      <motion.header initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="mb-6">
-        <div className="flex flex-wrap justify-between items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-primary rounded-2xl shadow-lg shadow-primary/30">
-              <MessageCircle size={24} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">الواتساب</h1>
-              <p className="text-sm text-gray-500">إدارة القوالب والرسائل وحالة الاتصال</p>
-            </div>
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="flex flex-col sm:flex-row items-center justify-between gap-3 flex-wrap"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-primary/10">
+            <MessageSquare className="text-primary" size={22} />
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={refreshPage}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm disabled:opacity-60"
-          >
-            <RotateCcw size={16} className={refreshing ? "animate-spin" : ""} /> تحديث الصفحة
-          </motion.button>
-
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-sm border ${
-            isConnected ? "bg-green-50 border-green-200 text-green-700"
-            : isAuthenticated ? "bg-yellow-50 border-yellow-200 text-yellow-700"
-            : "bg-red-50 border-red-200 text-red-700"}`}>
-            <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : isAuthenticated ? "bg-yellow-500" : "bg-red-500"}`}></span>
-            <span className="text-sm font-medium">{isConnected ? "متصل" : isAuthenticated ? "جاري الاتصال..." : "غير متصل"}</span>
-          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">رسائل الواتساب</h1>
+            <p className="text-xs text-gray-400 flex items-center gap-1.5">
+              إدارة الرسائل التلقائية وطابور الإرسال
+              {refreshing && (
+                <RefreshCw size={12} className="animate-spin text-primary" />
+              )}
+            </p>
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-          {statCards.map((stat, idx) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-              className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-2 rounded-lg bg-gray-100">
-                <stat.icon size={16} className="text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">{stat.label}</p>
-                <p className="text-lg font-bold text-gray-800">{stat.value}</p>
-              </div>
-            </motion.div>
-          ))}
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium bg-green-50 border-green-200 text-green-700">
+          <Wifi size={16} />
+          متصل
         </div>
-      </motion.header>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ============ يمين: الاتصال + إعدادات الإرسال ============ */}
-        <div className="lg:col-span-1 space-y-4">
-
-          {/* إعدادات الإرسال */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-primary rounded-xl"><Timer size={18} className="text-white" /></div>
-              <h4 className="font-bold text-gray-800">إعدادات الإرسال</h4>
+      {/* Stats */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+      >
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div
+              key={card.label}
+              className="rounded-xl border border-gray-200 bg-white p-3 md:p-4 flex items-center gap-3 shadow-sm"
+            >
+              <div className={`p-2 rounded-lg ${card.color} shrink-0`}>
+                <Icon size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-400 truncate">{card.label}</p>
+                <p className="text-lg font-bold text-gray-800">{card.value}</p>
+              </div>
             </div>
+          );
+        })}
+      </motion.div>
 
-            <label className="text-sm font-medium text-gray-700">التأخير بين كل رسالة والتي بعدها (بالثواني)</label>
+      {/* Settings - Delay & Limit */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.15 }}
+        className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 md:p-5 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-2">
+          <Settings2 size={18} className="text-blue-600" />
+          <h2 className="font-semibold text-gray-800">إعدادات الإرسال</h2>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Delay */}
+          <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-200 shadow-sm">
+            <label className="text-xs text-gray-600 font-medium whitespace-nowrap">
+              التأخير (ثانية):
+            </label>
             <input
-              type="number" min="0" value={delaySeconds}
-              onChange={(e) => setDelaySeconds(e.target.value)}
-              className="mt-1.5 w-full border-2 border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary"
+              type="number"
+              min={1}
+              placeholder={String(stats.delay_seconds ?? 45)}
+              value={delayInput}
+              onChange={(e) => setDelayInput(e.target.value)}
+              className="w-20 rounded-lg border-2 border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
-
-            <button type="button" onClick={saveSettings} disabled={savingSettings}
-              className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-white text-sm font-medium hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50">
-              {savingSettings ? <Spinner size={16} className="text-white" /> : <Save size={16} />} حفظ الإعدادات
+            <button
+              type="button"
+              onClick={handleUpdateDelay}
+              disabled={updateSettingsMutation.isPending}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-all"
+            >
+              حفظ
             </button>
           </div>
 
-          {/* إحصائيات سريعة */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-primary rounded-xl"><BarChart3 size={18} className="text-white" /></div>
-              <h4 className="font-bold text-gray-800">إحصائيات سريعة</h4>
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: "رسائل معلقة", value: stats.pending },
-                { label: "رسائل مرسلة", value: stats.sent },
-                { label: "رسائل فاشلة", value: stats.failed },
-                { label: "المجموع الكلي", value: stats.total },
-              ].map((item) => (
-                <div key={item.label} className="flex justify-between items-center p-2 rounded-lg hover:bg-gray-50">
-                  <span className="text-sm text-gray-600">{item.label}</span>
-                  <span className="text-sm font-bold text-gray-800">{item.value}</span>
-                </div>
-              ))}
-            </div>
+          {/* Daily Limit */}
+          <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border border-gray-200 shadow-sm">
+            <label className="text-xs text-gray-600 font-medium whitespace-nowrap">
+              الحد اليومي:
+            </label>
+            <input
+              type="number"
+              min={1}
+              placeholder={String(stats.daily_limit ?? 250)}
+              value={limitInput}
+              onChange={(e) => setLimitInput(e.target.value)}
+              className="w-20 rounded-lg border-2 border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
+            <button
+              type="button"
+              onClick={handleUpdateLimit}
+              disabled={updateSettingsMutation.isPending}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition-all"
+            >
+              حفظ
+            </button>
           </div>
         </div>
 
-        {/* ============ شمال: الرسائل + القوالب ============ */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 bg-primary rounded-xl"><MessageSquare size={18} className="text-white" /></div>
-                <h3 className="font-bold text-gray-800">الرسائل</h3>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                {TABS.map((tab) => (
-                  <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      activeTab === tab.key ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}>
-                    {tab.label} ({tab.key === "Pending" ? stats.pending : tab.key === "Sent" ? stats.sent : stats.failed})
-                  </button>
-                ))}
-              </div>
-            </div>
+        <button
+          type="button"
+          onClick={() => resetFailedMutation.mutate()}
+          disabled={resetFailedMutation.isPending}
+          className="flex items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50 shrink-0"
+        >
+          {resetFailedMutation.isPending ? (
+            <Spinner size={15} />
+          ) : (
+            <RotateCcw size={15} />
+          )}
+          إعادة محاولة الفاشلة
+        </button>
+      </motion.div>
 
-            {/* أزرار الإرسال */}
-            <div className="px-4 pt-3 pb-2 border-b border-gray-100 bg-gray-50/60">
-              <div className="flex flex-wrap gap-3">
-                <button onClick={sendPending} disabled={!isConnected || stats.pending === 0 || isSending}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
-                    isConnected && stats.pending > 0 && !isSending
-                      ? "bg-primary text-white hover:shadow-lg hover:shadow-primary/30"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
-                  {isSending ? <Spinner size={16} className="text-white" /> : <SendHorizontal size={18} />}
-                  {isSending ? "جاري الإرسال..." : `إرسال المعلقة (${stats.pending})`}
-                </button>
+      {/* Templates */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5"
+      >
+        <h2 className="font-semibold text-gray-800 mb-1">
+          تفعيل الرسائل التلقائية
+        </h2>
+        <p className="text-xs text-gray-400 mb-4">
+          نصوص الرسائل متظبطة من قوالب الواتساب الرسمية، هنا بتتحكم في تشغيلها
+          وإيقافها ومن تستهدف.
+        </p>
+        {templatesQuery.isLoading ? (
+          <LoadingState message="جاري تحميل القوالب..." />
+        ) : templates.length ? (
+          <div className="grid md:grid-cols-2 gap-3">
+            {templates.map((tpl) => (
+              <TemplateToggle
+                key={tpl.id ?? tpl.Id}
+                template={tpl}
+                onToggle={(id) => toggleMutation.mutate(id)}
+                toggling={
+                  toggleMutation.isPending &&
+                  toggleMutation.variables === (tpl.id ?? tpl.Id)
+                }
+                onUpdateSentTo={handleUpdateSentTo}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">لا توجد قوالب متاحة حالياً.</p>
+        )}
+      </motion.div>
 
-                <button onClick={retryFailed} disabled={!isConnected || stats.failed === 0 || isSending}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
-                    isConnected && stats.failed > 0 && !isSending
-                      ? "bg-orange-500 text-white hover:bg-orange-600"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
-                  <RotateCcw size={18} /> إعادة إرسال الفاشلة ({stats.failed})
-                </button>
-
-                {isSending && (
-                  <button onClick={stopSending}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all">
-                    <Square size={16} /> إيقاف
-                  </button>
-                )}
-
-                <button onClick={refreshMessages}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-all">
-                  <RotateCcw size={16} /> تحديث
-                </button>
-
-                {stats.sent > 0 && (
-                  <button onClick={clearSent}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-all">
-                    <Trash2 size={16} /> مسح المرسلة
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-4 mt-2 text-xs">
-                {progress && (
-                  <p className="text-blue-600 flex items-center gap-1">
-                    <Spinner size={12} /> {progress.done || 0} / {progress.total || 0} — ناجحة {progress.sent || 0} / فاشلة {progress.failed || 0}
-                  </p>
-                )}
-                {!isConnected && (
-                  <p className="text-red-600 flex items-center gap-1"><AlertCircle size={12} /> الواتساب غير متصل، اتصل أولاً</p>
-                )}
-                {isConnected && stats.pending === 0 && stats.failed === 0 && (
-                  <p className="text-green-600 flex items-center gap-1"><CheckCircle size={12} /> مفيش رسائل في الانتظار</p>
-                )}
-              </div>
-            </div>
-
-            <div className="p-4 max-h-[340px] overflow-y-auto">
-              {rows.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageCircle size={40} className="text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-400 font-medium">
-                    لا توجد رسائل {activeTab === "Pending" ? "معلقة" : activeTab === "Sent" ? "مرسلة" : "فاشلة"}
-                  </p>
-                </div>
-              ) : (
-                <AnimatePresence initial={false}>
-                  {rows.map((msg, idx) => <MessageItem key={msg.Id} msg={msg} index={idx} />)}
-                </AnimatePresence>
-              )}
-            </div>
-
-            {total > PAGE_SIZE && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-sm">
-                <span className="text-gray-600">
-                  عرض {(currentPage - 1) * PAGE_SIZE + 1} - {Math.min(currentPage * PAGE_SIZE, total)} من {total}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}
-                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
-                    <ChevronRight size={16} />
-                  </button>
-                  <span className="px-3 py-1 bg-white border border-gray-200 rounded-lg font-medium">{currentPage} / {totalPages}</span>
-                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40">
-                    <ChevronLeft size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
+      {/* Messages */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.25 }}
+        className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5"
+      >
+        <div className="flex flex-col sm:flex-row items-center gap-2 flex-wrap mb-4">
+          <div className="flex items-center gap-2 flex-wrap">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setPage(1);
+                }}
+                className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                  activeTab === tab.key
+                    ? "bg-primary text-white border-primary shadow-md"
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {/* القوالب */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-              <div className="p-2 bg-primary rounded-xl"><Save size={18} className="text-white" /></div>
-              <div>
-                <h3 className="font-bold text-gray-800">قوالب الرسائل</h3>
-                <p className="text-xs text-gray-400">3 قوالب: الترحيب، الغياب، الاختبار</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-1.5 flex-wrap sm:mr-auto">
+            {TYPE_FILTERS.map((filter) => (
+              <button
+                key={filter.key || "all"}
+                type="button"
+                onClick={() => {
+                  setTypeFilter(filter.key);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                  typeFilter === filter.key
+                    ? "bg-primary text-white border-primary shadow-md"
+                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
 
-            <div className="p-4 space-y-4">
-              {TEMPLATE_TYPES.map((meta) => (
-                <TemplateCard
-                  key={meta.key}
-                  meta={meta}
-                  template={templates[meta.key] || { Content: "", SendTo: "parent", IsActive: 1 }}
-                  onChange={changeTemplate}
-                  onSave={saveTemplate}
-                  saving={savingTemplate === meta.key}
+          <button
+            type="button"
+            onClick={() => messagesQuery.refetch()}
+            disabled={messagesQuery.isFetching}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border-2 border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50 shrink-0"
+            title="تحديث الرسائل"
+          >
+            <RefreshCw
+              size={16}
+              className={messagesQuery.isFetching ? "animate-spin" : ""}
+            />
+            تحديث
+          </button>
+        </div>
+
+        {messagesQuery.isLoading ? (
+          <LoadingState message="جاري تحميل الرسائل..." />
+        ) : messages.length ? (
+          <>
+            <AnimatePresence>
+              {messages.map((msg, index) => (
+                <MessageItem
+                  key={msg.id}
+                  msg={msg}
+                  index={index}
+                  onDelete={handleDelete}
+                  deleting={
+                    deleteMutation.isPending &&
+                    deleteMutation.variables === msg.id
+                  }
                 />
               ))}
+            </AnimatePresence>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-100">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-all"
+              >
+                <ChevronRight size={15} /> السابق
+              </button>
+              <span className="text-xs text-gray-400">
+                صفحة {page} من {totalPages} • إجمالي{" "}
+                {pagination?.total ?? messages.length}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-all"
+              >
+                التالي <ChevronLeft size={15} />
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
-    </motion.section>
+          </>
+        ) : (
+          <p className="text-sm text-gray-400 py-8 text-center">
+            لا توجد رسائل في هذه القائمة.
+          </p>
+        )}
+      </motion.div>
+    </motion.div>
   );
 };
 

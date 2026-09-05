@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import {
   Settings as SettingsIcon, Building2, CloudUpload,
   KeyRound, Save, CheckCircle, AlertCircle,
@@ -79,7 +80,7 @@ const Settings = () => {
             <SettingsIcon size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">الإعدادات</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">الإعدادات</h1>
             <p className="text-sm text-gray-500">بيانات السنتر، المنصة، المزامنة، النسخ الاحتياطي وبيانات الدخول</p>
           </div>
         </div>

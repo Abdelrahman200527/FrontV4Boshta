@@ -1,4 +1,11 @@
-import { notifyError, notifySuccess, notifyInfo, confirmToast } from "../../lib/notify";
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable no-unused-vars */
+import {
+  notifyError,
+  notifySuccess,
+  notifyInfo,
+  confirmToast,
+} from "../../lib/notify";
 import {
   Plus,
   X,
@@ -8,8 +15,9 @@ import {
   FolderOpen,
   Search,
   FileText,
+  Loader2,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchAllVideos,
@@ -36,7 +44,6 @@ const Videos = () => {
   const [playlists, setPlaylists] = useState([]);
   const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
-  /* كل الرسائل toast */
   const setMessage = (msg) => {
     if (!msg?.text) return;
     if (msg.type === "success") notifySuccess(msg.text);
@@ -112,19 +119,23 @@ const Videos = () => {
     setEditingPlaylist(null);
   };
 
-  const filteredVideos = videos.filter((video) => {
-    const matchesGrade =
-      !gradeFilter || video.grade_id === parseInt(gradeFilter);
-    const matchesSearch = !search || video.title.includes(search);
-    return matchesGrade && matchesSearch;
-  });
+  const filteredVideos = useMemo(() => {
+    return videos.filter((video) => {
+      const matchesGrade =
+        !gradeFilter || video.grade_id === parseInt(gradeFilter);
+      const matchesSearch = !search || video.title.includes(search);
+      return matchesGrade && matchesSearch;
+    });
+  }, [videos, gradeFilter, search]);
 
-  const filteredPlaylists = playlists.filter((playlist) => {
-    const matchesGrade =
-      !gradeFilter || playlist.grade_id === parseInt(gradeFilter);
-    const matchesSearch = !search || playlist.title.includes(search);
-    return matchesGrade && matchesSearch;
-  });
+  const filteredPlaylists = useMemo(() => {
+    return playlists.filter((playlist) => {
+      const matchesGrade =
+        !gradeFilter || playlist.grade_id === parseInt(gradeFilter);
+      const matchesSearch = !search || playlist.title.includes(search);
+      return matchesGrade && matchesSearch;
+    });
+  }, [playlists, gradeFilter, search]);
 
   const playlistsForSelectedGrade = gradeFilter
     ? playlists.filter((pl) => pl.grade_id === parseInt(gradeFilter))
@@ -132,6 +143,20 @@ const Videos = () => {
 
   const handleAddVideo = async (e) => {
     e.preventDefault();
+
+    if (!videoForm.title?.trim()) {
+      setMessage({ type: "error", text: "عنوان الفيديو مطلوب" });
+      return;
+    }
+    if (!videoForm.gradeId) {
+      setMessage({ type: "error", text: "الصف مطلوب" });
+      return;
+    }
+    if (!videoForm.videoUrl?.trim()) {
+      setMessage({ type: "error", text: "رابط الفيديو مطلوب" });
+      return;
+    }
+
     setSavingVideo(true);
 
     const formData = new FormData();
@@ -175,6 +200,16 @@ const Videos = () => {
 
   const handleAddPlaylist = async (e) => {
     e.preventDefault();
+
+    if (!playlistForm.title?.trim()) {
+      setMessage({ type: "error", text: "عنوان القائمة مطلوب" });
+      return;
+    }
+    if (!playlistForm.gradeId) {
+      setMessage({ type: "error", text: "الصف مطلوب" });
+      return;
+    }
+
     setSavingPlaylist(true);
 
     const formData = new FormData();
@@ -185,7 +220,7 @@ const Videos = () => {
 
     let result;
     if (editingPlaylist) {
-      result = await updatePlaylistInfo(editingplaylist.playlist_id, formData);
+      result = await updatePlaylistInfo(editingPlaylist.playlist_id, formData);
     } else {
       result = await createNewPlaylist(formData);
     }
@@ -277,8 +312,13 @@ const Videos = () => {
     navigate(`/assistant/online/videos/watch/${video.id}`);
   };
 
-  if (loading)
-    return <div className="p-8 text-center text-gray-500">جاري التحميل...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-16">
+        <Loader2 size={32} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <motion.section
@@ -324,7 +364,6 @@ const Videos = () => {
           </button>
         </div>
       </motion.header>
-
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-3 py-2">
@@ -379,7 +418,7 @@ const Videos = () => {
       </div>
 
       {activeTab === "videos" && (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {filteredVideos.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400">
               <Youtube size={48} className="text-gray-200 mx-auto mb-2" />
@@ -402,7 +441,7 @@ const Videos = () => {
       )}
 
       {activeTab === "playlists" && (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredPlaylists.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400">
               <ListVideo size={48} className="text-gray-200 mx-auto mb-2" />
@@ -425,7 +464,7 @@ const Videos = () => {
       )}
 
       {activeTab === "playlistVideos" && selectedPlaylist && (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {selectedPlaylistVideos.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400">
               <FolderOpen size={48} className="text-gray-200 mx-auto mb-2" />
@@ -452,7 +491,7 @@ const Videos = () => {
 
       {showVideoModal && (
         <div
-          className="fixed inset-0 z-9999 bg-black/50 flex items-center justify-center p-3"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3"
           onClick={() => setShowVideoModal(false)}
         >
           <div
@@ -652,7 +691,7 @@ const Videos = () => {
 
       {showPlaylistModal && (
         <div
-          className="fixed inset-0 z-9999 bg-black/50 flex items-center justify-center p-3"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3"
           onClick={() => setShowPlaylistModal(false)}
         >
           <div

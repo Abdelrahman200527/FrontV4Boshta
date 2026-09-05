@@ -43,15 +43,29 @@ export const qk = {
   attendance: {
     dashboard: ["attendance", "dashboard"],
     overview: ["attendance", "overview"],
-    activeSession: (groupId) => ["attendance", "active-session", String(groupId)],
-    byGroupDate: (groupId, date) => ["attendance", "group", String(groupId), date],
+    activeSession: (groupId) => [
+      "attendance",
+      "active-session",
+      String(groupId),
+    ],
+    byGroupDate: (groupId, date) => [
+      "attendance",
+      "group",
+      String(groupId),
+      date,
+    ],
     byGroupMonth: (groupId, month) => [
       "attendance",
       "group-month",
       String(groupId),
       month,
     ],
-    summary: (groupId, date) => ["attendance", "summary", String(groupId), date],
+    summary: (groupId, date) => [
+      "attendance",
+      "summary",
+      String(groupId),
+      date,
+    ],
   },
   payments: {
     list: (page = 1, search = "", gradeId = "", groupId = "") => [
@@ -90,7 +104,18 @@ export const qk = {
     playlistVideos: (id) => ["playlists", "videos", String(id)],
   },
   whatsapp: {
+    all: ["whatsapp"],
     templates: ["whatsapp", "templates"],
+    status: ["whatsapp", "status"],
+    stats: ["whatsapp", "stats"],
+    dashboard: ["whatsapp", "dashboard"], // ← أضف السطر ده
+    messages: (status, type, page) => [
+      "whatsapp",
+      "messages",
+      String(status ?? ""),
+      String(type ?? ""),
+      String(page ?? 1),
+    ],
   },
 };
 

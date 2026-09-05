@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 import {
   CalendarCheck,
   Search,
@@ -332,25 +335,48 @@ const Attendance = () => {
     }
   }, []);
 
-  const loadGroupStudents = useCallback(
-    async (groupId) => {
-      if (!groupId) return;
-      setLoading(true);
-      try {
-        const result = await fetchStudentsByGroup(groupId);
-        setStudents(
-          result.success && Array.isArray(result.data) ? result.data : [],
-        );
-        await loadAttendanceRecords(groupId, selectedDate);
-      } catch (error) {
-        console.error("Error loading students:", error);
-        showMessage("حدث خطأ في تحميل الطلاب", "error");
-      } finally {
-        setLoading(false);
+ const loadGroupStudents = useCallback(
+  async (groupId) => {
+    if (!groupId) return;
+    if (loading) return; // ✅ منع التكرار
+
+    setLoading(true);
+    try {
+      const [studentsResult, attendanceResult] = await Promise.all([
+        fetchStudentsByGroup(groupId),
+        fetchGroupAttendanceByDate(groupId, selectedDate),
+      ]);
+
+      if (studentsResult.success && Array.isArray(studentsResult.data)) {
+        setStudents(studentsResult.data);
+      } else {
+        setStudents([]);
       }
-    },
-    [loadAttendanceRecords, selectedDate],
-  );
+
+      if (attendanceResult.success && Array.isArray(attendanceResult.data)) {
+        const records = {};
+        attendanceResult.data.forEach((r) => {
+          records[r.student_id] = r;
+        });
+        setAttendanceRecords(records);
+      } else {
+        setAttendanceRecords({});
+      }
+
+      // ✅ جيب الـ summary
+      const summaryResult = await fetchAttendanceSummary(groupId, selectedDate);
+      if (summaryResult.success) {
+        setServerSummary(summaryResult.data || null);
+      }
+    } catch (error) {
+      console.error("Error loading students:", error);
+      showMessage("حدث خطأ في تحميل الطلاب", "error");
+    } finally {
+      setLoading(false);
+    }
+  },
+  [loading, selectedDate],
+);
 
   useEffect(() => {
     if (!selectedGroup) {
@@ -437,10 +463,7 @@ const Attendance = () => {
 
     setSubmitting(true);
     try {
-      const result = await lockAttendanceSession(
-        sessionId,
-        Number(selectedGroup),
-      );
+      const result = await lockAttendanceSession(sessionId, Number(selectedGroup));
       if (result.success) {
         setSessionActive(false);
         setSessionLocked(true);
@@ -466,10 +489,7 @@ const Attendance = () => {
       if (result.success) {
         const enabled = result.data?.is_makeup_enabled === 1;
         setIsMakeupEnabled(enabled);
-        showMessage(
-          `تم ${enabled ? "تفعيل" : "إلغاء"} الحضور التعويضي`,
-          "success",
-        );
+        showMessage(`تم ${enabled ? "تفعيل" : "إلغاء"} الحضور التعويضي`, "success");
       } else {
         showMessage(result.error || "حدث خطأ", "error");
       }
@@ -786,23 +806,15 @@ const Attendance = () => {
               <CalendarCheck size={24} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                 تسجيل الحضور والغياب
               </h1>
               <p className="text-sm text-gray-500 flex flex-wrap items-center gap-2">
                 <span>{todayLabel}</span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                <span
-                  className={`inline-flex items-center gap-1 ${sessionActive ? "text-green-600" : "text-gray-400"}`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${sessionActive ? "bg-green-500 animate-pulse" : "bg-gray-300"}`}
-                  ></span>
-                  {sessionActive
-                    ? "جلسة نشطة"
-                    : sessionLocked
-                      ? "جلسة مغلقة"
-                      : "جلسة غير نشطة"}
+                <span className={`inline-flex items-center gap-1 ${sessionActive ? "text-green-600" : "text-gray-400"}`}>
+                  <span className={`w-2 h-2 rounded-full ${sessionActive ? "bg-green-500 animate-pulse" : "bg-gray-300"}`}></span>
+                  {sessionActive ? "جلسة نشطة" : sessionLocked ? "جلسة مغلقة" : "جلسة غير نشطة"}
                 </span>
                 {isMakeupEnabled && sessionActive && (
                   <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs">
@@ -814,31 +826,21 @@ const Attendance = () => {
             </div>
           </div>
 
-          {/* إحصائيات اليوم العامة من الداشبورد */}
           {dashboard && (
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="flex flex-wrap items-center gap-4 px-4 py-2.5 bg-white rounded-2xl shadow-lg border border-gray-100 text-sm"
             >
-              <span className="text-xs text-gray-400">إحصائيات اليوم (كل المجموعات)</span>
-              <span className="text-gray-600">
-                الطلاب: <b className="text-gray-800">{num(dashboard.total_students)}</b>
-              </span>
-              <span className="text-green-600">
-                حاضر: <b>{num(dashboard.present_today)}</b>
-              </span>
-              <span className="text-red-600">
-                غائب: <b>{num(dashboard.absent_today)}</b>
-              </span>
-              <span className="text-gray-500">
-                غير مسجل: <b>{num(dashboard.not_marked_today)}</b>
-              </span>
+              <span className="text-xs text-gray-400">إحصائيات اليوم</span>
+              <span className="text-gray-600">الطلاب: <b>{num(dashboard.total_students)}</b></span>
+              <span className="text-green-600">حاضر: <b>{num(dashboard.present_today)}</b></span>
+              <span className="text-red-600">غائب: <b>{num(dashboard.absent_today)}</b></span>
+              <span className="text-gray-500">غير مسجل: <b>{num(dashboard.not_marked_today)}</b></span>
             </motion.div>
           )}
         </div>
 
-        {/* Stats للمجموعة المختارة */}
         {selectedGroup && (
           <motion.div
             initial={{ y: 10, opacity: 0 }}
@@ -887,31 +889,20 @@ const Attendance = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  المرحلة الدراسية
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">المرحلة الدراسية</label>
                 <select
                   value={selectedGrade}
-                  onChange={(e) => {
-                    setSelectedGrade(e.target.value);
-                    setSelectedGroup("");
-                  }}
+                  onChange={(e) => { setSelectedGrade(e.target.value); setSelectedGroup(""); }}
                   disabled={sessionActive}
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
                 >
                   <option value="">اختر المرحلة</option>
-                  {grades.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
+                  {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  المجموعة
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">المجموعة</label>
                 <select
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
@@ -919,18 +910,12 @@ const Attendance = () => {
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
                 >
                   <option value="">اختر المجموعة</option>
-                  {groupsForSelectedGrade.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
+                  {groupsForSelectedGrade.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  وقت قفل الجلسة (اختياري)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت قفل الجلسة (اختياري)</label>
                 <input
                   type="datetime-local"
                   value={lockAt}
@@ -938,9 +923,7 @@ const Attendance = () => {
                   disabled={sessionActive}
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  لو سيبته فاضي هيتقفل بعد ساعتين تلقائياً
-                </p>
+                <p className="text-[11px] text-gray-400 mt-1">لو سيبته فاضي هيتقفل بعد ساعتين تلقائياً</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-2">
@@ -961,7 +944,7 @@ const Attendance = () => {
                   type="button"
                   onClick={endSession}
                   disabled={!sessionActive || submitting}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-white font-medium hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-red-600 to-red-700 px-4 py-3 text-white font-medium hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
                 >
                   <Square size={18} />
                   إنهاء الجلسة
@@ -976,15 +959,11 @@ const Attendance = () => {
                   onClick={toggleMakeup}
                   disabled={submitting}
                   className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-white font-medium transition-all duration-300 ${
-                    isMakeupEnabled
-                      ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30"
-                      : "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-400/30"
+                    isMakeupEnabled ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30" : "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-400/30"
                   } disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none`}
                 >
                   <RefreshCw size={18} />
-                  {isMakeupEnabled
-                    ? "إلغاء الحضور التعويضي"
-                    : "تفعيل الحضور التعويضي"}
+                  {isMakeupEnabled ? "إلغاء الحضور التعويضي" : "تفعيل الحضور التعويضي"}
                 </motion.button>
               )}
 
@@ -1002,24 +981,15 @@ const Attendance = () => {
 
               {sessionInfo && (
                 <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600 space-y-1">
-                  <p>
-                    رقم الجلسة: <b className="font-mono">{sessionInfo.id}</b>
-                  </p>
-                  <p>
-                    بدأت:{" "}
-                    {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}
-                  </p>
-                  {sessionInfo.lock_at && (
-                    <p>
-                      تقفل: {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}
-                    </p>
-                  )}
+                  <p>رقم الجلسة: <b className="font-mono">{sessionInfo.id}</b></p>
+                  <p>بدأت: {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}</p>
+                  {sessionInfo.lock_at && <p>تقفل: {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}</p>}
                 </div>
               )}
 
               <div className="rounded-xl bg-blue-50 p-4 border border-blue-100">
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={18} className="text-primary mt-0.5 flex-shrink-0" />
+                  <AlertCircle size={18} className="text-primary mt-0.5 shrink-0" />
                   <div className="text-sm text-gray-700 space-y-1">
                     <p className="font-semibold text-primary">تنبيهات الجلسة</p>
                     <ul className="text-xs text-gray-600 space-y-1">
@@ -1033,7 +1003,6 @@ const Attendance = () => {
             </div>
           </motion.div>
 
-          {/* الطلاب ذوي الغياب المتتالي */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
@@ -1047,14 +1016,9 @@ const Attendance = () => {
             ) : (
               <ul className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
                 {overview.consecutiveAbsences.map((s, i) => (
-                  <li
-                    key={s.student_id || s.id || i}
-                    className="flex items-center justify-between text-sm bg-red-50 rounded-xl px-3 py-2"
-                  >
+                  <li key={s.student_id || s.id || i} className="flex items-center justify-between text-sm bg-red-50 rounded-xl px-3 py-2">
                     <span className="text-gray-800">{s.full_name || s.name}</span>
-                    <span className="text-xs text-red-600 font-bold">
-                      {s.consecutive_absences ?? s.absences ?? ""}
-                    </span>
+                    <span className="text-xs text-red-600 font-bold">{s.consecutive_absences ?? s.absences ?? ""}</span>
                   </li>
                 ))}
               </ul>
@@ -1069,7 +1033,6 @@ const Attendance = () => {
           animate="visible"
           className="lg:col-span-2 space-y-4"
         >
-          {/* Barcode Scanner */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5 hover:shadow-xl transition-all duration-300"
@@ -1081,30 +1044,19 @@ const Attendance = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800">تسجيل سريع بالباركود</h3>
-                  <p className="text-xs text-gray-400">
-                    امسح باركود الطالب لتسجيل الحضور
-                  </p>
+                  <p className="text-xs text-gray-400">امسح باركود الطالب لتسجيل الحضور</p>
                 </div>
               </div>
-              <div
-                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                  sessionActive
-                    ? "bg-green-100 text-green-700"
-                    : sessionLocked
-                      ? "bg-gray-100 text-gray-500"
-                      : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
+              <div className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                sessionActive ? "bg-green-100 text-green-700" : sessionLocked ? "bg-gray-100 text-gray-500" : "bg-yellow-100 text-yellow-700"
+              }`}>
                 {sessionActive ? "جلسة مفتوحة" : sessionLocked ? "تم الإغلاق" : "غير نشطة"}
               </div>
             </div>
 
             <form onSubmit={handleBarcodeSubmit} className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <ScanLine
-                  size={18}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <ScanLine size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   ref={barcodeInputRef}
@@ -1128,7 +1080,6 @@ const Attendance = () => {
             </form>
           </motion.div>
 
-          {/* Tabs + filters */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
@@ -1144,9 +1095,7 @@ const Attendance = () => {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    activeTab === tab.id
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    activeTab === tab.id ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   <tab.icon size={16} />
@@ -1158,10 +1107,7 @@ const Attendance = () => {
             {activeTab === "day" && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="relative">
-                  <Search
-                    size={18}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
+                  <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="search"
                     value={search}
@@ -1201,7 +1147,6 @@ const Attendance = () => {
             )}
           </motion.div>
 
-          {/* المحتوى */}
           {activeTab === "day" && (
             <motion.div
               variants={itemVariants}
@@ -1214,8 +1159,7 @@ const Attendance = () => {
                     قائمة الطلاب
                     {selectedGroup && (
                       <span className="text-sm font-normal text-gray-500">
-                        -{" "}
-                        {groups.find((g) => String(g.id) === String(selectedGroup))?.name}
+                        - {groups.find((g) => String(g.id) === String(selectedGroup))?.name}
                       </span>
                     )}
                   </h3>
@@ -1236,7 +1180,7 @@ const Attendance = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto max-h-[460px] overflow-y-auto custom-scrollbar">
+              <div className="overflow-x-auto max-h-115 overflow-y-auto custom-scrollbar">
                 {!selectedGroup ? (
                   <div className="text-center py-12 text-gray-400">
                     <Users size={32} className="mx-auto text-gray-300 mb-2" />
@@ -1251,13 +1195,11 @@ const Attendance = () => {
                 ) : filteredStudents.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Users size={32} className="mx-auto text-gray-300 mb-2" />
-                    <p>
-                      {search ? "لا يوجد طلاب مطابقين للبحث" : "لا يوجد طلاب في هذه المجموعة"}
-                    </p>
+                    <p>{search ? "لا يوجد طلاب مطابقين للبحث" : "لا يوجد طلاب في هذه المجموعة"}</p>
                   </div>
                 ) : (
-                  <table className="w-full text-right min-w-[720px]">
-                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
+                  <table className="w-full text-right min-w-180">
+                    <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
                       <tr>
                         <th className="px-5 py-3 text-sm font-semibold text-gray-600">الاسم</th>
                         <th className="px-5 py-3 text-sm font-semibold text-gray-600">الباركود ↓</th>
@@ -1274,7 +1216,7 @@ const Attendance = () => {
                             student={student}
                             index={index}
                             record={attendanceRecords[student.id]}
-                            canEdit={canEdit || true}
+                            canEdit={canEdit}
                             isLoading={submitting}
                             onMarkPresent={markPresent}
                             onMarkAbsent={markAbsent}
@@ -1291,38 +1233,24 @@ const Attendance = () => {
           )}
 
           {activeTab === "month" && (
-            <motion.div
-              variants={itemVariants}
-              className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden"
-            >
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
               <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center gap-2">
                 <ClipboardList size={18} className="text-primary" />
-                <h3 className="font-bold text-gray-800">
-                  سجل الحضور - {selectedMonth}
-                </h3>
+                <h3 className="font-bold text-gray-800">سجل الحضور - {selectedMonth}</h3>
               </div>
-              <div className="max-h-[520px] overflow-y-auto custom-scrollbar p-4 space-y-3">
+              <div className="max-h-130 overflow-y-auto custom-scrollbar p-4 space-y-3">
                 {!selectedGroup ? (
                   <p className="text-center text-gray-400 py-10">اختر المجموعة أولاً</p>
                 ) : monthLoading ? (
-                  [0, 1, 2].map((i) => (
-                    <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />
-                  ))
+                  [0, 1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />)
                 ) : monthGrouped.length === 0 ? (
                   <p className="text-center text-gray-400 py-10">لا توجد سجلات في هذا الشهر</p>
                 ) : (
                   monthGrouped.map((day) => (
-                    <div
-                      key={day.day}
-                      className="rounded-xl border border-gray-100 overflow-hidden"
-                    >
+                    <div key={day.day} className="rounded-xl border border-gray-100 overflow-hidden">
                       <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 px-4 py-2.5">
                         <span className="font-medium text-gray-800">
-                          {new Date(day.day).toLocaleDateString("ar-EG", {
-                            weekday: "long",
-                            day: "numeric",
-                            month: "long",
-                          })}
+                          {new Date(day.day).toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}
                         </span>
                         <span className="flex gap-3 text-xs">
                           <span className="text-green-600">حاضر: {day.present}</span>
@@ -1331,22 +1259,11 @@ const Attendance = () => {
                       </div>
                       <ul className="divide-y divide-gray-50">
                         {day.rows.map((r) => (
-                          <li
-                            key={r.id}
-                            className="flex items-center justify-between px-4 py-2 text-sm"
-                          >
+                          <li key={r.id} className="flex items-center justify-between px-4 py-2 text-sm">
                             <span className="text-gray-700">{r.full_name}</span>
                             <span className="flex items-center gap-3">
-                              <span className="text-xs text-gray-400">
-                                {formatTimeLabel(r.attendance_time)}
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-xs ${
-                                  r.status === "present"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
-                              >
+                              <span className="text-xs text-gray-400">{formatTimeLabel(r.attendance_time)}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs ${r.status === "present" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                                 {r.status === "present" ? "حاضر" : "غائب"}
                               </span>
                             </span>
@@ -1374,24 +1291,16 @@ const Attendance = () => {
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">
                   <BarChart3 size={18} className="text-primary" />
                   <h3 className="font-bold text-gray-800">
-                    إحصائيات المرحلة{" "}
-                    {selectedGrade
-                      ? `- ${grades.find((g) => String(g.id) === String(selectedGrade))?.name || ""}`
-                      : ""}
+                    إحصائيات المرحلة {selectedGrade ? `- ${grades.find((g) => String(g.id) === String(selectedGrade))?.name || ""}` : ""}
                   </h3>
                 </div>
-                {selectedGrade ? (
-                  <StatsTable rows={gradeStats} />
-                ) : (
-                  <p className="text-center text-gray-400 py-8">اختر المرحلة أولاً</p>
-                )}
+                {selectedGrade ? <StatsTable rows={gradeStats} /> : <p className="text-center text-gray-400 py-8">اختر المرحلة أولاً</p>}
               </div>
             </motion.div>
           )}
         </motion.div>
       </div>
 
-      {/* مودال تفاصيل / تعديل السجل */}
       <AnimatePresence>
         {detailsRecord && (
           <motion.div
@@ -1399,10 +1308,7 @@ const Attendance = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => {
-              setDetailsRecord(null);
-              setEditForm(null);
-            }}
+            onClick={() => { setDetailsRecord(null); setEditForm(null); }}
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
@@ -1416,35 +1322,21 @@ const Attendance = () => {
                   <Pencil size={18} className="text-primary" />
                   تفاصيل سجل الحضور
                 </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDetailsRecord(null);
-                    setEditForm(null);
-                  }}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
-                >
+                <button type="button" onClick={() => { setDetailsRecord(null); setEditForm(null); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
                   <X size={18} />
                 </button>
               </div>
 
               {detailsLoading || !editForm ? (
                 <div className="space-y-3">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse" />
-                  ))}
+                  {[0, 1, 2].map((i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse" />)}
                 </div>
               ) : (
                 <>
                   <div className="text-sm text-gray-600 space-y-1 bg-gray-50 rounded-xl p-3">
-                    <p>
-                      الطالب: <b className="text-gray-800">{detailsRecord.full_name}</b>
-                    </p>
+                    <p>الطالب: <b className="text-gray-800">{detailsRecord.full_name}</b></p>
                     <p>المجموعة: {detailsRecord.group_name || "-"}</p>
-                    <p>
-                      التاريخ: {toLocalDate(detailsRecord.attendance_date)} • الطريقة:{" "}
-                      {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}
-                    </p>
+                    <p>التاريخ: {toLocalDate(detailsRecord.attendance_date)} • الطريقة: {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -1452,9 +1344,7 @@ const Attendance = () => {
                       <label className="block text-xs text-gray-500 mb-1">الحالة</label>
                       <select
                         value={editForm.status}
-                        onChange={(e) =>
-                          setEditForm((f) => ({ ...f, status: e.target.value }))
-                        }
+                        onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                         className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="present">حاضر</option>
@@ -1466,9 +1356,7 @@ const Attendance = () => {
                       <input
                         type="time"
                         value={editForm.attendance_time}
-                        onChange={(e) =>
-                          setEditForm((f) => ({ ...f, attendance_time: e.target.value }))
-                        }
+                        onChange={(e) => setEditForm((f) => ({ ...f, attendance_time: e.target.value }))}
                         className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -1478,9 +1366,7 @@ const Attendance = () => {
                     <input
                       type="checkbox"
                       checked={editForm.is_makeup === 1}
-                      onChange={(e) =>
-                        setEditForm((f) => ({ ...f, is_makeup: e.target.checked ? 1 : 0 }))
-                      }
+                      onChange={(e) => setEditForm((f) => ({ ...f, is_makeup: e.target.checked ? 1 : 0 }))}
                       className="w-4 h-4 accent-amber-500"
                     />
                     حضور تعويضي
@@ -1514,20 +1400,17 @@ const Attendance = () => {
   );
 };
 
-/* جدول الإحصائيات الشهرية */
 const StatsTable = ({ rows }) => {
   if (!Array.isArray(rows) || rows.length === 0) {
     return <p className="text-center text-gray-400 py-8">لا توجد بيانات</p>;
   }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-right min-w-[560px]">
+      <table className="w-full text-right min-w-140">
         <thead className="bg-gray-50">
           <tr>
             {["الشهر", "أيام", "سجلات", "حاضر", "غائب", "النسبة"].map((h) => (
-              <th key={h} className="px-4 py-3 text-sm font-semibold text-gray-600">
-                {h}
-              </th>
+              <th key={h} className="px-4 py-3 text-sm font-semibold text-gray-600">{h}</th>
             ))}
           </tr>
         </thead>
@@ -1542,10 +1425,7 @@ const StatsTable = ({ rows }) => {
               <td className="px-4 py-3">
                 <span className="inline-flex items-center gap-2">
                   <span className="w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
-                    <span
-                      className="block h-full bg-primary"
-                      style={{ width: `${Math.min(num(r.attendance_percentage), 100)}%` }}
-                    />
+                    <span className="block h-full bg-primary" style={{ width: `${Math.min(num(r.attendance_percentage), 100)}%` }} />
                   </span>
                   <b className="text-gray-700">{num(r.attendance_percentage)}%</b>
                 </span>

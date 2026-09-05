@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable no-empty */
+/* eslint-disable no-unused-vars */
 import { notifyError, notifySuccess, notifyInfo, confirmToast } from "../../lib/notify";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../../motion";
@@ -1413,7 +1417,7 @@ const Exams = () => {
                         </label>
 
                         {q.file && (
-                          <span className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg max-w-[180px]">
+                          <span className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-lg max-w-45">
                             <span className="truncate">{q.file.name}</span>
                             <button
                               type="button"

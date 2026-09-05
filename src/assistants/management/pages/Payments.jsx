@@ -1,3 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-empty */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
 import {
   CreditCard,
   Pencil,
@@ -37,35 +41,64 @@ import {
 } from "../../../api/assistant/actions";
 import { exportPdfTable } from "../../../utils/office.js";
 import { ARABIC_MONTHS } from "../../../utils/helpers.js";
-import { toast, notifyError, notifySuccess, confirmToast } from "../../../lib/notify";
-import { useApiQuery, useApiList, useInvalidate } from "../../../hooks/useApiQuery";
+import {
+  toast,
+  notifyError,
+  notifySuccess,
+  confirmToast,
+} from "../../../lib/notify";
+import {
+  useApiQuery,
+  useApiList,
+  useInvalidate,
+} from "../../../hooks/useApiQuery";
 import { qk } from "../../../api/queryKeys";
 
 const PAGE_SIZE = 10;
 
 const Payments = () => {
-  /* كل الرسائل بقت toast */
-  const setError = (message) => { if (message) notifyError(message); };
-  const setSuccessMessage = (message) => { if (message) notifySuccess(message); };
+  const setError = (message) => {
+    if (message) notifyError(message);
+  };
+  const setSuccessMessage = (message) => {
+    if (message) notifySuccess(message);
+  };
 
   const invalidate = useInvalidate();
 
-  /* fetch مرة واحدة + كاش — التحديث بيحصل بعد أي تعديل حقيقي بس */
-  const studentsQuery = useApiList(qk.payments.statuses, fetchStudentsPaymentStatus, { showErrorToast: false });
+  const studentsQuery = useApiList(
+    qk.payments.statuses,
+    fetchStudentsPaymentStatus,
+    { showErrorToast: false },
+  );
   const gradesQuery = useApiList(qk.grades.all, fetchAllGrades, {
-    select: (data) => (Array.isArray(data) ? data : []).filter((g) => g?.name && g.name.trim() !== ""),
+    select: (data) =>
+      (Array.isArray(data) ? data : []).filter(
+        (g) => g?.name && g.name.trim() !== "",
+      ),
     showErrorToast: false,
   });
   const groupsQuery = useApiList(qk.groups.all, fetchAllGroups, {
-    select: (data) => (Array.isArray(data) ? data : []).filter((g) => g?.deleted === 0 || g?.deleted === undefined),
+    select: (data) =>
+      (Array.isArray(data) ? data : []).filter(
+        (g) => g?.deleted === 0 || g?.deleted === undefined,
+      ),
     showErrorToast: false,
   });
-  const paymentsQuery = useApiList(qk.payments.list(1, ""), () => fetchAllPayments(1, ""), { showErrorToast: false });
+  const paymentsQuery = useApiList(
+    qk.payments.list(1, ""),
+    () => fetchAllPayments(1, ""),
+    { showErrorToast: false },
+  );
   const overallQuery = useApiQuery(qk.payments.overview, fetchPaymentOverall, {
     showErrorToast: false,
     fallback: {
-      total_students: 0, total_required: 0, total_paid: 0,
-      total_remaining: 0, fully_paid: 0, not_paid: 0,
+      total_students: 0,
+      total_required: 0,
+      total_paid: 0,
+      total_remaining: 0,
+      fully_paid: 0,
+      not_paid: 0,
     },
   });
 
@@ -74,12 +107,19 @@ const Payments = () => {
   const groups = groupsQuery.data ?? [];
   const payments = paymentsQuery.data ?? [];
   const overallStats = overallQuery.data ?? {
-    total_students: 0, total_required: 0, total_paid: 0,
-    total_remaining: 0, fully_paid: 0, not_paid: 0,
+    total_students: 0,
+    total_required: 0,
+    total_paid: 0,
+    total_remaining: 0,
+    fully_paid: 0,
+    not_paid: 0,
   };
 
   const loading = studentsQuery.isLoading || paymentsQuery.isLoading;
-  const refreshing = studentsQuery.isFetching || paymentsQuery.isFetching || overallQuery.isFetching;
+  const refreshing =
+    studentsQuery.isFetching ||
+    paymentsQuery.isFetching ||
+    overallQuery.isFetching;
 
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [search, setSearch] = useState("");
@@ -100,8 +140,7 @@ const Payments = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [studentSubscriptions, setStudentSubscriptions] = useState([]);
-  
-  // ✅ الوقت بتوقيت القاهرة (UTC+3)
+
   const getCurrentDateTime = () => {
     const now = new Date();
     const cairoTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
@@ -118,56 +157,45 @@ const Payments = () => {
   const currentYear = now.getFullYear();
   const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
-  // ✅ دالة لتحويل التاريخ لصيغة datetime-local مع تعويض فرق التوقيت
-const formatDateForInput = (dateStr) => {
-  if (!dateStr) return getCurrentDateTime();
-  
-  try {
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      // ✅ نضيف 3 ساعات عشان نعوض فرق التوقيت
-      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-      return cairoDate.toISOString().slice(0, 16);
-    }
-  } catch (e) {}
-  
-  // لو التاريخ بصيغة ISO
-  if (typeof dateStr === 'string' && dateStr.includes('T')) {
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return getCurrentDateTime();
     try {
       const date = new Date(dateStr);
-      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-      return cairoDate.toISOString().slice(0, 16);
+      if (!isNaN(date.getTime())) {
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      }
     } catch (e) {}
-  }
-  
-  // لو التاريخ بصيغة 'MM/DD/YYYY, HH:MM:SS AM'
-  if (typeof dateStr === 'string' && dateStr.includes('/')) {
-    try {
-      const parts = dateStr.split(', ');
-      const dateParts = parts[0].split('/');
-      const timeParts = parts[1].split(' ');
-      const time = timeParts[0].split(':');
-      const period = timeParts[1];
-      
-      let hours = parseInt(time[0]);
-      if (period === 'PM' && hours < 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-      
-      const date = new Date(
-        parseInt(dateParts[2]),
-        parseInt(dateParts[0]) - 1,
-        parseInt(dateParts[1]),
-        hours,
-        parseInt(time[1])
-      );
-      
-      const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-      return cairoDate.toISOString().slice(0, 16);
-    } catch (e) {}
-  }
-  
-  return getCurrentDateTime();
-};
+    if (typeof dateStr === "string" && dateStr.includes("T")) {
+      try {
+        const date = new Date(dateStr);
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+    if (typeof dateStr === "string" && dateStr.includes("/")) {
+      try {
+        const parts = dateStr.split(", ");
+        const dateParts = parts[0].split("/");
+        const timeParts = parts[1].split(" ");
+        const time = timeParts[0].split(":");
+        const period = timeParts[1];
+        let hours = parseInt(time[0]);
+        if (period === "PM" && hours < 12) hours += 12;
+        if (period === "AM" && hours === 12) hours = 0;
+        const date = new Date(
+          parseInt(dateParts[2]),
+          parseInt(dateParts[0]) - 1,
+          parseInt(dateParts[1]),
+          hours,
+          parseInt(time[1]),
+        );
+        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+        return cairoDate.toISOString().slice(0, 16);
+      } catch (e) {}
+    }
+    return getCurrentDateTime();
+  };
 
   const loadData = () =>
     invalidate(qk.payments.statuses, ["payments"], qk.assistant.dashboard);
@@ -176,47 +204,44 @@ const formatDateForInput = (dateStr) => {
     loadData();
   };
 
-  // ✅ تصدير PDF
   function handleExportPdf() {
     if (!students.length) {
-      toast.error('لا يوجد طلاب لتصديرهم');
+      toast.error("لا يوجد طلاب لتصديرهم");
       return;
     }
 
     const columns = [
-      { header: 'الطالب', key: 'full_name' },
-      { header: 'المرحلة', key: 'grade_name' },
-      { header: 'المجموعة', key: 'group_name' },
-      { header: 'التاريخ', key: 'subscription_month' },
-      { header: 'المبلغ', key: 'paid_amount' },
-      { header: 'الحالة', key: 'subscription_status' }
+      { header: "الطالب", key: "full_name" },
+      { header: "المرحلة", key: "grade_name" },
+      { header: "المجموعة", key: "group_name" },
+      { header: "التاريخ", key: "subscription_month" },
+      { header: "المبلغ", key: "paid_amount" },
+      { header: "الحالة", key: "subscription_status" },
     ];
 
-    const pdfRows = students.map(s => {
+    const pdfRows = students.map((s) => {
       const isPaid = s.subscription_status === "paid";
-
       const amount = isPaid
         ? Number(s.paid_amount || 0)
         : Number(s.required_amount || 0);
-
       return {
         full_name: s.full_name || "غير معروف",
         grade_name: s.grade_name || "بدون مرحلة",
         group_name: s.group_name || "بدون مجموعة",
         subscription_month: s.subscription_month || currentMonthStr,
         paid_amount: `${amount} ج`,
-        subscription_status: isPaid ? "مدفوع" : "غير مدفوع"
+        subscription_status: isPaid ? "مدفوع" : "غير مدفوع",
       };
     });
 
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = new Date().toISOString().split("T")[0];
     const currentMonthArabic = ARABIC_MONTHS[currentMonth - 1];
 
     exportPdfTable(
       `كشف_مدفوعات_المصاريف_${dateStr}.pdf`,
       `كشف مدفوعات المصاريف شهر ${currentMonthArabic} ${currentYear}`,
       columns,
-      pdfRows
+      pdfRows,
     );
   }
 
@@ -378,7 +403,11 @@ const formatDateForInput = (dateStr) => {
 
   const removePaymentById = async (id) => {
     const confirmed = await new Promise((resolve) => {
-      confirmToast("هل أنت متأكد من حذف هذه الدفعة؟", () => resolve(true), "حذف");
+      confirmToast(
+        "هل أنت متأكد من حذف هذه الدفعة؟",
+        () => resolve(true),
+        "حذف",
+      );
       setTimeout(() => resolve(false), 8500);
     });
     if (!confirmed) return;
@@ -407,7 +436,6 @@ const formatDateForInput = (dateStr) => {
     }
   };
 
-  // ✅ تعديل الدالة editPayment عشان تحول التاريخ للصيغة الصحيحة
   const editPayment = (paymentData) => {
     setPayment({
       id: paymentData.id,
@@ -434,7 +462,6 @@ const formatDateForInput = (dateStr) => {
     setError(null);
   };
 
-  // الفلترة
   const filteredStudents = useMemo(() => {
     let filtered = students;
 
@@ -464,7 +491,6 @@ const formatDateForInput = (dateStr) => {
     return filtered;
   }, [students, search, gradeFilter, groupFilter, paymentStatusFilter]);
 
-  // الباجنيشن
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
 
   const paginatedStudents = useMemo(() => {
@@ -504,7 +530,6 @@ const formatDateForInput = (dateStr) => {
       transition={{ duration: 0.5 }}
       className="min-h-screen"
     >
-
       {/* Header */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
@@ -519,7 +544,7 @@ const formatDateForInput = (dateStr) => {
                 <CreditCard size={24} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                   المدفوعات
                 </h1>
                 <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -548,7 +573,6 @@ const formatDateForInput = (dateStr) => {
               {refreshing ? "جاري التحديث..." : "تحديث"}
             </motion.button>
 
-            {/* ✅ زر PDF شغال */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -620,7 +644,6 @@ const formatDateForInput = (dateStr) => {
         >
           <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
             <div className="p-4 border-b border-gray-100">
-              {/* Search */}
               <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2">
                 <Search size={18} className="text-gray-400" />
                 <input
@@ -639,7 +662,6 @@ const formatDateForInput = (dateStr) => {
                 )}
               </div>
 
-              {/* Filters */}
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <select
                   value={gradeFilter}
@@ -681,7 +703,6 @@ const formatDateForInput = (dateStr) => {
                 </select>
               </div>
 
-              {/* Counts */}
               <div className="flex items-center justify-between mt-3">
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Users size={12} /> {filteredStudents.length} طالب
@@ -697,14 +718,16 @@ const formatDateForInput = (dateStr) => {
               </div>
             </div>
 
-            {/* Students List with Pagination */}
-            <div className="max-h-[450px] overflow-y-auto custom-scrollbar">
+            <div className="max-h-112.5 overflow-y-auto custom-scrollbar">
               <div className="p-2 space-y-1">
                 <AnimatePresence>
                   {loading ? (
                     <div className="space-y-3">
                       {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                        <div
+                          key={i}
+                          className="h-16 rounded-xl bg-gray-100 animate-pulse"
+                        />
                       ))}
                     </div>
                   ) : paginatedStudents.length === 0 ? (
@@ -712,9 +735,9 @@ const formatDateForInput = (dateStr) => {
                       <Users size={40} className="text-gray-300 mx-auto mb-2" />
                       <p className="text-gray-400 text-sm">
                         {search ||
-                          gradeFilter ||
-                          groupFilter ||
-                          paymentStatusFilter !== "all"
+                        gradeFilter ||
+                        groupFilter ||
+                        paymentStatusFilter !== "all"
                           ? "لا توجد نتائج للفلترة"
                           : "لا يوجد طلاب"}
                       </p>
@@ -733,18 +756,12 @@ const formatDateForInput = (dateStr) => {
                           whileHover={{ scale: 1.02, x: 5 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => selectStudent(student)}
-                          className={`w-full text-right px-4 py-3 rounded-xl transition-all duration-200 ${isSelected
-                            ? "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-md"
-                            : "hover:bg-gray-50 border-2 border-transparent"
-                            }`}
+                          className={`w-full text-right px-4 py-3 rounded-xl transition-all duration-200 ${isSelected ? "bg-linear-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-md" : "hover:bg-gray-50 border-2 border-transparent"}`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${isPaid
-                                  ? "bg-gradient-to-r from-green-400 to-green-600"
-                                  : "bg-gradient-to-r from-gray-400 to-gray-600"
-                                  }`}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${isPaid ? "bg-linear-to-r from-green-400 to-green-600" : "bg-linear-to-r from-gray-400 to-gray-600"}`}
                               >
                                 {student.full_name?.charAt(0) || "?"}
                               </div>
@@ -760,8 +777,7 @@ const formatDateForInput = (dateStr) => {
                                 </div>
                                 <div className="text-xs text-gray-500 flex items-center gap-1">
                                   <Building2 size={10} />
-                                  سعر :{" "}
-                                  {student.grade_name || "—"} •{" "}
+                                  سعر : {student.grade_name || "—"} •{" "}
                                   {student.group_name || "بدون مجموعة"}
                                 </div>
                               </div>
@@ -787,7 +803,6 @@ const formatDateForInput = (dateStr) => {
               </div>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 text-sm">
                 <span className="text-gray-600 text-xs">
@@ -808,10 +823,7 @@ const formatDateForInput = (dateStr) => {
                       <button
                         key={pageNum}
                         onClick={() => setPage(pageNum)}
-                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${page === pageNum
-                          ? "bg-primary text-white shadow-md"
-                          : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"
-                          }`}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${page === pageNum ? "bg-primary text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"}`}
                       >
                         {pageNum}
                       </button>
@@ -894,10 +906,7 @@ const formatDateForInput = (dateStr) => {
                       {studentSubscriptions.map((sub) => (
                         <span
                           key={sub.id}
-                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${sub.status === "paid"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                            }`}
+                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${sub.status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
                         >
                           {sub.month} - {sub.required_amount} ج
                           {sub.status === "paid" ? (
@@ -915,7 +924,7 @@ const formatDateForInput = (dateStr) => {
                 {/* Payment Form */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block items-center gap-1.5">
                       <DollarSign size={14} className="text-primary" />
                       المبلغ
                     </label>
@@ -931,7 +940,7 @@ const formatDateForInput = (dateStr) => {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block items-center gap-1.5">
                       <Calendar size={14} className="text-primary" />
                       تاريخ الدفع
                     </label>
@@ -945,7 +954,7 @@ const formatDateForInput = (dateStr) => {
                     />
                   </div>
                   <div className="md:col-span-1">
-                    <label className="text-sm font-medium text-gray-700 mb-1.5 block flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-gray-700 mb-1.5 block items-center gap-1.5">
                       <Pencil size={14} className="text-gray-400" />
                       ملاحظات
                     </label>
@@ -968,7 +977,7 @@ const formatDateForInput = (dateStr) => {
                       whileTap={{ scale: 0.98 }}
                       onClick={savePayment}
                       disabled={isSubmitting}
-                      className="flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center justify-center gap-2 px-8 py-3 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (
                         <Loader2 size={18} className="animate-spin" />
@@ -1013,7 +1022,7 @@ const formatDateForInput = (dateStr) => {
                     </span>
                   </div>
 
-                  <div className="max-h-[250px] overflow-y-auto overflow-x-auto custom-scrollbar">
+                  <div className="max-h-62.5 overflow-y-auto overflow-x-auto custom-scrollbar">
                     {studentPayments.length === 0 ? (
                       <div className="text-center py-8 text-gray-400">
                         <CreditCard
@@ -1023,8 +1032,8 @@ const formatDateForInput = (dateStr) => {
                         لا يوجد مدفوعات مسجلة لهذا الطالب
                       </div>
                     ) : (
-                      <table className="w-full min-w-[500px]">
-                        <thead className="bg-gradient-to-r from-gray-50 to-green-50/50 sticky top-0 z-10">
+                      <table className="w-full min-w-125">
+                        <thead className="bg-linear-to-r from-gray-50 to-green-50/50 sticky top-0 z-10">
                           <tr>
                             <th className="text-right px-3 py-3 text-sm font-semibold text-gray-600">
                               التاريخ
@@ -1048,16 +1057,13 @@ const formatDateForInput = (dateStr) => {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className={`hover:bg-green-50/40 transition-all duration-200 ${payment.id === p.id
-                                  ? "bg-amber-50 border-r-4 border-r-amber-400"
-                                  : ""
-                                  }`}
+                                className={`hover:bg-green-50/40 transition-all duration-200 ${payment.id === p.id ? "bg-amber-50 border-r-4 border-r-amber-400" : ""}`}
                               >
                                 <td className="px-3 py-3 text-sm text-gray-600">
                                   {p.payment_date
                                     ? new Date(
-                                      p.payment_date,
-                                    ).toLocaleDateString("ar-EG")
+                                        p.payment_date,
+                                      ).toLocaleDateString("ar-EG")
                                     : "-"}
                                 </td>
                                 <td className="px-3 py-3 text-sm font-bold text-green-600">
@@ -1076,6 +1082,15 @@ const formatDateForInput = (dateStr) => {
                                       title="تعديل"
                                     >
                                       <Pencil size={14} />
+                                    </motion.button>
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() => removePaymentById(p.id)}
+                                      className="p-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all"
+                                      title="حذف"
+                                    >
+                                      <Trash2 size={14} />
                                     </motion.button>
                                   </div>
                                 </td>

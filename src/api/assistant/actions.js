@@ -4,12 +4,10 @@ import config from "../../config";
 import { previewFile, downloadFile } from "../../utils/fileHandler";
 const { apiUrl } = config;
 
-
 const previewVideoFileAction = async (videoId) => {
   const url = `${apiUrl}/assistant/videos/${videoId}/preview`;
   return await previewFile(url);
 };
-
 
 const fetchAssistantProfile = async () => {
   try {
@@ -1258,7 +1256,10 @@ const downloadAnswerFileDirect = async (answerId, fileName = "answer-file") => {
   return await downloadFile(url, fileName);
 };
 
-const downloadQuestionFileDirect = async (questionId, fileName = "question-file") => {
+const downloadQuestionFileDirect = async (
+  questionId,
+  fileName = "question-file",
+) => {
   const url = `${apiUrl}/assistant/questions/${questionId}/download`;
   return await downloadFile(url, fileName);
 };
@@ -1757,38 +1758,12 @@ const removeVideoFromPlaylistAction = async (id) => {
 
 const fetchWhatsappTemplates = async () => {
   try {
-    const data = await assistantServices.getWhatsappTemplates();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappTemplateById = async (templateId) => {
-  try {
-    const data = await assistantServices.getWhatsappTemplateById(templateId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewWhatsappTemplate = async (templateData) => {
-  try {
-    const data = await assistantServices.createWhatsappTemplate(templateData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateWhatsappTemplateInfo = async (templateId, templateData) => {
-  try {
-    const data = await assistantServices.updateWhatsappTemplate(
-      templateId,
-      templateData,
-    );
-    return { success: true, data };
+    const res = await assistantServices.getWhatsappTemplates();
+    return {
+      success: res?.success !== false,
+      data: res?.data ?? [],
+      error: res?.error,
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1796,12 +1771,264 @@ const updateWhatsappTemplateInfo = async (templateId, templateData) => {
 
 const toggleWhatsappTemplateAction = async (templateId) => {
   try {
-    const data = await assistantServices.toggleWhatsappTemplate(templateId);
+    const res = await assistantServices.toggleWhatsappTemplate(templateId);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      error: res?.error,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const updateWhatsappTemplateAction = async (templateId, templateData) => {
+  try {
+    const res = await assistantServices.updateWhatsappTemplate(
+      templateId,
+      templateData,
+    );
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchWhatsappStatus = async () => {
+  try {
+    const res = await assistantServices.getWhatsappStatus();
+    return {
+      success: res?.success !== false,
+      data: res?.data ?? {},
+      error: res?.error,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const sendWelcomeWhatsappAction = async (studentId, instant = false) => {
+  try {
+    const res = await assistantServices.sendWelcomeWhatsapp(studentId, instant);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const sendAbsenceWhatsappAction = async (studentId, date, instant = false) => {
+  try {
+    const res = await assistantServices.sendAbsenceWhatsapp(
+      studentId,
+      date,
+      instant,
+    );
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const sendPaymentWhatsappAction = async (paymentId, instant = false) => {
+  try {
+    const res = await assistantServices.sendPaymentWhatsapp(paymentId, instant);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const sendExamWhatsappAction = async (resultId, instant = false) => {
+  try {
+    const res = await assistantServices.sendExamWhatsapp(resultId, instant);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const sendWhatsappQueueAction = async (options) => {
+  try {
+    const res = await assistantServices.sendWhatsappQueue(options);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchWhatsappStats = async () => {
+  try {
+    const res = await assistantServices.getWhatsappStats();
+    return {
+      success: res?.success !== false,
+      data: res?.data ?? {},
+      error: res?.error,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const resetFailedWhatsappAction = async () => {
+  try {
+    const res = await assistantServices.resetFailedWhatsappMessages();
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchWhatsappMessages = async (options = {}) => {
+  try {
+    const res = await assistantServices.getWhatsappMessages(options);
+    return {
+      success: true,
+      data: Array.isArray(res?.data) ? res.data : [],
+      pagination: res?.pagination ?? null,
+    };
+  } catch (error) {
+    return { success: false, error: error.message, data: [] };
+  }
+};
+
+const fetchWhatsappMessageById = async (messageId) => {
+  try {
+    const res = await assistantServices.getWhatsappMessageById(messageId);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      error: res?.error,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const deleteWhatsappMessageAction = async (messageId) => {
+  try {
+    const res = await assistantServices.deleteWhatsappMessage(messageId);
+    return { success: res?.success !== false, message: res?.message };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchWhatsappDashboard = async () => {
+  try {
+    const response = await assistantServices.getWhatsappDashboard();
+    return {
+      success: response?.success !== false,
+      data: response?.data ?? {},
+      message: response?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message, data: {} };
+  }
+};
+
+const downloadStudentsTemplateAction = async () => {
+  try {
+    const data = await assistantServices.downloadStudentsTemplate();
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
+
+const downloadGradesTemplateAction = async () => {
+  try {
+    const data = await assistantServices.downloadGradesTemplate();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const downloadGroupsTemplateAction = async () => {
+  try {
+    const data = await assistantServices.downloadGroupsTemplate();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const downloadExamResultsTemplateAction = async () => {
+  try {
+    const data = await assistantServices.downloadExamResultsTemplate();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const bulkUploadStudentsAction = async (formData) => {
+  try {
+    const data = await assistantServices.bulkUploadStudents(formData);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const bulkUploadGradesAction = async (formData) => {
+  try {
+    const data = await assistantServices.bulkUploadGrades(formData);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const bulkUploadGroupsAction = async (formData) => {
+  try {
+    const data = await assistantServices.bulkUploadGroups(formData);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const bulkUploadExamResultsAction = async (examId, formData) => {
+  try {
+    const data = await assistantServices.bulkUploadExamResults(
+      examId,
+      formData,
+    );
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 const startAttendanceSession = async (sessionData) => {
   try {
     const data = await assistantServices.startAttendanceSession(sessionData);
@@ -1819,6 +2046,7 @@ const toggleMakeupMode = async (id) => {
     return { success: false, error: error.message };
   }
 };
+
 const fetchPaymentOverall = async () => {
   try {
     const data = await assistantServices.getPaymentOverall();
@@ -1827,6 +2055,7 @@ const fetchPaymentOverall = async () => {
     return { success: false, error: error.message };
   }
 };
+
 const updateSubscriptionStatus = async (id, status) => {
   try {
     const data = await assistantServices.updateSubscriptionStatus(id, status);
@@ -1835,6 +2064,7 @@ const updateSubscriptionStatus = async (id, status) => {
     return { success: false, error: error.message };
   }
 };
+
 const restoreStudent = async (studentId) => {
   try {
     const data = await assistantServices.restoreStudent(studentId);
@@ -1843,6 +2073,7 @@ const restoreStudent = async (studentId) => {
     return { success: false, error: error.message };
   }
 };
+
 const fetchStudentProfile = async (studentId) => {
   try {
     const data = await assistantServices.getStudentProfile(studentId);
@@ -1851,6 +2082,7 @@ const fetchStudentProfile = async (studentId) => {
     return { success: false, error: error.message };
   }
 };
+
 const fetchStudentStats = async (studentId) => {
   try {
     const data = await assistantServices.getStudentStats(studentId);
@@ -1868,7 +2100,20 @@ const fetchStudentsByGroup = async (groupId) => {
     return { success: false, error: error.message };
   }
 };
+const updateWhatsappSettingsAction = async (settingsData) => {
+  try {
+    const res = await assistantServices.updateWhatsappSettings(settingsData);
+    return {
+      success: res?.success !== false,
+      data: res?.data,
+      message: res?.message,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
 export {
+  updateWhatsappSettingsAction,
   fetchAssistantProfile,
   toggleMakeupMode,
   fetchAssistantDashboard,
@@ -2057,9 +2302,27 @@ export {
   addVideoToPlaylistAction,
   removeVideoFromPlaylistAction,
   fetchWhatsappTemplates,
-  fetchWhatsappTemplateById,
-  createNewWhatsappTemplate,
-  updateWhatsappTemplateInfo,
   toggleWhatsappTemplateAction,
+  updateWhatsappTemplateAction,
+  fetchWhatsappStatus,
+  sendWelcomeWhatsappAction,
+  sendAbsenceWhatsappAction,
+  sendPaymentWhatsappAction,
+  sendExamWhatsappAction,
+  sendWhatsappQueueAction,
+  fetchWhatsappStats,
+  resetFailedWhatsappAction,
+  fetchWhatsappMessages,
+  fetchWhatsappMessageById,
+  deleteWhatsappMessageAction,
+  fetchWhatsappDashboard,
+  downloadStudentsTemplateAction,
+  downloadGradesTemplateAction,
+  downloadGroupsTemplateAction,
+  downloadExamResultsTemplateAction,
+  bulkUploadStudentsAction,
+  bulkUploadGradesAction,
+  bulkUploadGroupsAction,
+  bulkUploadExamResultsAction,
   previewVideoFileAction,
 };
