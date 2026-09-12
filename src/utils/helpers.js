@@ -1,9 +1,29 @@
+export { formatTime12 as formatTime } from "./timeFormat";
+
 export const ARABIC_MONTHS = [
-  "يناير","فبراير","مارس","أبريل","مايو","يونيو",
-  "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
-export const ARABIC_DAYS = ["السبت","الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+export const ARABIC_DAYS = [
+  "السبت",
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+];
 
 export function todayISO() {
   const d = new Date();
@@ -21,10 +41,4 @@ export function formatDate(v) {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${dd}-${mm}-${yyyy}`;
-}
-
-export function formatTime(time) {
-  if (!time) return "";
-
-  return time.slice(0, 5);
 }

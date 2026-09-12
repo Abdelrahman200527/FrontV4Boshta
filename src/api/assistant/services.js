@@ -1,4 +1,3 @@
-// src/api/assistant/services.js
 import {
   httpGet,
   httpPost,
@@ -51,6 +50,10 @@ const downloadBlobFile = async (url, fileName) => {
   return { success: true };
 };
 
+// ============================================
+// PROFILE & DASHBOARD
+// ============================================
+
 const getAssistantProfile = async () => {
   const response = await httpGet("/assistant/profile");
   return response.data;
@@ -97,8 +100,12 @@ const updateAssistantPassword = async (
     password: newPassword,
     confirmPassword,
   });
-  return response;
+  return response.data;
 };
+
+// ============================================
+// GRADES
+// ============================================
 
 const getGrades = async () => {
   const response = await httpGet("/assistant/grades");
@@ -156,6 +163,10 @@ const hardDeleteGrade = async (gradeId) => {
   const response = await httpDelete(`/assistant/grades/${gradeId}/permanent`);
   return response.data;
 };
+
+// ============================================
+// GROUPS
+// ============================================
 
 const getGroups = async () => {
   const response = await httpGet("/assistant/groups");
@@ -223,6 +234,10 @@ const hardDeleteGroup = async (groupId) => {
   const response = await httpDelete(`/assistant/groups/${groupId}/permanent`);
   return response.data;
 };
+
+// ============================================
+// STUDENTS
+// ============================================
 
 const getStudents = async (
   page = 1,
@@ -446,6 +461,10 @@ const restoreStudent = async (studentId) => {
   return response.data;
 };
 
+// ============================================
+// ATTENDANCE - SESSIONS
+// ============================================
+
 const startAttendanceSession = async (sessionData) => {
   const response = await httpPost(
     "/assistant/attendance/sessions/start",
@@ -558,6 +577,10 @@ const getAttendanceSummary = async (groupId, date) => {
   return response.data;
 };
 
+// ============================================
+// PAYMENTS
+// ============================================
+
 const getPayments = async (
   page = 1,
   search = "",
@@ -640,6 +663,10 @@ const getPaymentsByGroupAndMonth = async (groupId, month) => {
   return response.data;
 };
 
+// ============================================
+// SUBSCRIPTIONS
+// ============================================
+
 const createSubscription = async (subscriptionData) => {
   const response = await httpPost("/assistant/subscriptions", subscriptionData);
   return response.data;
@@ -696,6 +723,10 @@ const deleteSubscription = async (subscriptionId) => {
   return response.data;
 };
 
+// ============================================
+// EXAMS (PAPER)
+// ============================================
+
 const getExams = async (page = 1) => {
   const response = await httpGet(`/assistant/exams?page=${page}`);
   return response;
@@ -745,6 +776,10 @@ const hardDeleteExam = async (examId) => {
   const response = await httpDelete(`/assistant/exams/${examId}/permanent`);
   return response.data;
 };
+
+// ============================================
+// EXAM RESULTS
+// ============================================
 
 const createExamResult = async (resultData) => {
   const response = await httpPost("/assistant/exam-results", resultData);
@@ -802,6 +837,10 @@ const getGroupExamResultsStats = async (groupId) => {
   );
   return response.data;
 };
+
+// ============================================
+// ONLINE EXAMS
+// ============================================
 
 const getOnlineExams = async () => {
   const response = await httpGet("/assistant/online-exams");
@@ -867,6 +906,10 @@ const hardDeleteOnlineExam = async (examId) => {
   return response.data;
 };
 
+// ============================================
+// QUESTIONS
+// ============================================
+
 const getQuestionsByExam = async (examId) => {
   const response = await httpGet(`/assistant/questions/exam/${examId}`);
   return response.data;
@@ -877,9 +920,11 @@ const getQuestionById = async (questionId) => {
   return response.data;
 };
 
-const downloadQuestionFile = async (questionId) => {
-  const response = await httpGet(`/assistant/questions/${questionId}/download`);
-  return response;
+const downloadQuestionFile = async (questionId, fileName = "question-file") => {
+  return downloadBlobFile(
+    `/assistant/questions/${questionId}/download`,
+    fileName,
+  );
 };
 
 const createQuestion = async (questionData) => {
@@ -925,6 +970,10 @@ const deleteQuestion = async (questionId) => {
   return response.data;
 };
 
+// ============================================
+// OPTIONS
+// ============================================
+
 const getOptionsByQuestion = async (questionId) => {
   const response = await httpGet(`/assistant/options/question/${questionId}`);
   return response.data;
@@ -950,6 +999,10 @@ const deleteOption = async (optionId) => {
   return response.data;
 };
 
+// ============================================
+// STUDENT ANSWERS / ESSAY GRADING
+// ============================================
+
 const getPendingEssayAnswers = async () => {
   const response = await httpGet("/assistant/student-answers/essay/pending");
   return response.data;
@@ -963,26 +1016,16 @@ const getEssayAnswersByExam = async (examId) => {
 };
 
 const gradeEssayAnswer = async (answerId, isCorrect) => {
-  const attempts = [
-    { is_correct: Boolean(isCorrect) },
+  const response = await httpPut(
+    `/assistant/student-answers/${answerId}/grade`,
     { is_correct: isCorrect ? 1 : 0 },
-    { is_correct: isCorrect ? "1" : "0" },
-  ];
-  let lastError;
-  for (const body of attempts) {
-    try {
-      const response = await httpPut(
-        `/assistant/student-answers/${answerId}/grade`,
-        body,
-      );
-      return response.data;
-    } catch (error) {
-      lastError = error;
-      if (error.status && error.status !== 400) throw error;
-    }
-  }
-  throw lastError;
+  );
+  return response.data;
 };
+
+// ============================================
+// STUDENT EXAMS
+// ============================================
 
 const getStudentExams = async (examId) => {
   const response = await httpGet(`/assistant/student-exams/exam/${examId}`);
@@ -1010,6 +1053,10 @@ const getGroupStudentExamStats = async (groupId) => {
   return response.data;
 };
 
+// ============================================
+// STUDENT ANSWERS STATS
+// ============================================
+
 const getQuestionAnswerStats = async (questionId) => {
   const response = await httpGet(
     `/assistant/student-answers/question/${questionId}/stats`,
@@ -1023,6 +1070,10 @@ const getQuestionMostSelectedOptions = async (questionId) => {
   );
   return response.data;
 };
+
+// ============================================
+// ASSIGNMENTS
+// ============================================
 
 const getAssignments = async () => {
   const response = await httpGet("/assistant/assignments");
@@ -1039,11 +1090,14 @@ const getAssignmentsByGroup = async (groupId) => {
   return response.data;
 };
 
-const downloadAssignment = async (assignmentId) => {
-  const response = await httpGet(
+const downloadAssignment = async (
+  assignmentId,
+  fileName = "assignment-file",
+) => {
+  return downloadBlobFile(
     `/assistant/assignments/${assignmentId}/download`,
+    fileName,
   );
-  return response;
 };
 
 const getAssignmentById = async (assignmentId) => {
@@ -1075,6 +1129,10 @@ const hardDeleteAssignment = async (assignmentId) => {
   );
   return response.data;
 };
+
+// ============================================
+// ASSIGNMENT SUBMISSIONS
+// ============================================
 
 const getGradeSubmissionStats = async (gradeId) => {
   const response = await httpGet(
@@ -1133,6 +1191,10 @@ const gradeSubmission = async (submissionId, score, feedback) => {
   return response.data;
 };
 
+// ============================================
+// VIDEOS
+// ============================================
+
 const getVideos = async () => {
   const response = await httpGet("/assistant/videos");
   return response.data;
@@ -1143,9 +1205,8 @@ const getVideosByGrade = async (gradeId) => {
   return response.data;
 };
 
-const downloadVideoFile = async (videoId) => {
-  const response = await httpGet(`/assistant/videos/${videoId}/download`);
-  return response;
+const downloadVideoFile = async (videoId, fileName = "video-file") => {
+  return downloadBlobFile(`/assistant/videos/${videoId}/download`, fileName);
 };
 
 const getVideoById = async (videoId) => {
@@ -1170,6 +1231,10 @@ const deleteVideo = async (videoId) => {
   const response = await httpDelete(`/assistant/videos/${videoId}`);
   return response.data;
 };
+
+// ============================================
+// PLAYLISTS
+// ============================================
 
 const getPlaylists = async () => {
   const response = await httpGet("/assistant/playlists");
@@ -1224,21 +1289,37 @@ const removeVideoFromPlaylist = async (id) => {
   return response.data;
 };
 
+// ============================================
+// WHATSAPP - TEMPLATES
+// ============================================
+
 const getWhatsappTemplates = async () => {
   const response = await httpGet("/assistant/whatsapp-messages");
-  return response;
+  return response.data;
 };
 
 const toggleWhatsappTemplate = async (templateId) => {
   const response = await httpPut(
     `/assistant/whatsapp-messages/${templateId}/toggle`,
   );
-  return response;
+  return response.data;
 };
+
+const updateWhatsappTemplate = async (templateId, templateData) => {
+  const response = await httpPut(
+    `/assistant/whatsapp-messages/${templateId}`,
+    templateData,
+  );
+  return response.data;
+};
+
+// ============================================
+// WHATSAPP - MESSAGES / QUEUE
+// ============================================
 
 const getWhatsappStatus = async () => {
   const response = await httpGet("/assistant/whatsapp/status");
-  return response;
+  return response.data;
 };
 
 const sendWelcomeWhatsapp = async (studentId, instant = false) => {
@@ -1246,7 +1327,7 @@ const sendWelcomeWhatsapp = async (studentId, instant = false) => {
     `/assistant/whatsapp/send/welcome/${studentId}?instant=${instant ? "true" : "false"}`,
     {},
   );
-  return response;
+  return response.data;
 };
 
 const sendAbsenceWhatsapp = async (studentId, date, instant = false) => {
@@ -1257,7 +1338,7 @@ const sendAbsenceWhatsapp = async (studentId, date, instant = false) => {
     `/assistant/whatsapp/send/absence/${studentId}?${params.toString()}`,
     {},
   );
-  return response;
+  return response.data;
 };
 
 const sendPaymentWhatsapp = async (paymentId, instant = false) => {
@@ -1265,7 +1346,7 @@ const sendPaymentWhatsapp = async (paymentId, instant = false) => {
     `/assistant/whatsapp/send/payment/${paymentId}?instant=${instant ? "true" : "false"}`,
     {},
   );
-  return response;
+  return response.data;
 };
 
 const sendExamWhatsapp = async (resultId, instant = false) => {
@@ -1273,7 +1354,7 @@ const sendExamWhatsapp = async (resultId, instant = false) => {
     `/assistant/whatsapp/send/exam/${resultId}?instant=${instant ? "true" : "false"}`,
     {},
   );
-  return response;
+  return response.data;
 };
 
 const sendWhatsappQueue = async ({
@@ -1286,17 +1367,17 @@ const sendWhatsappQueue = async ({
     limit,
     statuses,
   });
-  return response;
+  return response.data;
 };
 
 const getWhatsappStats = async () => {
   const response = await httpGet("/assistant/whatsapp/queue/stats");
-  return response;
+  return response.data;
 };
 
 const resetFailedWhatsappMessages = async () => {
   const response = await httpPost("/assistant/whatsapp/queue/reset-failed", {});
-  return response;
+  return response.data;
 };
 
 const getWhatsappMessages = async ({
@@ -1318,28 +1399,29 @@ const getWhatsappMessages = async ({
 
 const getWhatsappMessageById = async (messageId) => {
   const response = await httpGet(`/assistant/whatsapp/messages/${messageId}`);
-  return response;
+  return response.data;
 };
 
 const deleteWhatsappMessage = async (messageId) => {
   const response = await httpDelete(
     `/assistant/whatsapp/messages/${messageId}`,
   );
-  return response;
+  return response.data;
 };
 
 const getWhatsappDashboard = async () => {
   const response = await httpGet("/assistant/whatsapp/dashboard");
-  return response;
+  return response.data;
 };
 
-const updateWhatsappTemplate = async (templateId, templateData) => {
-  const response = await httpPut(
-    `/assistant/whatsapp-messages/${templateId}`,
-    templateData,
-  );
-  return response;
+const updateWhatsappSettings = async (settingsData) => {
+  const response = await httpPut("/assistant/whatsapp/settings", settingsData);
+  return response.data;
 };
+
+// ============================================
+// BULK UPLOAD
+// ============================================
 
 const downloadStudentsTemplate = async () => {
   return downloadBlobFile(
@@ -1368,7 +1450,7 @@ const bulkUploadStudents = async (formData) => {
     "/assistant/students/bulk-upload",
     formData,
   );
-  return response;
+  return response.data;
 };
 
 const bulkUploadGrades = async (formData) => {
@@ -1376,7 +1458,7 @@ const bulkUploadGrades = async (formData) => {
     "/assistant/grades/bulk-upload",
     formData,
   );
-  return response;
+  return response.data;
 };
 
 const bulkUploadGroups = async (formData) => {
@@ -1384,7 +1466,7 @@ const bulkUploadGroups = async (formData) => {
     "/assistant/groups/bulk-upload",
     formData,
   );
-  return response;
+  return response.data;
 };
 
 const bulkUploadExamResults = async (examId, formData) => {
@@ -1392,21 +1474,24 @@ const bulkUploadExamResults = async (examId, formData) => {
     `/assistant/exam-results/bulk-upload/${examId}`,
     formData,
   );
-  return response;
+  return response.data;
 };
-const updateWhatsappSettings = async (settingsData) => {
-  const response = await httpPut("/assistant/whatsapp/settings", settingsData);
-  return response;
-};
+
+// ============================================
+// EXPORTS
+// ============================================
+
 export {
+  // Profile & Dashboard
   getAssistantProfile,
-  updateWhatsappSettings,
   getAssistantDashboard,
   getActivityLog,
   getAssistantProfileImage,
   updateAssistantProfileImage,
   deleteAssistantProfileImage,
   updateAssistantPassword,
+
+  // Grades
   getGrades,
   getGradesWithGroupsCount,
   getGradesWithStudentsCount,
@@ -1418,6 +1503,8 @@ export {
   updateGrade,
   softDeleteGrade,
   hardDeleteGrade,
+
+  // Groups
   getGroups,
   getGroupsWithGradeName,
   getGroupsWithStudentsCount,
@@ -1431,6 +1518,8 @@ export {
   updateGroup,
   softDeleteGroup,
   hardDeleteGroup,
+
+  // Students
   getStudents,
   getDeletedStudents,
   searchStudentByBarcode,
@@ -1464,6 +1553,8 @@ export {
   softDeleteStudent,
   hardDeleteStudent,
   restoreStudent,
+
+  // Attendance
   startAttendanceSession,
   getActiveSession,
   toggleMakeupMode,
@@ -1481,6 +1572,8 @@ export {
   getGroupAttendanceByDate,
   getGroupAttendanceByMonth,
   getAttendanceSummary,
+
+  // Payments
   getPayments,
   getPaymentById,
   createPayment,
@@ -1494,6 +1587,8 @@ export {
   getGroupPaymentStats,
   getPaymentsByGradeAndMonth,
   getPaymentsByGroupAndMonth,
+
+  // Subscriptions
   createSubscription,
   getSubscriptionOverall,
   getStudentsWithoutSubscription,
@@ -1503,6 +1598,8 @@ export {
   getGroupSubscriptionStats,
   updateSubscriptionStatus,
   deleteSubscription,
+
+  // Exams
   getExams,
   getExamsByGrade,
   getExamsByGroup,
@@ -1513,6 +1610,8 @@ export {
   updateExam,
   softDeleteExam,
   hardDeleteExam,
+
+  // Exam Results
   createExamResult,
   upsertExamResult,
   upsertBatchExamResults,
@@ -1522,6 +1621,8 @@ export {
   getExamResultStats,
   getGradeExamResultsStats,
   getGroupExamResultsStats,
+
+  // Online Exams
   getOnlineExams,
   getAvailableOnlineExams,
   getExpiredOnlineExams,
@@ -1534,6 +1635,8 @@ export {
   updateOnlineExam,
   softDeleteOnlineExam,
   hardDeleteOnlineExam,
+
+  // Questions
   getQuestionsByExam,
   getQuestionById,
   downloadQuestionFile,
@@ -1542,20 +1645,28 @@ export {
   updateQuestion,
   updateQuestionWithFile,
   deleteQuestion,
+
+  // Options
   getOptionsByQuestion,
   getOptionById,
   createOption,
   updateOption,
   deleteOption,
+
+  // Student Answers
   getPendingEssayAnswers,
   getEssayAnswersByExam,
   gradeEssayAnswer,
+  getQuestionAnswerStats,
+  getQuestionMostSelectedOptions,
+
+  // Student Exams
   getStudentExams,
   getStudentExamStats,
   getGradeStudentExamStats,
   getGroupStudentExamStats,
-  getQuestionAnswerStats,
-  getQuestionMostSelectedOptions,
+
+  // Assignments
   getAssignments,
   getAssignmentsByGrade,
   getAssignmentsByGroup,
@@ -1565,6 +1676,8 @@ export {
   updateAssignment,
   softDeleteAssignment,
   hardDeleteAssignment,
+
+  // Assignment Submissions
   getGradeSubmissionStats,
   getGroupSubmissionStats,
   getSubmissions,
@@ -1573,6 +1686,8 @@ export {
   getNotSubmittedStudents,
   getSubmissionStats,
   gradeSubmission,
+
+  // Videos
   getVideos,
   getVideosByGrade,
   downloadVideoFile,
@@ -1580,6 +1695,8 @@ export {
   createVideo,
   updateVideo,
   deleteVideo,
+
+  // Playlists
   getPlaylists,
   getPlaylistsByGrade,
   getPlaylistById,
@@ -1589,8 +1706,11 @@ export {
   getPlaylistVideos,
   addVideoToPlaylist,
   removeVideoFromPlaylist,
+
+  // WhatsApp
   getWhatsappTemplates,
   toggleWhatsappTemplate,
+  updateWhatsappTemplate,
   getWhatsappStatus,
   sendWelcomeWhatsapp,
   sendAbsenceWhatsapp,
@@ -1603,7 +1723,9 @@ export {
   getWhatsappMessageById,
   deleteWhatsappMessage,
   getWhatsappDashboard,
-  updateWhatsappTemplate,
+  updateWhatsappSettings,
+
+  // Bulk Upload
   downloadStudentsTemplate,
   downloadGradesTemplate,
   downloadGroupsTemplate,

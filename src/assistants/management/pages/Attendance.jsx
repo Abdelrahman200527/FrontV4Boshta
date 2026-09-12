@@ -1,6 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/set-state-in-effect */
+/* src/assistants/management/pages/Attendance.jsx */
+
 import {
   CalendarCheck,
   Search,
@@ -23,9 +23,12 @@ import {
   TrendingUp,
   AlertTriangle,
   X,
+  Clock,
+  Volume2,
+  Loader2,
 } from "lucide-react";
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { useApiList } from "../../../hooks/useApiQuery";
+import { useApiList, useInvalidate } from "../../../hooks/useApiQuery";
 import { qk } from "../../../api/queryKeys";
 import {
   notifyError,
@@ -34,10 +37,12 @@ import {
   confirmToast,
 } from "../../../lib/notify";
 import { motion, AnimatePresence } from "framer-motion";
+import Pagination from "../../../components/Pagination";
+import ResponsiveTable from "../../../components/ResponsiveTable";
 import {
   fetchAllGroups,
   fetchAllGrades,
-  fetchStudentsByGroup,
+  fetchAllStudents,
   fetchActiveSession,
   startAttendanceSession,
   scanStudentBarcode,
@@ -55,6 +60,10 @@ import {
   fetchGroupAttendanceByMonth,
   fetchAttendanceSummary,
 } from "../../../api/assistant/actions";
+
+/* ============================ Constants ============================ */
+
+const PAGE_SIZE = 20;
 
 /* ============================ Helpers ============================ */
 
@@ -78,17 +87,72 @@ function formatTimeLabel(t) {
   if (s === "-") return "-";
   const d = new Date(`1970-01-01T${s}:00`);
   if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("ar-EG", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function nowTimeValue() {
   const d = new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${String(d.getHours()).padStart(2, "0")}:${String(
+    d.getMinutes(),
+  ).padStart(2, "0")}`;
+}
+
+function formatDuration(seconds) {
+  if (seconds <= 0) return "00:00";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(
+      2,
+      "0",
+    )}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 const num = (v) => Number(v ?? 0) || 0;
 
-/* ============================ Row ============================ */
+/* ============================ Sound Feedback ============================ */
+
+function playBeep(type = "success") {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "success") {
+      osc.frequency.value = 1200;
+      gain.gain.value = 0.15;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } else if (type === "error") {
+      osc.frequency.value = 400;
+      gain.gain.value = 0.2;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } else {
+      osc.frequency.value = 800;
+      gain.gain.value = 0.1;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    }
+
+    setTimeout(() => ctx.close(), 500);
+  } catch (err) {
+    // silently ignore sound errors
+  }
+}
+
+/* ============================ Attendance Row ============================ */
 
 const AttendanceRow = memo(function AttendanceRow({
   student,
@@ -105,6 +169,17 @@ const AttendanceRow = memo(function AttendanceRow({
   const isAbsent = record?.status === "absent";
   const statusLabel = record ? (isPresent ? "حاضر" : "غائب") : "غير مسجل";
 
+  const methodBadge =
+    record?.method === "barcode" ? (
+      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+        باركود
+      </span>
+    ) : record?.method === "manual" ? (
+      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+        يدوي
+      </span>
+    ) : null;
+
   return (
     <motion.tr
       initial={{ opacity: 0, y: 10 }}
@@ -112,20 +187,21 @@ const AttendanceRow = memo(function AttendanceRow({
       transition={{ delay: Math.min(index * 0.02, 0.3) }}
       className="hover:bg-blue-50/40 transition-all duration-200 group"
     >
-      <td className="px-5 py-3 font-medium text-gray-800">
-        <div className="flex items-center gap-2">
+      <td className="px-3 sm:px-5 py-3 font-medium text-gray-800 text-sm">
+        <div className="flex items-center gap-2 flex-wrap">
           <span>{student.full_name}</span>
           {record?.is_makeup === 1 && (
             <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
               تعويضي
             </span>
           )}
+          {methodBadge}
         </div>
       </td>
-      <td className="px-5 py-3 text-sm font-mono text-gray-500">
+      <td className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-mono text-gray-500">
         {student.barcode}
       </td>
-      <td className="px-5 py-3">
+      <td className="px-3 sm:px-5 py-3">
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
             isPresent
@@ -141,10 +217,10 @@ const AttendanceRow = memo(function AttendanceRow({
           {statusLabel}
         </span>
       </td>
-      <td className="px-5 py-3 text-sm text-gray-500">
+      <td className="px-3 sm:px-5 py-3 text-xs sm:text-sm text-gray-500">
         {formatTimeLabel(record?.attendance_time)}
       </td>
-      <td className="px-5 py-3">
+      <td className="px-3 sm:px-5 py-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -153,9 +229,13 @@ const AttendanceRow = memo(function AttendanceRow({
             onClick={() => onMarkPresent(student)}
             disabled={!canEdit || isPresent || isLoading}
             title="تسجيل حضور"
-            className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-2.5 sm:px-3 py-2 text-xs text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
           >
-            <UserCheck size={14} />
+            {isLoading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <UserCheck size={14} />
+            )}
             حضور
           </motion.button>
           <motion.button
@@ -165,7 +245,7 @@ const AttendanceRow = memo(function AttendanceRow({
             onClick={() => onMarkAbsent(student)}
             disabled={!canEdit || isAbsent || isLoading}
             title="تسجيل غياب"
-            className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-2 text-xs text-white font-medium hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+            className="flex items-center gap-1.5 rounded-xl bg-red-500 px-2.5 sm:px-3 py-2 text-xs text-white font-medium hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
           >
             <UserX size={14} />
             غياب
@@ -194,9 +274,80 @@ const AttendanceRow = memo(function AttendanceRow({
   );
 });
 
-/* ============================ Page ============================ */
+/* ============================ Stats Table ============================ */
+
+const StatsTable = ({ rows }) => {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return <p className="text-center text-gray-400 py-8">لا توجد بيانات</p>;
+  }
+  return (
+    <ResponsiveTable minWidth={600} maxHeight="max-h-[50vh]">
+      <table className="w-full text-right">
+        <thead className="bg-gray-50 sticky top-0 z-10">
+          <tr>
+            {["الشهر", "أيام", "سجلات", "حاضر", "غائب", "النسبة"].map((h) => (
+              <th
+                key={h}
+                className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-600"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {rows.map((r, i) => (
+            <tr
+              key={r.month || i}
+              className="hover:bg-blue-50/40 text-xs sm:text-sm"
+            >
+              <td className="px-3 sm:px-4 py-3 font-medium text-gray-800">
+                {r.month}
+              </td>
+              <td className="px-3 sm:px-4 py-3 text-gray-600">
+                {num(r.total_days)}
+              </td>
+              <td className="px-3 sm:px-4 py-3 text-gray-600">
+                {num(r.total_records)}
+              </td>
+              <td className="px-3 sm:px-4 py-3 text-green-600 font-medium">
+                {num(r.present_count)}
+              </td>
+              <td className="px-3 sm:px-4 py-3 text-red-600 font-medium">
+                {num(r.absent_count)}
+              </td>
+              <td className="px-3 sm:px-4 py-3">
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-16 sm:w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <span
+                      className="block h-full bg-primary"
+                      style={{
+                        width: `${Math.min(
+                          num(r.attendance_percentage),
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </span>
+                  <b className="text-gray-700">
+                    {num(r.attendance_percentage)}%
+                  </b>
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </ResponsiveTable>
+  );
+};
+
+/* ============================ Main Page ============================ */
 
 const Attendance = () => {
+  const invalidate = useInvalidate();
+
+  /* ---------- Master Data ---------- */
   const gradesQuery = useApiList(qk.grades.all, fetchAllGrades, {
     select: (data) =>
       (Array.isArray(data) ? data : []).filter(
@@ -211,52 +362,96 @@ const Attendance = () => {
       ),
     showErrorToast: false,
   });
-  const grades = gradesQuery.data ?? [];
-  const groups = groupsQuery.data ?? [];
 
-  const [students, setStudents] = useState([]);
+  const grades = useMemo(() => gradesQuery.data ?? [], [gradesQuery.data]);
+  const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data]);
+
+  /* ---------- Selections ---------- */
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedDate, setSelectedDate] = useState(toLocalDate());
   const [selectedMonth, setSelectedMonth] = useState(toLocalMonth());
 
+  /* ---------- Pagination ---------- */
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  });
+
+  /* ---------- Session State ---------- */
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [sessionLocked, setSessionLocked] = useState(false);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [isMakeupEnabled, setIsMakeupEnabled] = useState(false);
   const [lockAt, setLockAt] = useState("");
+  const [lockRemaining, setLockRemaining] = useState(0);
 
-  const [barcode, setBarcode] = useState("");
-  const [search, setSearch] = useState("");
+  /* ---------- Students & Attendance ---------- */
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState({});
-
   const [serverSummary, setServerSummary] = useState(null);
+  const [rowLoading, setRowLoading] = useState({});
+
+  /* ---------- Month ---------- */
+  const [monthRecords, setMonthRecords] = useState([]);
+  const [monthLoading, setMonthLoading] = useState(false);
+
+  /* ---------- Barcode ---------- */
+  const [barcode, setBarcode] = useState("");
+  const [lastScan, setLastScan] = useState(null);
+  const barcodeInputRef = useRef(null);
+  const lastSubmitTimeRef = useRef(0);
+
+  /* ---------- Search ---------- */
+  const [search, setSearch] = useState("");
+
+  const resetGroupData = useCallback(() => {
+    setStudents([]);
+    setAttendanceRecords({});
+    setServerSummary(null);
+    setSessionActive(false);
+    setSessionId(null);
+    setSessionInfo(null);
+    setSessionLocked(false);
+    setIsMakeupEnabled(false);
+    setLockRemaining(0);
+    setMonthRecords([]);
+    setPage(1);
+  }, []);
+
+  /* ---------- Tabs ---------- */
+  const [activeTab, setActiveTab] = useState("day");
+
+  /* ---------- Stats ---------- */
   const [dashboard, setDashboard] = useState(null);
   const [overview, setOverview] = useState({
     overall: [],
     consecutiveAbsences: [],
   });
   const [gradeStats, setGradeStats] = useState([]);
-  const [monthRecords, setMonthRecords] = useState([]);
-  const [monthLoading, setMonthLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("day");
 
+  /* ---------- Details Modal ---------- */
   const [detailsRecord, setDetailsRecord] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const barcodeInputRef = useRef(null);
   const isToday = selectedDate === toLocalDate();
   const canEdit = sessionActive || !isToday;
+
+  /* ============================ Load Dashboard ============================ */
 
   const loadDashboard = useCallback(async () => {
     const [dash, over] = await Promise.all([
       fetchAttendanceDashboard(),
       fetchAttendanceOverview(),
     ]);
+
     if (dash.success) setDashboard(dash.data || null);
     if (over.success) {
       setOverview({
@@ -269,59 +464,48 @@ const Attendance = () => {
   }, []);
 
   useEffect(() => {
-    loadDashboard();
+    let cancelled = false;
+
+    (async () => {
+      await loadDashboard();
+      if (cancelled) return;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loadDashboard]);
 
+  /* ============================ Load Grade Stats ============================ */
+
   useEffect(() => {
-    if (!selectedGrade) {
-      setGradeStats([]);
-      return;
-    }
+    if (!selectedGrade) return;
+
+    let cancelled = false;
     (async () => {
       const res = await fetchGradeAttendance(selectedGrade);
-      setGradeStats(res.success && Array.isArray(res.data) ? res.data : []);
+      if (!cancelled) {
+        setGradeStats(res.success && Array.isArray(res.data) ? res.data : []);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedGrade]);
 
-  function showMessage(text, type = "info") {
-    if (!text) return;
-    if (type === "error") notifyError(text);
-    else if (type === "success") notifySuccess(text);
-    else notifyInfo(text);
-  }
-
-  const loadAttendanceRecords = useCallback(
-    async (groupId = selectedGroup, date = selectedDate) => {
-      if (!groupId) return;
-      const [recRes, sumRes] = await Promise.all([
-        fetchGroupAttendanceByDate(groupId, date),
-        fetchAttendanceSummary(groupId, date),
-      ]);
-
-      if (recRes.success && Array.isArray(recRes.data)) {
-        const records = {};
-        recRes.data.forEach((r) => {
-          records[r.student_id] = r;
-        });
-        setAttendanceRecords(records);
-      } else {
-        setAttendanceRecords({});
-      }
-      setServerSummary(sumRes.success ? sumRes.data || null : null);
-    },
-    [selectedGroup, selectedDate],
-  );
+  /* ============================ Session Management ============================ */
 
   const checkActiveSession = useCallback(async (groupId) => {
     if (!groupId) return;
     try {
       const result = await fetchActiveSession(groupId);
       if (result.success && result.data) {
-        setSessionInfo(result.data);
-        setSessionId(result.data.id);
-        setIsMakeupEnabled(result.data.is_makeup_enabled === 1);
-        setSessionLocked(result.data.status === "locked");
-        setSessionActive(result.data.status === "active");
+        const s = result.data;
+        setSessionInfo(s);
+        setSessionId(s.id);
+        setIsMakeupEnabled(s.is_makeup_enabled === 1);
+        setSessionLocked(s.status === "locked");
+        setSessionActive(s.status === "active");
       } else {
         setSessionInfo(null);
         setSessionActive(false);
@@ -330,78 +514,171 @@ const Attendance = () => {
         setIsMakeupEnabled(false);
       }
     } catch (error) {
-      console.error("Error checking session:", error);
       setSessionActive(false);
     }
   }, []);
 
- const loadGroupStudents = useCallback(
-  async (groupId) => {
-    if (!groupId) return;
-    if (loading) return; // ✅ منع التكرار
+  /* ============================ Load Group Students (Paginated) ============================ */
 
-    setLoading(true);
-    try {
-      const [studentsResult, attendanceResult] = await Promise.all([
-        fetchStudentsByGroup(groupId),
-        fetchGroupAttendanceByDate(groupId, selectedDate),
-      ]);
+  const loadGroupStudents = useCallback(
+    async (groupId, date, currentPage) => {
+      if (!groupId) return;
 
-      if (studentsResult.success && Array.isArray(studentsResult.data)) {
-        setStudents(studentsResult.data);
-      } else {
-        setStudents([]);
+      setLoading(true);
+      try {
+        const [studentsResult, attendanceResult, summaryResult] =
+          await Promise.all([
+            fetchAllStudents(currentPage, "", selectedGrade || "", groupId),
+            fetchGroupAttendanceByDate(groupId, date),
+            fetchAttendanceSummary(groupId, date),
+          ]);
+
+        // Process students with pagination
+        if (studentsResult.success && Array.isArray(studentsResult.data)) {
+          const sorted = [...studentsResult.data].sort((a, b) =>
+            String(a.full_name || "").localeCompare(
+              String(b.full_name || ""),
+              "ar",
+            ),
+          );
+          setStudents(sorted);
+        } else {
+          setStudents([]);
+        }
+
+        // Process pagination
+        if (studentsResult.pagination) {
+          setPagination(studentsResult.pagination);
+        } else {
+          setPagination({
+            page: currentPage,
+            limit: PAGE_SIZE,
+            total: studentsResult.data?.length || 0,
+            totalPages: 1,
+          });
+        }
+
+        // Process attendance records
+        if (attendanceResult.success && Array.isArray(attendanceResult.data)) {
+          const records = {};
+          attendanceResult.data.forEach((r) => {
+            records[r.student_id] = r;
+          });
+          setAttendanceRecords(records);
+        } else {
+          setAttendanceRecords({});
+        }
+
+        // Process summary
+        setServerSummary(
+          summaryResult.success ? summaryResult.data || null : null,
+        );
+      } catch (error) {
+        notifyError("حدث خطأ في تحميل الطلاب");
+      } finally {
+        setLoading(false);
       }
+    },
+    [selectedGrade],
+  );
 
-      if (attendanceResult.success && Array.isArray(attendanceResult.data)) {
-        const records = {};
-        attendanceResult.data.forEach((r) => {
-          records[r.student_id] = r;
-        });
-        setAttendanceRecords(records);
-      } else {
-        setAttendanceRecords({});
-      }
-
-      // ✅ جيب الـ summary
-      const summaryResult = await fetchAttendanceSummary(groupId, selectedDate);
-      if (summaryResult.success) {
-        setServerSummary(summaryResult.data || null);
-      }
-    } catch (error) {
-      console.error("Error loading students:", error);
-      showMessage("حدث خطأ في تحميل الطلاب", "error");
-    } finally {
-      setLoading(false);
-    }
-  },
-  [loading, selectedDate],
-);
+  /* ============================ Handle Group Change ============================ */
 
   useEffect(() => {
     if (!selectedGroup) {
-      setStudents([]);
-      setAttendanceRecords({});
-      setServerSummary(null);
-      setSessionActive(false);
-      setSessionId(null);
-      setSessionInfo(null);
-      setMonthRecords([]);
-      return;
+      const timer = setTimeout(() => {
+        setStudents([]);
+        setAttendanceRecords({});
+        setServerSummary(null);
+        setSessionActive(false);
+        setSessionId(null);
+        setSessionInfo(null);
+        setSessionLocked(false);
+        setIsMakeupEnabled(false);
+        setLockRemaining(0);
+        setMonthRecords([]);
+        setPage(1);
+      }, 0);
+
+      return () => clearTimeout(timer);
     }
-    checkActiveSession(selectedGroup);
-    loadGroupStudents(selectedGroup);
-  }, [selectedGroup]);
+
+    // Reset page when group changes
+    if (page !== 1) {
+      const timer = setTimeout(() => setPage(1), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      void checkActiveSession(selectedGroup);
+      void loadGroupStudents(selectedGroup, selectedDate, 1);
+    }, 0);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroup, checkActiveSession]);
+
+  /* ============================ Handle Date Change ============================ */
 
   useEffect(() => {
-    if (selectedGroup) loadAttendanceRecords(selectedGroup, selectedDate);
+    if (!selectedGroup) return;
+
+    // Reset page on date change
+    if (page !== 1) {
+      const timer = setTimeout(() => setPage(1), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      void loadGroupStudents(selectedGroup, selectedDate, 1);
+    }, 0);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
+
+  /* ============================ Handle Grade Change ============================ */
+
+  useEffect(() => {
+    if (!selectedGroup) return;
+
+    // Reload when grade changes (affects pagination filter)
+    if (page !== 1) {
+      const timer = setTimeout(() => setPage(1), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const timer = setTimeout(() => {
+      void loadGroupStudents(selectedGroup, selectedDate, 1);
+    }, 0);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGrade]);
+
+  /* ============================ Handle Page Change ============================ */
+
+  useEffect(() => {
+    if (!selectedGroup || page === 1) return;
+
+    const timer = setTimeout(() => {
+      void loadGroupStudents(selectedGroup, selectedDate, page);
+    }, 0);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  /* ============================ Load Month ============================ */
 
   const loadMonth = useCallback(async () => {
     if (!selectedGroup) return;
     setMonthLoading(true);
     try {
-      const res = await fetchGroupAttendanceByMonth(selectedGroup, selectedMonth);
+      const res = await fetchGroupAttendanceByMonth(
+        selectedGroup,
+        selectedMonth,
+      );
       setMonthRecords(res.success && Array.isArray(res.data) ? res.data : []);
     } finally {
       setMonthLoading(false);
@@ -409,139 +686,221 @@ const Attendance = () => {
   }, [selectedGroup, selectedMonth]);
 
   useEffect(() => {
-    if (activeTab === "month") loadMonth();
+    if (activeTab !== "month") return;
+
+    const timer = setTimeout(() => {
+      void loadMonth();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [activeTab, loadMonth]);
 
-  async function startSession() {
+  /* ============================ Lock Countdown Timer ============================ */
+
+  useEffect(() => {
+    if (!sessionActive || !sessionInfo?.lock_at) {
+      const resetTimer = window.requestAnimationFrame(() => {
+        setLockRemaining(0);
+      });
+      return () => window.cancelAnimationFrame(resetTimer);
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const lockTime = new Date(sessionInfo.lock_at).getTime();
+      const diff = Math.max(0, Math.floor((lockTime - now) / 1000));
+      setLockRemaining(diff);
+
+      if (diff === 0 && sessionActive) {
+        // Auto-check session on lock
+        checkActiveSession(selectedGroup);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionActive, sessionInfo?.lock_at, selectedGroup]);
+
+  /* ============================ Auto-Refresh Active Session ============================ */
+
+  useEffect(() => {
+    if (!sessionActive || !selectedGroup) return;
+
+    const interval = setInterval(async () => {
+      const result = await fetchActiveSession(selectedGroup);
+      if (result.success && result.data) {
+        const s = result.data;
+        if (s.attendance_locked === 1 && !sessionLocked) {
+          setSessionInfo(s);
+          setSessionLocked(s.status === "locked");
+          setSessionActive(s.status === "active");
+          setSessionLocked(s.attendance_locked === 1);
+          // Reload data after lock
+          await loadGroupStudents(selectedGroup, selectedDate, page);
+          await loadDashboard();
+          notifyInfo("تم قفل تسجيل الحضور تلقائياً");
+        }
+      }
+    }, 30000); // كل 30 ثانية
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionActive, selectedGroup, sessionLocked, page]);
+
+  /* ============================ Start Session ============================ */
+
+  async function handleStartSession() {
     if (!selectedGroup || !selectedGrade) {
-      showMessage("يرجى اختيار المرحلة والمجموعة أولاً", "error");
+      notifyError("يرجى اختيار المرحلة والمجموعة أولاً");
       return;
     }
-    setSubmitting(true);
+
+    if (!isToday) {
+      notifyError("لا يمكن بدء جلسة في يوم غير اليوم الحالي");
+      return;
+    }
+
+    setSaving(true);
     try {
       const lockDate = lockAt
         ? new Date(lockAt)
         : new Date(Date.now() + 2 * 60 * 60 * 1000);
+
       const result = await startAttendanceSession({
         group_id: Number(selectedGroup),
         grade_id: Number(selectedGrade),
         lock_at: lockDate.toISOString(),
       });
+
       if (result.success) {
         setSessionInfo(result.data);
         setSessionActive(true);
         setSessionLocked(false);
         setSessionId(result.data.id);
         setIsMakeupEnabled(result.data.is_makeup_enabled === 1);
-        showMessage("تم بدء الجلسة بنجاح!", "success");
+        notifySuccess("تم بدء الجلسة بنجاح");
         requestAnimationFrame(() => barcodeInputRef.current?.focus());
       } else {
-        showMessage(result.error || "حدث خطأ في بدء الجلسة", "error");
+        notifyError(result.error || "حدث خطأ في بدء الجلسة");
       }
     } catch (error) {
-      console.error("Error starting session:", error);
-      showMessage("حدث خطأ في بدء الجلسة", "error");
+      notifyError("حدث خطأ في بدء الجلسة");
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   }
 
-  async function endSession() {
+  /* ============================ End Session ============================ */
+
+  async function handleEndSession() {
     if (!sessionId || !selectedGroup) {
-      showMessage("لا توجد جلسة نشطة", "error");
+      notifyError("لا توجد جلسة نشطة");
       return;
     }
-    const confirmed = await new Promise((resolve) => {
-      confirmToast(
-        "هل أنت متأكد من إنهاء الجلسة؟ سيتم تسجيل الطلاب غير المسجلين كغائبين",
-        () => resolve(true),
-        "إنهاء",
-      );
-      setTimeout(() => resolve(false), 8500);
-    });
-    if (!confirmed) return;
 
-    setSubmitting(true);
-    try {
-      const result = await lockAttendanceSession(sessionId, Number(selectedGroup));
-      if (result.success) {
-        setSessionActive(false);
-        setSessionLocked(true);
-        showMessage("تم إنهاء الجلسة وتسجيل الغائبين", "success");
-        await loadAttendanceRecords();
-        await loadDashboard();
-      } else {
-        showMessage(result.error || "حدث خطأ في إنهاء الجلسة", "error");
-      }
-    } catch (error) {
-      console.error("Error ending session:", error);
-      showMessage("حدث خطأ في إنهاء الجلسة", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    confirmToast(
+      "هل أنت متأكد من إنهاء الجلسة؟ سيتم تسجيل الطلاب غير المسجلين كغائبين",
+      async () => {
+        setSaving(true);
+        try {
+          const result = await lockAttendanceSession(
+            sessionId,
+            Number(selectedGroup),
+          );
+          if (result.success) {
+            setSessionActive(false);
+            setSessionLocked(true);
+            notifySuccess("تم إنهاء الجلسة وتسجيل الغائبين");
+            await loadGroupStudents(selectedGroup, selectedDate, page);
+            await loadDashboard();
+          } else {
+            notifyError(result.error || "حدث خطأ في إنهاء الجلسة");
+          }
+        } catch (error) {
+          notifyError("حدث خطأ في إنهاء الجلسة");
+        } finally {
+          setSaving(false);
+        }
+      },
+      "إنهاء",
+    );
   }
 
-  async function toggleMakeup() {
+  /* ============================ Toggle Makeup ============================ */
+
+  async function handleToggleMakeup() {
     if (!sessionId) return;
-    setSubmitting(true);
+    setSaving(true);
     try {
       const result = await toggleMakeupMode(sessionId);
       if (result.success) {
         const enabled = result.data?.is_makeup_enabled === 1;
         setIsMakeupEnabled(enabled);
-        showMessage(`تم ${enabled ? "تفعيل" : "إلغاء"} الحضور التعويضي`, "success");
+        notifySuccess(`تم ${enabled ? "تفعيل" : "إلغاء"} الحضور التعويضي`);
       } else {
-        showMessage(result.error || "حدث خطأ", "error");
+        notifyError(result.error || "حدث خطأ");
       }
     } catch (error) {
-      console.error("Error toggling makeup:", error);
-      showMessage("حدث خطأ في تبديل وضع الحضور التعويضي", "error");
+      notifyError("حدث خطأ في تبديل الوضع التعويضي");
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   }
 
-  async function markRestAbsent() {
+  /* ============================ Mark Rest Absent ============================ */
+
+  async function handleMarkRestAbsent() {
     if (!selectedGroup) return;
-    const confirmed = await new Promise((resolve) => {
-      confirmToast(
-        `سيتم تسجيل كل الطلاب غير المسجلين كغائبين بتاريخ ${selectedDate}`,
-        () => resolve(true),
-        "تأكيد",
-      );
-      setTimeout(() => resolve(false), 8500);
-    });
-    if (!confirmed) return;
-
-    setSubmitting(true);
-    try {
-      const result = await markRestAsAbsent(Number(selectedGroup), selectedDate);
-      if (result.success) {
-        const count = Array.isArray(result.data) ? result.data.length : 0;
-        showMessage(`تم تسجيل ${count} طالب كغائبين`, "success");
-        await loadAttendanceRecords();
-        await loadDashboard();
-      } else {
-        showMessage(result.error || "حدث خطأ في تسجيل الغياب", "error");
-      }
-    } catch (error) {
-      console.error("Error marking rest absent:", error);
-      showMessage("حدث خطأ في تسجيل الغياب", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    confirmToast(
+      `سيتم تسجيل كل الطلاب غير المسجلين كغائبين بتاريخ ${selectedDate}`,
+      async () => {
+        setSaving(true);
+        try {
+          const result = await markRestAsAbsent(
+            Number(selectedGroup),
+            selectedDate,
+          );
+          if (result.success) {
+            const count = Array.isArray(result.data) ? result.data.length : 0;
+            notifySuccess(`تم تسجيل ${count} طالب كغائبين`);
+            await loadGroupStudents(selectedGroup, selectedDate, page);
+            await loadDashboard();
+          } else {
+            notifyError(result.error || "حدث خطأ");
+          }
+        } catch (error) {
+          notifyError("حدث خطأ في تسجيل الغياب");
+        } finally {
+          setSaving(false);
+        }
+      },
+      "تأكيد",
+    );
   }
+
+  /* ============================ Barcode Scan ============================ */
 
   async function handleBarcodeSubmit(e) {
     e.preventDefault();
     const code = barcode.trim();
     if (!code) return;
+
+    // Prevent double submit
+    const now = Date.now();
+    if (now - lastSubmitTimeRef.current < 500) return;
+    lastSubmitTimeRef.current = now;
+
     if (!sessionActive) {
-      showMessage("الجلسة غير نشطة، يرجى بدء جلسة أولاً", "error");
+      playBeep("error");
+      notifyError("الجلسة غير نشطة، يرجى بدء جلسة أولاً");
+      setBarcode("");
+      requestAnimationFrame(() => barcodeInputRef.current?.focus());
       return;
     }
 
-    setSubmitting(true);
+    setSaving(true);
     try {
       const result = await scanStudentBarcode({
         barcode: code,
@@ -554,30 +913,62 @@ const Attendance = () => {
         const student = result.data.student;
         const attendance = result.data.attendance;
 
-        setAttendanceRecords((prev) => ({ ...prev, [student.id]: attendance }));
-        setStudents((prev) =>
-          prev.find((s) => s.id === student.id) ? prev : [...prev, student],
+        // Optimistic update
+        setAttendanceRecords((prev) => ({
+          ...prev,
+          [student.id]: attendance,
+        }));
+
+        // If student not in current page, refetch to potentially show them
+        const isInCurrentPage = students.some((s) => s.id === student.id);
+        if (!isInCurrentPage) {
+          // Just update summary and don't add to list (keep pagination accurate)
+        }
+
+        // Update summary from server
+        const summaryResult = await fetchAttendanceSummary(
+          selectedGroup,
+          selectedDate,
         );
-        showMessage(
+        if (summaryResult.success) {
+          setServerSummary(summaryResult.data || null);
+        }
+
+        playBeep("success");
+        setLastScan({
+          type: "success",
+          name: student.full_name,
+          isMakeup: result.data.is_makeup === 1,
+        });
+        notifySuccess(
           `${result.data.is_makeup === 1 ? "حضور تعويضي" : "تم تسجيل حضور"} ${student.full_name}`,
-          "success",
         );
       } else {
-        showMessage(result.error || "لم يتم العثور على الطالب", "error");
+        playBeep("error");
+        setLastScan({
+          type: "error",
+          message: result.error,
+        });
+        notifyError(result.error || "لم يتم العثور على الطالب");
       }
     } catch (error) {
-      console.error("Error scanning barcode:", error);
-      showMessage("حدث خطأ في مسح الباركود", "error");
+      playBeep("error");
+      notifyError("حدث خطأ في مسح الباركود");
     } finally {
       setBarcode("");
-      setSubmitting(false);
+      setSaving(false);
       requestAnimationFrame(() => barcodeInputRef.current?.focus());
     }
   }
 
+  /* ============================ Mark Status ============================ */
+
   async function markStatus(student, status) {
     if (!selectedGroup) return;
-    setSubmitting(true);
+
+    // Set row loading
+    setRowLoading((prev) => ({ ...prev, [student.id]: true }));
+
     try {
       const payload = {
         student_id: student.id,
@@ -589,42 +980,63 @@ const Attendance = () => {
         method: "manual",
         is_makeup: status === "present" && isMakeupEnabled ? 1 : 0,
         makeup_group_id:
-          status === "present" && isMakeupEnabled ? Number(selectedGroup) : null,
+          status === "present" && isMakeupEnabled
+            ? Number(student.group_id || selectedGroup)
+            : null,
         notes: "",
       };
 
       const result = await createNewAttendance(payload);
+
       if (result.success) {
+        // Optimistic update
         setAttendanceRecords((prev) => ({
           ...prev,
-          [student.id]: { ...(result.data || payload), student_id: student.id },
+          [student.id]: {
+            ...(result.data || payload),
+            student_id: student.id,
+          },
         }));
-        showMessage(
-          `تم تسجيل ${status === "present" ? "حضور" : "غياب"} ${student.full_name}`,
-          "success",
+
+        // Update summary
+        const summaryResult = await fetchAttendanceSummary(
+          selectedGroup,
+          selectedDate,
         );
-        fetchAttendanceSummary(selectedGroup, selectedDate).then(
-          (r) => r.success && setServerSummary(r.data || null),
+        if (summaryResult.success) {
+          setServerSummary(summaryResult.data || null);
+        }
+
+        notifySuccess(
+          `تم تسجيل ${status === "present" ? "حضور" : "غياب"} ${student.full_name}`,
         );
       } else {
-        showMessage(result.error || "حدث خطأ في تسجيل الحضور", "error");
+        notifyError(result.error || "حدث خطأ في تسجيل الحضور");
       }
     } catch (error) {
-      console.error("Error marking attendance:", error);
-      showMessage("حدث خطأ في تسجيل الحضور", "error");
+      notifyError("حدث خطأ في تسجيل الحضور");
     } finally {
-      setSubmitting(false);
+      setRowLoading((prev) => {
+        const next = { ...prev };
+        delete next[student.id];
+        return next;
+      });
     }
   }
 
   const markPresent = useCallback(
     (student) => markStatus(student, "present"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedGroup, selectedGrade, selectedDate, isMakeupEnabled],
   );
+
   const markAbsent = useCallback(
     (student) => markStatus(student, "absent"),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedGroup, selectedGrade, selectedDate, isMakeupEnabled],
   );
+
+  /* ============================ Details Modal ============================ */
 
   const openDetails = useCallback(async (record) => {
     if (!record?.id) return;
@@ -641,7 +1053,7 @@ const Attendance = () => {
           is_makeup: res.data?.is_makeup === 1 ? 1 : 0,
         });
       } else {
-        showMessage(res.error || "تعذر تحميل السجل", "error");
+        notifyError(res.error || "تعذر تحميل السجل");
         setDetailsRecord(null);
       }
     } finally {
@@ -651,7 +1063,7 @@ const Attendance = () => {
 
   async function saveRecordEdit() {
     if (!detailsRecord?.id || !editForm) return;
-    setSubmitting(true);
+    setSaving(true);
     try {
       const res = await updateAttendanceInfo(detailsRecord.id, {
         status: editForm.status,
@@ -660,74 +1072,82 @@ const Attendance = () => {
         is_makeup: Number(editForm.is_makeup) || 0,
       });
       if (res.success) {
-        showMessage("تم تحديث السجل بنجاح", "success");
+        notifySuccess("تم تحديث السجل بنجاح");
         setDetailsRecord(null);
         setEditForm(null);
-        await loadAttendanceRecords();
+        await loadGroupStudents(selectedGroup, selectedDate, page);
       } else {
-        showMessage(res.error || "تعذر تحديث السجل", "error");
+        notifyError(res.error || "تعذر تحديث السجل");
       }
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   }
 
   const deleteRecord = useCallback(
     async (record, student) => {
       if (!record?.id) return;
-      const confirmed = await new Promise((resolve) => {
-        confirmToast(
-          `حذف سجل حضور ${student?.full_name || ""}؟`,
-          () => resolve(true),
-          "حذف",
-        );
-        setTimeout(() => resolve(false), 8500);
-      });
-      if (!confirmed) return;
-
-      setSubmitting(true);
-      try {
-        const res = await removeAttendance(record.id);
-        if (res.success) {
-          showMessage("تم حذف السجل", "success");
-          setAttendanceRecords((prev) => {
-            const next = { ...prev };
-            delete next[record.student_id ?? student?.id];
-            return next;
-          });
-          fetchAttendanceSummary(selectedGroup, selectedDate).then(
-            (r) => r.success && setServerSummary(r.data || null),
-          );
-        } else {
-          showMessage(res.error || "تعذر حذف السجل", "error");
-        }
-      } finally {
-        setSubmitting(false);
-      }
+      confirmToast(
+        `حذف سجل حضور ${student?.full_name || ""}؟`,
+        async () => {
+          setSaving(true);
+          try {
+            const res = await removeAttendance(record.id);
+            if (res.success) {
+              notifySuccess("تم حذف السجل");
+              setAttendanceRecords((prev) => {
+                const next = { ...prev };
+                delete next[record.student_id ?? student?.id];
+                return next;
+              });
+              const summaryResult = await fetchAttendanceSummary(
+                selectedGroup,
+                selectedDate,
+              );
+              if (summaryResult.success) {
+                setServerSummary(summaryResult.data || null);
+              }
+            } else {
+              notifyError(res.error || "تعذر حذف السجل");
+            }
+          } finally {
+            setSaving(false);
+          }
+        },
+        "حذف",
+      );
     },
     [selectedGroup, selectedDate],
   );
 
+  /* ============================ Filtered Students ============================ */
+
   const filteredStudents = useMemo(() => {
-    const list = [...students].sort(
-      (a, b) => Number(a.barcode || 0) - Number(b.barcode || 0),
-    );
-    if (!search) return list;
+    if (!search) return students;
     const q = search.toLowerCase();
-    return list.filter(
+    return students.filter(
       (s) =>
         s.full_name?.toLowerCase().includes(q) ||
-        String(s.barcode || "").toLowerCase().includes(q),
+        String(s.barcode || "")
+          .toLowerCase()
+          .includes(q),
     );
   }, [students, search]);
+
+  /* ============================ Summary ============================ */
 
   const localSummary = useMemo(() => {
     const values = Object.values(attendanceRecords);
     const present = values.filter((r) => r.status === "present").length;
     const absent = values.filter((r) => r.status === "absent").length;
-    const total = students.length;
-    return { total, present, absent, notMarked: Math.max(total - values.length, 0) };
-  }, [attendanceRecords, students]);
+    const total = pagination.total || students.length;
+    return {
+      total,
+      present,
+      absent,
+      notMarked: Math.max(total - values.length, 0),
+    };
+  }, [attendanceRecords, students, pagination.total]);
 
   const summary = serverSummary
     ? {
@@ -741,9 +1161,12 @@ const Attendance = () => {
   const attendanceRate =
     summary.total > 0 ? Math.round((summary.present / summary.total) * 100) : 0;
 
-  const groupsForSelectedGrade = selectedGrade
-    ? groups.filter((g) => String(g.grade_id) === String(selectedGrade))
-    : groups;
+  /* ============================ Derived Data ============================ */
+
+  const groupsForSelectedGrade = useMemo(() => {
+    if (!selectedGrade) return groups;
+    return groups.filter((g) => String(g.grade_id) === String(selectedGrade));
+  }, [groups, selectedGrade]);
 
   const monthGrouped = useMemo(() => {
     const map = new Map();
@@ -765,6 +1188,39 @@ const Attendance = () => {
     day: "numeric",
   });
 
+  const statCards = [
+    {
+      label: "إجمالي الطلاب",
+      value: summary.total,
+      icon: Users,
+      cls: "bg-blue-100 text-blue-600",
+    },
+    {
+      label: "حاضر",
+      value: summary.present,
+      icon: UserCheck,
+      cls: "bg-green-100 text-green-600",
+    },
+    {
+      label: "غائب",
+      value: summary.absent,
+      icon: UserX,
+      cls: "bg-red-100 text-red-600",
+    },
+    {
+      label: "غير مسجل",
+      value: summary.notMarked,
+      icon: AlertCircle,
+      cls: "bg-gray-100 text-gray-600",
+    },
+    {
+      label: "نسبة الحضور",
+      value: `${attendanceRate}%`,
+      icon: BarChart3,
+      cls: "bg-amber-100 text-amber-600",
+    },
+  ];
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -778,13 +1234,7 @@ const Attendance = () => {
     },
   };
 
-  const statCards = [
-    { label: "إجمالي الطلاب", value: summary.total, icon: Users, cls: "bg-blue-100 text-blue-600" },
-    { label: "حاضر", value: summary.present, icon: UserCheck, cls: "bg-green-100 text-green-600" },
-    { label: "غائب", value: summary.absent, icon: UserX, cls: "bg-red-100 text-red-600" },
-    { label: "غير مسجل", value: summary.notMarked, icon: AlertCircle, cls: "bg-gray-100 text-gray-600" },
-    { label: "نسبة الحضور", value: `${attendanceRate}%`, icon: BarChart3, cls: "bg-amber-100 text-amber-600" },
-  ];
+  /* ============================ Render ============================ */
 
   return (
     <motion.section
@@ -812,9 +1262,23 @@ const Attendance = () => {
               <p className="text-sm text-gray-500 flex flex-wrap items-center gap-2">
                 <span>{todayLabel}</span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                <span className={`inline-flex items-center gap-1 ${sessionActive ? "text-green-600" : "text-gray-400"}`}>
-                  <span className={`w-2 h-2 rounded-full ${sessionActive ? "bg-green-500 animate-pulse" : "bg-gray-300"}`}></span>
-                  {sessionActive ? "جلسة نشطة" : sessionLocked ? "جلسة مغلقة" : "جلسة غير نشطة"}
+                <span
+                  className={`inline-flex items-center gap-1 ${
+                    sessionActive ? "text-green-600" : "text-gray-400"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      sessionActive
+                        ? "bg-green-500 animate-pulse"
+                        : "bg-gray-300"
+                    }`}
+                  ></span>
+                  {sessionActive
+                    ? "جلسة نشطة"
+                    : sessionLocked
+                      ? "جلسة مغلقة"
+                      : "جلسة غير نشطة"}
                 </span>
                 {isMakeupEnabled && sessionActive && (
                   <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs">
@@ -830,13 +1294,23 @@ const Attendance = () => {
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex flex-wrap items-center gap-4 px-4 py-2.5 bg-white rounded-2xl shadow-lg border border-gray-100 text-sm"
+              className="flex flex-wrap items-center gap-3 sm:gap-4 px-3 sm:px-4 py-2.5 bg-white rounded-2xl shadow-lg border border-gray-100 text-xs sm:text-sm"
             >
-              <span className="text-xs text-gray-400">إحصائيات اليوم</span>
-              <span className="text-gray-600">الطلاب: <b>{num(dashboard.total_students)}</b></span>
-              <span className="text-green-600">حاضر: <b>{num(dashboard.present_today)}</b></span>
-              <span className="text-red-600">غائب: <b>{num(dashboard.absent_today)}</b></span>
-              <span className="text-gray-500">غير مسجل: <b>{num(dashboard.not_marked_today)}</b></span>
+              <span className="text-xs text-gray-400 hidden sm:inline">
+                إحصائيات اليوم
+              </span>
+              <span className="text-gray-600">
+                الطلاب: <b>{num(dashboard.total_students)}</b>
+              </span>
+              <span className="text-green-600">
+                حاضر: <b>{num(dashboard.present_today)}</b>
+              </span>
+              <span className="text-red-600">
+                غائب: <b>{num(dashboard.absent_today)}</b>
+              </span>
+              <span className="text-gray-500">
+                غير مسجل: <b>{num(dashboard.not_marked_today)}</b>
+              </span>
             </motion.div>
           )}
         </div>
@@ -860,7 +1334,9 @@ const Attendance = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-lg font-bold text-gray-800">{stat.value}</p>
+                  <p className="text-lg font-bold text-gray-800">
+                    {stat.value}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -889,20 +1365,31 @@ const Attendance = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">المرحلة الدراسية</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  المرحلة الدراسية
+                </label>
                 <select
                   value={selectedGrade}
-                  onChange={(e) => { setSelectedGrade(e.target.value); setSelectedGroup(""); }}
+                  onChange={(e) => {
+                    setSelectedGrade(e.target.value);
+                    setSelectedGroup("");
+                  }}
                   disabled={sessionActive}
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
                 >
                   <option value="">اختر المرحلة</option>
-                  {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  {grades.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">المجموعة</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  المجموعة
+                </label>
                 <select
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
@@ -910,12 +1397,18 @@ const Attendance = () => {
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
                 >
                   <option value="">اختر المجموعة</option>
-                  {groupsForSelectedGrade.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  {groupsForSelectedGrade.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت قفل الجلسة (اختياري)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  وقت قفل الجلسة (اختياري)
+                </label>
                 <input
                   type="datetime-local"
                   value={lockAt}
@@ -923,7 +1416,9 @@ const Attendance = () => {
                   disabled={sessionActive}
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">لو سيبته فاضي هيتقفل بعد ساعتين تلقائياً</p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  لو سيبته فاضي هيتقفل بعد ساعتين تلقائياً
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-2">
@@ -931,19 +1426,23 @@ const Attendance = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
-                  onClick={startSession}
-                  disabled={!selectedGroup || sessionActive || submitting}
+                  onClick={handleStartSession}
+                  disabled={!selectedGroup || sessionActive || saving}
                   className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
                 >
-                  <Play size={18} />
+                  {saving && !sessionActive ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Play size={18} />
+                  )}
                   بدء الجلسة
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
-                  onClick={endSession}
-                  disabled={!sessionActive || submitting}
+                  onClick={handleEndSession}
+                  disabled={!sessionActive || saving}
                   className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-red-600 to-red-700 px-4 py-3 text-white font-medium hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
                 >
                   <Square size={18} />
@@ -956,14 +1455,18 @@ const Attendance = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
-                  onClick={toggleMakeup}
-                  disabled={submitting}
+                  onClick={handleToggleMakeup}
+                  disabled={saving}
                   className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-white font-medium transition-all duration-300 ${
-                    isMakeupEnabled ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30" : "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-400/30"
+                    isMakeupEnabled
+                      ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30"
+                      : "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-400/30"
                   } disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none`}
                 >
                   <RefreshCw size={18} />
-                  {isMakeupEnabled ? "إلغاء الحضور التعويضي" : "تفعيل الحضور التعويضي"}
+                  {isMakeupEnabled
+                    ? "إلغاء الحضور التعويضي"
+                    : "تفعيل الحضور التعويضي"}
                 </motion.button>
               )}
 
@@ -971,8 +1474,8 @@ const Attendance = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
-                onClick={markRestAbsent}
-                disabled={!selectedGroup || submitting}
+                onClick={handleMarkRestAbsent}
+                disabled={!selectedGroup || saving}
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-800 px-4 py-3 text-white font-medium hover:bg-gray-900 transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 <UserX size={18} />
@@ -980,22 +1483,57 @@ const Attendance = () => {
               </motion.button>
 
               {sessionInfo && (
-                <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600 space-y-1">
-                  <p>رقم الجلسة: <b className="font-mono">{sessionInfo.id}</b></p>
-                  <p>بدأت: {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}</p>
-                  {sessionInfo.lock_at && <p>تقفل: {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}</p>}
+                <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600 space-y-1.5">
+                  <p>
+                    رقم الجلسة: <b className="font-mono">{sessionInfo.id}</b>
+                  </p>
+                  <p>
+                    بدأت:{" "}
+                    {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}
+                  </p>
+                  {sessionInfo.lock_at && (
+                    <p>
+                      تقفل:{" "}
+                      {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}
+                    </p>
+                  )}
+                  {sessionActive && lockRemaining > 0 && (
+                    <p
+                      className={`flex items-center gap-1.5 font-bold ${
+                        lockRemaining < 300 ? "text-red-600" : "text-primary"
+                      }`}
+                    >
+                      <Clock size={12} />
+                      الوقت المتبقي: {formatDuration(lockRemaining)}
+                      {lockRemaining < 300 && (
+                        <AlertTriangle size={12} className="animate-pulse" />
+                      )}
+                    </p>
+                  )}
+                  {sessionActive && sessionInfo.attendance_locked === 1 && (
+                    <p className="text-red-600 font-bold flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      تم قفل تسجيل الحضور
+                    </p>
+                  )}
                 </div>
               )}
 
               <div className="rounded-xl bg-blue-50 p-4 border border-blue-100">
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={18} className="text-primary mt-0.5 shrink-0" />
+                  <AlertCircle
+                    size={18}
+                    className="text-primary mt-0.5 shrink-0"
+                  />
                   <div className="text-sm text-gray-700 space-y-1">
                     <p className="font-semibold text-primary">تنبيهات الجلسة</p>
                     <ul className="text-xs text-gray-600 space-y-1">
                       <li>• ابدأ الجلسة لتسجيل الحضور بالباركود</li>
-                      <li>• التسجيل اليدوي (حضور/غياب) شغال لأي تاريخ</li>
+                      <li>• التسجيل اليدوي شغال لأي تاريخ</li>
                       <li>• عند إنهاء الجلسة، يُسجل الباقي كغائبين</li>
+                      <li>
+                        • الطلاب اللي عندهم 3 غيابات متتالية يتحذفوا تلقائياً
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -1003,22 +1541,30 @@ const Attendance = () => {
             </div>
           </motion.div>
 
+          {/* Consecutive Absences */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
           >
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={18} className="text-red-500" />
-              <h3 className="font-bold text-gray-800">غياب متتالي (٣ أيام+)</h3>
+              <h3 className="font-bold text-gray-800">غياب متتالي (3 أيام+)</h3>
             </div>
             {overview.consecutiveAbsences.length === 0 ? (
-              <p className="text-sm text-gray-400">لا يوجد طلاب حالياً 👌</p>
+              <p className="text-sm text-gray-400">لا يوجد طلاب حالياً</p>
             ) : (
               <ul className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
                 {overview.consecutiveAbsences.map((s, i) => (
-                  <li key={s.student_id || s.id || i} className="flex items-center justify-between text-sm bg-red-50 rounded-xl px-3 py-2">
-                    <span className="text-gray-800">{s.full_name || s.name}</span>
-                    <span className="text-xs text-red-600 font-bold">{s.consecutive_absences ?? s.absences ?? ""}</span>
+                  <li
+                    key={s.student_id || s.id || i}
+                    className="flex items-center justify-between text-sm bg-red-50 rounded-xl px-3 py-2"
+                  >
+                    <span className="text-gray-800">
+                      {s.full_name || s.name}
+                    </span>
+                    <span className="text-xs text-red-600 font-bold">
+                      {s.consecutive_absences ?? s.absences ?? ""}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1033,6 +1579,7 @@ const Attendance = () => {
           animate="visible"
           className="lg:col-span-2 space-y-4"
         >
+          {/* Barcode Scan */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5 hover:shadow-xl transition-all duration-300"
@@ -1043,27 +1590,49 @@ const Attendance = () => {
                   <ScanLine size={18} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800">تسجيل سريع بالباركود</h3>
-                  <p className="text-xs text-gray-400">امسح باركود الطالب لتسجيل الحضور</p>
+                  <h3 className="font-bold text-gray-800">
+                    تسجيل سريع بالباركود
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    امسح باركود الطالب لتسجيل الحضور
+                  </p>
                 </div>
               </div>
-              <div className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                sessionActive ? "bg-green-100 text-green-700" : sessionLocked ? "bg-gray-100 text-gray-500" : "bg-yellow-100 text-yellow-700"
-              }`}>
-                {sessionActive ? "جلسة مفتوحة" : sessionLocked ? "تم الإغلاق" : "غير نشطة"}
+              <div
+                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                  sessionActive
+                    ? "bg-green-100 text-green-700"
+                    : sessionLocked
+                      ? "bg-gray-100 text-gray-500"
+                      : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {sessionActive
+                  ? "جلسة مفتوحة"
+                  : sessionLocked
+                    ? "تم الإغلاق"
+                    : "غير نشطة"}
               </div>
             </div>
 
-            <form onSubmit={handleBarcodeSubmit} className="flex flex-col sm:flex-row gap-3">
+            <form
+              onSubmit={handleBarcodeSubmit}
+              className="flex flex-col sm:flex-row gap-3"
+            >
               <div className="flex-1 relative">
-                <ScanLine size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <ScanLine
+                  size={18}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   ref={barcodeInputRef}
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  disabled={!sessionActive || submitting}
+                  disabled={!sessionActive || saving}
                   placeholder="امسح الباركود أو اكتبه يدوياً"
+                  autoFocus
+                  autoComplete="off"
                   className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-12 pl-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
                   dir="ltr"
                 />
@@ -1072,14 +1641,62 @@ const Attendance = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="submit"
-                disabled={!sessionActive || submitting}
-                className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+                disabled={!sessionActive || saving}
+                className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 justify-center"
               >
-                {submitting ? "جاري..." : "تسجيل"}
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    جاري...
+                  </>
+                ) : (
+                  <>
+                    <ScanLine size={18} />
+                    تسجيل
+                  </>
+                )}
               </motion.button>
             </form>
+
+            {/* Last Scan Feedback */}
+            <AnimatePresence>
+              {lastScan && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3"
+                >
+                  <div
+                    className={`rounded-xl p-3 text-sm flex items-center gap-2 ${
+                      lastScan.type === "success"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
+                  >
+                    {lastScan.type === "success" ? (
+                      <>
+                        <Volume2 size={16} />
+                        <span>
+                          {lastScan.isMakeup
+                            ? "حضور تعويضي: "
+                            : "تم تسجيل حضور: "}
+                          <b>{lastScan.name}</b>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle size={16} />
+                        <span>{lastScan.message}</span>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
+          {/* Controls & Tabs */}
           <motion.div
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
@@ -1095,7 +1712,9 @@ const Attendance = () => {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    activeTab === tab.id ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    activeTab === tab.id
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   <tab.icon size={16} />
@@ -1107,7 +1726,10 @@ const Attendance = () => {
             {activeTab === "day" && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="relative">
-                  <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search
+                    size={18}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     type="search"
                     value={search}
@@ -1140,13 +1762,17 @@ const Attendance = () => {
                   disabled={!selectedGroup || monthLoading}
                   className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 transition-all"
                 >
-                  <RefreshCw size={16} className={monthLoading ? "animate-spin" : ""} />
+                  <RefreshCw
+                    size={16}
+                    className={monthLoading ? "animate-spin" : ""}
+                  />
                   تحديث
                 </button>
               </div>
             )}
           </motion.div>
 
+          {/* Day Tab */}
           {activeTab === "day" && (
             <motion.div
               variants={itemVariants}
@@ -1159,7 +1785,12 @@ const Attendance = () => {
                     قائمة الطلاب
                     {selectedGroup && (
                       <span className="text-sm font-normal text-gray-500">
-                        - {groups.find((g) => String(g.id) === String(selectedGroup))?.name}
+                        -{" "}
+                        {
+                          groups.find(
+                            (g) => String(g.id) === String(selectedGroup),
+                          )?.name
+                        }
                       </span>
                     )}
                   </h3>
@@ -1180,90 +1811,159 @@ const Attendance = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto max-h-115 overflow-y-auto custom-scrollbar">
-                {!selectedGroup ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Users size={32} className="mx-auto text-gray-300 mb-2" />
-                    <p>اختر المجموعة أولاً لعرض الطلاب</p>
-                  </div>
-                ) : loading ? (
-                  <div className="p-6 space-y-3">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
-                    ))}
-                  </div>
-                ) : filteredStudents.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Users size={32} className="mx-auto text-gray-300 mb-2" />
-                    <p>{search ? "لا يوجد طلاب مطابقين للبحث" : "لا يوجد طلاب في هذه المجموعة"}</p>
-                  </div>
-                ) : (
-                  <table className="w-full text-right min-w-180">
-                    <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-5 py-3 text-sm font-semibold text-gray-600">الاسم</th>
-                        <th className="px-5 py-3 text-sm font-semibold text-gray-600">الباركود ↓</th>
-                        <th className="px-5 py-3 text-sm font-semibold text-gray-600">الحالة</th>
-                        <th className="px-5 py-3 text-sm font-semibold text-gray-600">الوقت</th>
-                        <th className="px-5 py-3 text-sm font-semibold text-gray-600">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      <AnimatePresence>
-                        {filteredStudents.map((student, index) => (
-                          <AttendanceRow
-                            key={student.id || index}
-                            student={student}
-                            index={index}
-                            record={attendanceRecords[student.id]}
-                            canEdit={canEdit}
-                            isLoading={submitting}
-                            onMarkPresent={markPresent}
-                            onMarkAbsent={markAbsent}
-                            onDetails={openDetails}
-                            onDelete={deleteRecord}
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              {!selectedGroup ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p>اختر المجموعة أولاً لعرض الطلاب</p>
+                </div>
+              ) : loading ? (
+                <div className="p-6 space-y-3">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-14 rounded-xl bg-gray-100 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p>
+                    {search
+                      ? "لا يوجد طلاب مطابقين للبحث"
+                      : "لا يوجد طلاب في هذه المجموعة"}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ResponsiveTable minWidth={800} maxHeight="max-h-[60vh]">
+                    <table className="w-full text-right">
+                      <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            الاسم
+                          </th>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            الباركود
+                          </th>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            الحالة
+                          </th>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            الوقت
+                          </th>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            إجراء
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        <AnimatePresence>
+                          {filteredStudents.map((student, index) => (
+                            <AttendanceRow
+                              key={student.id || index}
+                              student={student}
+                              index={index}
+                              record={attendanceRecords[student.id]}
+                              canEdit={canEdit}
+                              isLoading={!!rowLoading[student.id]}
+                              onMarkPresent={markPresent}
+                              onMarkAbsent={markAbsent}
+                              onDetails={openDetails}
+                              onDelete={deleteRecord}
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </tbody>
+                    </table>
+                  </ResponsiveTable>
+
+                  {/* Pagination */}
+                  <Pagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    total={pagination.total}
+                    limit={pagination.limit || PAGE_SIZE}
+                    onChange={(newPage) => {
+                      setPage(newPage);
+                      // Scroll to top of table
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                </>
+              )}
             </motion.div>
           )}
 
+          {/* Month Tab */}
           {activeTab === "month" && (
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+            <motion.div
+              variants={itemVariants}
+              className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden"
+            >
               <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center gap-2">
                 <ClipboardList size={18} className="text-primary" />
-                <h3 className="font-bold text-gray-800">سجل الحضور - {selectedMonth}</h3>
+                <h3 className="font-bold text-gray-800">
+                  سجل الحضور - {selectedMonth}
+                </h3>
               </div>
-              <div className="max-h-130 overflow-y-auto custom-scrollbar p-4 space-y-3">
+              <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-4 space-y-3">
                 {!selectedGroup ? (
-                  <p className="text-center text-gray-400 py-10">اختر المجموعة أولاً</p>
+                  <p className="text-center text-gray-400 py-10">
+                    اختر المجموعة أولاً
+                  </p>
                 ) : monthLoading ? (
-                  [0, 1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-gray-100 animate-pulse" />)
+                  [0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-20 rounded-xl bg-gray-100 animate-pulse"
+                    />
+                  ))
                 ) : monthGrouped.length === 0 ? (
-                  <p className="text-center text-gray-400 py-10">لا توجد سجلات في هذا الشهر</p>
+                  <p className="text-center text-gray-400 py-10">
+                    لا توجد سجلات في هذا الشهر
+                  </p>
                 ) : (
                   monthGrouped.map((day) => (
-                    <div key={day.day} className="rounded-xl border border-gray-100 overflow-hidden">
+                    <div
+                      key={day.day}
+                      className="rounded-xl border border-gray-100 overflow-hidden"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 px-4 py-2.5">
                         <span className="font-medium text-gray-800">
-                          {new Date(day.day).toLocaleDateString("ar-EG", { weekday: "long", day: "numeric", month: "long" })}
+                          {new Date(day.day).toLocaleDateString("ar-EG", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                          })}
                         </span>
                         <span className="flex gap-3 text-xs">
-                          <span className="text-green-600">حاضر: {day.present}</span>
-                          <span className="text-red-600">غائب: {day.absent}</span>
+                          <span className="text-green-600">
+                            حاضر: {day.present}
+                          </span>
+                          <span className="text-red-600">
+                            غائب: {day.absent}
+                          </span>
                         </span>
                       </div>
                       <ul className="divide-y divide-gray-50">
                         {day.rows.map((r) => (
-                          <li key={r.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                          <li
+                            key={r.id}
+                            className="flex items-center justify-between px-4 py-2 text-sm"
+                          >
                             <span className="text-gray-700">{r.full_name}</span>
                             <span className="flex items-center gap-3">
-                              <span className="text-xs text-gray-400">{formatTimeLabel(r.attendance_time)}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-xs ${r.status === "present" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                              <span className="text-xs text-gray-400">
+                                {formatTimeLabel(r.attendance_time)}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-xs ${
+                                  r.status === "present"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
                                 {r.status === "present" ? "حاضر" : "غائب"}
                               </span>
                             </span>
@@ -1277,12 +1977,15 @@ const Attendance = () => {
             </motion.div>
           )}
 
+          {/* Stats Tab */}
           {activeTab === "stats" && (
             <motion.div variants={itemVariants} className="space-y-4">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">
                   <TrendingUp size={18} className="text-primary" />
-                  <h3 className="font-bold text-gray-800">إحصائيات عامة (كل المراحل)</h3>
+                  <h3 className="font-bold text-gray-800">
+                    إحصائيات عامة (كل المراحل)
+                  </h3>
                 </div>
                 <StatsTable rows={overview.overall} />
               </div>
@@ -1291,16 +1994,30 @@ const Attendance = () => {
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">
                   <BarChart3 size={18} className="text-primary" />
                   <h3 className="font-bold text-gray-800">
-                    إحصائيات المرحلة {selectedGrade ? `- ${grades.find((g) => String(g.id) === String(selectedGrade))?.name || ""}` : ""}
+                    إحصائيات المرحلة{" "}
+                    {selectedGrade
+                      ? `- ${
+                          grades.find(
+                            (g) => String(g.id) === String(selectedGrade),
+                          )?.name || ""
+                        }`
+                      : ""}
                   </h3>
                 </div>
-                {selectedGrade ? <StatsTable rows={gradeStats} /> : <p className="text-center text-gray-400 py-8">اختر المرحلة أولاً</p>}
+                {selectedGrade ? (
+                  <StatsTable rows={gradeStats} />
+                ) : (
+                  <p className="text-center text-gray-400 py-8">
+                    اختر المرحلة أولاً
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
         </motion.div>
       </div>
 
+      {/* Details Modal */}
       <AnimatePresence>
         {detailsRecord && (
           <motion.div
@@ -1308,7 +2025,10 @@ const Attendance = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => { setDetailsRecord(null); setEditForm(null); }}
+            onClick={() => {
+              setDetailsRecord(null);
+              setEditForm(null);
+            }}
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
@@ -1322,29 +2042,55 @@ const Attendance = () => {
                   <Pencil size={18} className="text-primary" />
                   تفاصيل سجل الحضور
                 </h3>
-                <button type="button" onClick={() => { setDetailsRecord(null); setEditForm(null); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDetailsRecord(null);
+                    setEditForm(null);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                >
                   <X size={18} />
                 </button>
               </div>
 
               {detailsLoading || !editForm ? (
                 <div className="space-y-3">
-                  {[0, 1, 2].map((i) => <div key={i} className="h-10 rounded-xl bg-gray-100 animate-pulse" />)}
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-10 rounded-xl bg-gray-100 animate-pulse"
+                    />
+                  ))}
                 </div>
               ) : (
                 <>
                   <div className="text-sm text-gray-600 space-y-1 bg-gray-50 rounded-xl p-3">
-                    <p>الطالب: <b className="text-gray-800">{detailsRecord.full_name}</b></p>
+                    <p>
+                      الطالب:{" "}
+                      <b className="text-gray-800">{detailsRecord.full_name}</b>
+                    </p>
                     <p>المجموعة: {detailsRecord.group_name || "-"}</p>
-                    <p>التاريخ: {toLocalDate(detailsRecord.attendance_date)} • الطريقة: {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}</p>
+                    <p>
+                      التاريخ: {toLocalDate(detailsRecord.attendance_date)} •
+                      الطريقة:{" "}
+                      {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">الحالة</label>
+                      <label className="block text-xs text-gray-500 mb-1">
+                        الحالة
+                      </label>
                       <select
                         value={editForm.status}
-                        onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            status: e.target.value,
+                          }))
+                        }
                         className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="present">حاضر</option>
@@ -1352,11 +2098,18 @@ const Attendance = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">الوقت</label>
+                      <label className="block text-xs text-gray-500 mb-1">
+                        الوقت
+                      </label>
                       <input
                         type="time"
                         value={editForm.attendance_time}
-                        onChange={(e) => setEditForm((f) => ({ ...f, attendance_time: e.target.value }))}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            attendance_time: e.target.value,
+                          }))
+                        }
                         className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -1366,18 +2119,30 @@ const Attendance = () => {
                     <input
                       type="checkbox"
                       checked={editForm.is_makeup === 1}
-                      onChange={(e) => setEditForm((f) => ({ ...f, is_makeup: e.target.checked ? 1 : 0 }))}
+                      onChange={(e) =>
+                        setEditForm((f) => ({
+                          ...f,
+                          is_makeup: e.target.checked ? 1 : 0,
+                        }))
+                      }
                       className="w-4 h-4 accent-amber-500"
                     />
                     حضور تعويضي
                   </label>
 
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">ملاحظات</label>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      ملاحظات
+                    </label>
                     <textarea
                       rows={2}
                       value={editForm.notes}
-                      onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                      onChange={(e) =>
+                        setEditForm((f) => ({
+                          ...f,
+                          notes: e.target.value,
+                        }))
+                      }
                       className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -1385,10 +2150,17 @@ const Attendance = () => {
                   <button
                     type="button"
                     onClick={saveRecordEdit}
-                    disabled={submitting}
-                    className="w-full py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 transition-all"
+                    disabled={saving}
+                    className="w-full py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 transition-all flex items-center justify-center gap-2"
                   >
-                    {submitting ? "جاري الحفظ..." : "حفظ التعديلات"}
+                    {saving ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        جاري الحفظ...
+                      </>
+                    ) : (
+                      "حفظ التعديلات"
+                    )}
                   </button>
                 </>
               )}
@@ -1397,44 +2169,6 @@ const Attendance = () => {
         )}
       </AnimatePresence>
     </motion.section>
-  );
-};
-
-const StatsTable = ({ rows }) => {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return <p className="text-center text-gray-400 py-8">لا توجد بيانات</p>;
-  }
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-right min-w-140">
-        <thead className="bg-gray-50">
-          <tr>
-            {["الشهر", "أيام", "سجلات", "حاضر", "غائب", "النسبة"].map((h) => (
-              <th key={h} className="px-4 py-3 text-sm font-semibold text-gray-600">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((r, i) => (
-            <tr key={r.month || i} className="hover:bg-blue-50/40 text-sm">
-              <td className="px-4 py-3 font-medium text-gray-800">{r.month}</td>
-              <td className="px-4 py-3 text-gray-600">{num(r.total_days)}</td>
-              <td className="px-4 py-3 text-gray-600">{num(r.total_records)}</td>
-              <td className="px-4 py-3 text-green-600 font-medium">{num(r.present_count)}</td>
-              <td className="px-4 py-3 text-red-600 font-medium">{num(r.absent_count)}</td>
-              <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-2">
-                  <span className="w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
-                    <span className="block h-full bg-primary" style={{ width: `${Math.min(num(r.attendance_percentage), 100)}%` }} />
-                  </span>
-                  <b className="text-gray-700">{num(r.attendance_percentage)}%</b>
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 };
 

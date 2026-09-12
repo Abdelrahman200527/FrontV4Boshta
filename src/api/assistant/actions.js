@@ -1,86 +1,61 @@
-// src/api/assistant/actions.js
 import * as assistantServices from "./services";
 import config from "../../config";
 import { previewFile, downloadFile } from "../../utils/fileHandler";
+
 const { apiUrl } = config;
+const BASE_URL = apiUrl.replace(/\/api\/?$/, "");
 
-const previewVideoFileAction = async (videoId) => {
-  const url = `${apiUrl}/assistant/videos/${videoId}/preview`;
-  return await previewFile(url);
-};
-
-const fetchAssistantProfile = async () => {
+const wrapAction = async (fn, context = "العملية") => {
   try {
-    const data = await assistantServices.getAssistantProfile();
+    const data = await fn();
     return { success: true, data };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: error?.message || `فشل ${context}` };
   }
 };
 
-const fetchAssistantDashboard = async () => {
+const wrapPaginatedAction = async (fn, context = "العملية") => {
   try {
-    const data = await assistantServices.getAssistantDashboard();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchActivityLog = async (entityType = "", date = "", page = 1) => {
-  try {
-    const response = await assistantServices.getActivityLog(
-      entityType,
-      date,
-      page,
-    );
+    const response = await fn();
     return {
       success: true,
-      data: response.data,
-      pagination: response.pagination,
+      data: response?.data ?? [],
+      pagination: response?.pagination ?? null,
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error?.message || `فشل ${context}`,
+      data: [],
+      pagination: null,
+    };
   }
 };
 
-const updateAssistantProfileImageAction = async (formData) => {
-  try {
-    const data = await assistantServices.updateAssistantProfileImage(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// PROFILE & DASHBOARD
+// ============================================
 
-const deleteAssistantProfileImageAction = async () => {
-  try {
-    const data = await assistantServices.deleteAssistantProfileImage();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAssistantProfile = () =>
+  wrapAction(
+    () => assistantServices.getAssistantProfile(),
+    "تحميل الملف الشخصي",
+  );
 
-const changeAssistantPassword = async (
-  oldPassword,
-  newPassword,
-  confirmPassword,
-) => {
-  try {
-    const response = await assistantServices.updateAssistantPassword(
-      oldPassword,
-      newPassword,
-      confirmPassword,
-    );
-    return { success: true, data: response };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAssistantDashboard = () =>
+  wrapAction(
+    () => assistantServices.getAssistantDashboard(),
+    "تحميل لوحة التحكم",
+  );
 
-const fetchDashboardStats = async () => {
-  try {
+export const fetchActivityLog = (entityType = "", date = "", page = 1) =>
+  wrapPaginatedAction(
+    () => assistantServices.getActivityLog(entityType, date, page),
+    "تحميل سجل النشاط",
+  );
+
+export const fetchDashboardStats = () =>
+  wrapAction(async () => {
     const [grades, groups, studentsRes, attendance, payments, subscriptions] =
       await Promise.all([
         assistantServices.getAllGradesStats(),
@@ -91,2238 +66,1309 @@ const fetchDashboardStats = async () => {
         assistantServices.getSubscriptionOverall(),
       ]);
     return {
-      success: true,
-      data: {
-        grades,
-        groups,
-        students: studentsRes.data || [],
-        attendance,
-        payments,
-        subscriptions,
-      },
+      grades,
+      groups,
+      students: studentsRes?.data || [],
+      attendance,
+      payments,
+      subscriptions,
     };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+  }, "تحميل إحصائيات اللوحة");
 
-const fetchOnlineExamStats = async (examId) => {
-  try {
-    const data = await assistantServices.getOnlineExamStats(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateAssistantProfileImageAction = (formData) =>
+  wrapAction(
+    () => assistantServices.updateAssistantProfileImage(formData),
+    "تحديث الصورة الشخصية",
+  );
 
-const fetchAllPayments = async (
-  page = 1,
-  search = "",
-  gradeId = "",
-  groupId = "",
-) => {
-  try {
-    const response = await assistantServices.getPayments(
-      page,
-      search,
-      gradeId,
-      groupId,
-    );
-    return {
-      success: true,
-      data: response.data,
-      pagination: response.pagination,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const deleteAssistantProfileImageAction = () =>
+  wrapAction(
+    () => assistantServices.deleteAssistantProfileImage(),
+    "حذف الصورة الشخصية",
+  );
 
-const fetchPaymentCollections = async () => {
-  try {
-    const data = await assistantServices.getPaymentCollections();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const changeAssistantPassword = (
+  oldPassword,
+  newPassword,
+  confirmPassword,
+) =>
+  wrapAction(
+    () =>
+      assistantServices.updateAssistantPassword(
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      ),
+    "تغيير كلمة المرور",
+  );
 
-const fetchUnpaidStudents = async () => {
-  try {
-    const data = await assistantServices.getUnpaidStudents();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// GRADES
+// ============================================
 
-const fetchStudentsPaymentStatus = async () => {
-  try {
-    const data = await assistantServices.getStudentsPaymentStatus();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAllGrades = () =>
+  wrapAction(() => assistantServices.getGrades(), "تحميل الصفوف");
 
-const fetchExamStats = async (examId) => {
-  try {
-    const data = await assistantServices.getExamStats(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradesWithGroupsCount = () =>
+  wrapAction(
+    () => assistantServices.getGradesWithGroupsCount(),
+    "تحميل الصفوف",
+  );
 
-const fetchAllGrades = async () => {
-  try {
-    const data = await assistantServices.getGrades();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradesWithStudentsCount = () =>
+  wrapAction(
+    () => assistantServices.getGradesWithStudentsCount(),
+    "تحميل الصفوف",
+  );
 
-const fetchGradeDetails = async (gradeId) => {
-  try {
+export const fetchAllGradesStats = () =>
+  wrapAction(
+    () => assistantServices.getAllGradesStats(),
+    "تحميل إحصائيات الصفوف",
+  );
+
+export const fetchGradeDetails = (gradeId) =>
+  wrapAction(async () => {
     const [grade, stats] = await Promise.all([
       assistantServices.getGradeById(gradeId),
       assistantServices.getGradeStats(gradeId),
     ]);
-    return { success: true, data: { grade, stats } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { grade, stats };
+  }, "تحميل تفاصيل الصف");
 
-const findGradeByNameAction = async (gradeName) => {
-  try {
-    const data = await assistantServices.findGradeByName(gradeName);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const findGradeByNameAction = (gradeName) =>
+  wrapAction(
+    () => assistantServices.findGradeByName(gradeName),
+    "البحث عن الصف",
+  );
 
-const createNewGrade = async (gradeData) => {
-  try {
-    const data = await assistantServices.createGrade(gradeData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewGrade = (gradeData) =>
+  wrapAction(() => assistantServices.createGrade(gradeData), "إنشاء الصف");
 
-const updateGradeInfo = async (gradeId, gradeData) => {
-  try {
-    const data = await assistantServices.updateGrade(gradeId, gradeData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateGradeInfo = (gradeId, gradeData) =>
+  wrapAction(
+    () => assistantServices.updateGrade(gradeId, gradeData),
+    "تحديث الصف",
+  );
 
-const removeGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.softDeleteGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeGrade = (gradeId) =>
+  wrapAction(() => assistantServices.softDeleteGrade(gradeId), "حذف الصف");
 
-const permanentlyRemoveGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.hardDeleteGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const permanentlyRemoveGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteGrade(gradeId),
+    "حذف الصف نهائياً",
+  );
 
-const fetchAllGroups = async () => {
-  try {
-    const data = await assistantServices.getGroups();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// GROUPS
+// ============================================
 
-const fetchGroupDetails = async (groupId) => {
-  try {
+export const fetchAllGroups = () =>
+  wrapAction(() => assistantServices.getGroups(), "تحميل المجموعات");
+
+export const fetchGroupDetails = (groupId) =>
+  wrapAction(async () => {
     const [group, stats] = await Promise.all([
       assistantServices.getGroupById(groupId),
       assistantServices.getGroupStats(groupId),
     ]);
-    return { success: true, data: { group, stats } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { group, stats };
+  }, "تحميل تفاصيل المجموعة");
 
-const fetchGroupFullStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupFullStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupFullStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupFullStats(groupId),
+    "تحميل إحصائيات المجموعة",
+  );
 
-const fetchGroupsByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGroupsByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupsByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGroupsByGrade(gradeId),
+    "تحميل مجموعات الصف",
+  );
 
-const findGroupByNameAction = async (groupName) => {
-  try {
-    const data = await assistantServices.findGroupByName(groupName);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const findGroupByNameAction = (groupName) =>
+  wrapAction(
+    () => assistantServices.findGroupByName(groupName),
+    "البحث عن المجموعة",
+  );
 
-const createNewGroup = async (groupData) => {
-  try {
-    const data = await assistantServices.createGroup(groupData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewGroup = (groupData) =>
+  wrapAction(() => assistantServices.createGroup(groupData), "إنشاء المجموعة");
 
-const updateGroupInfo = async (groupId, groupData) => {
-  try {
-    const data = await assistantServices.updateGroup(groupId, groupData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateGroupInfo = (groupId, groupData) =>
+  wrapAction(
+    () => assistantServices.updateGroup(groupId, groupData),
+    "تحديث المجموعة",
+  );
 
-const removeGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.softDeleteGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeGroup = (groupId) =>
+  wrapAction(() => assistantServices.softDeleteGroup(groupId), "حذف المجموعة");
 
-const permanentlyRemoveGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.hardDeleteGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const permanentlyRemoveGroup = (groupId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteGroup(groupId),
+    "حذف المجموعة نهائياً",
+  );
 
-const fetchAllStudents = async (
+// ============================================
+// STUDENTS
+// ============================================
+
+export const fetchAllStudents = (
   page = 1,
   search = "",
   gradeId = "",
   groupId = "",
-) => {
-  try {
-    const response = await assistantServices.getStudents(
-      page,
-      search,
-      gradeId,
-      groupId,
-    );
-    return {
-      success: true,
-      data: response.data || [],
-      pagination: response.pagination || null,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+) =>
+  wrapPaginatedAction(
+    () => assistantServices.getStudents(page, search, gradeId, groupId),
+    "تحميل الطلاب",
+  );
 
-const fetchDeletedStudents = async (page = 1) => {
-  try {
-    const response = await assistantServices.getDeletedStudents(page);
-    return {
-      success: true,
-      data: response.data || [],
-      pagination: response.pagination || null,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchDeletedStudents = (page = 1) =>
+  wrapPaginatedAction(
+    () => assistantServices.getDeletedStudents(page),
+    "تحميل الطلاب المحذوفين",
+  );
 
-const searchStudentByBarcode = async (barcode) => {
-  try {
-    const data = await assistantServices.searchStudentByBarcode(barcode);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const searchStudentByBarcode = (barcode) =>
+  wrapAction(
+    () => assistantServices.searchStudentByBarcode(barcode),
+    "البحث بالباركود",
+  );
 
-const searchStudentByPhone = async (phone) => {
-  try {
-    const data = await assistantServices.searchStudentByPhone(phone);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const searchStudentByPhone = (phone) =>
+  wrapAction(
+    () => assistantServices.searchStudentByPhone(phone),
+    "البحث بالهاتف",
+  );
 
-const searchStudentsByParentPhoneAction = async (parentPhone) => {
-  try {
-    const data =
-      await assistantServices.searchStudentsByParentPhone(parentPhone);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const searchStudentsByParentPhoneAction = (parentPhone) =>
+  wrapAction(
+    () => assistantServices.searchStudentsByParentPhone(parentPhone),
+    "البحث برقم ولي الأمر",
+  );
 
-const fetchStudentDetails = async (studentId) => {
-  try {
+export const fetchStudentDetails = (studentId) =>
+  wrapAction(async () => {
     const [profile, stats] = await Promise.all([
       assistantServices.getStudentProfile(studentId),
       assistantServices.getStudentStats(studentId),
     ]);
-    return { success: true, data: { profile, stats } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { profile, stats };
+  }, "تحميل تفاصيل الطالب");
 
-const fetchStudentFullDetails = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentFullDetails(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentFullDetails = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentFullDetails(studentId),
+    "تحميل بيانات الطالب",
+  );
 
-const fetchStudentAttendanceHistory = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentAttendanceHistory(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentProfile = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentProfile(studentId),
+    "تحميل ملف الطالب",
+  );
 
-const fetchStudentMonthlyAttendance = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentMonthlyAttendance(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentStats = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentStats(studentId),
+    "تحميل إحصائيات الطالب",
+  );
 
-const fetchStudentTotalAttendance = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentTotalAttendance(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentAttendanceHistory = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentAttendanceHistory(studentId),
+    "تحميل سجل الحضور",
+  );
 
-const fetchStudentConsecutiveAbsences = async (studentId) => {
-  try {
-    const data =
-      await assistantServices.getStudentConsecutiveAbsences(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentMonthlyAttendance = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentMonthlyAttendance(studentId),
+    "تحميل حضور الشهر",
+  );
 
-const fetchStudentPayments = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentPayments(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentTotalAttendance = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentTotalAttendance(studentId),
+    "تحميل إجمالي الحضور",
+  );
 
-const fetchStudentPaymentsBalance = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentPaymentsBalance(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentConsecutiveAbsences = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentConsecutiveAbsences(studentId),
+    "تحميل الغيابات المتتالية",
+  );
 
-const fetchStudentCurrentSubscription = async (studentId) => {
-  try {
-    const data =
-      await assistantServices.getStudentCurrentSubscription(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentPayments = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentPayments(studentId),
+    "تحميل مدفوعات الطالب",
+  );
 
-const fetchStudentPaperExams = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentPaperExams(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentPaymentsBalance = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentPaymentsBalance(studentId),
+    "تحميل رصيد الطالب",
+  );
 
-const fetchStudentPaperExamById = async (studentId, examId) => {
-  try {
-    const data = await assistantServices.getStudentPaperExamById(
-      studentId,
-      examId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentCurrentSubscription = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentCurrentSubscription(studentId),
+    "تحميل الاشتراك الحالي",
+  );
 
-const fetchStudentExamResults = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentExamResults(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentPaperExams = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentPaperExams(studentId),
+    "تحميل الامتحانات الورقية",
+  );
 
-const fetchStudentOnlineExams = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentOnlineExams(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentPaperExamById = (studentId, examId) =>
+  wrapAction(
+    () => assistantServices.getStudentPaperExamById(studentId, examId),
+    "تحميل تفاصيل الامتحان",
+  );
 
-const fetchStudentOnlineExamById = async (studentId, attemptId) => {
-  try {
-    const data = await assistantServices.getStudentOnlineExamById(
-      studentId,
-      attemptId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentExamResults = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentExamResults(studentId),
+    "تحميل النتائج",
+  );
 
-const fetchStudentAssignments = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentAssignments(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentOnlineExams = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentOnlineExams(studentId),
+    "تحميل امتحانات الأونلاين",
+  );
 
-const fetchStudentAssignmentById = async (studentId, assignmentId) => {
-  try {
-    const data = await assistantServices.getStudentAssignmentById(
-      studentId,
-      assignmentId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentOnlineExamById = (studentId, attemptId) =>
+  wrapAction(
+    () => assistantServices.getStudentOnlineExamById(studentId, attemptId),
+    "تحميل تفاصيل المحاولة",
+  );
 
-const fetchStudentSubmissions = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentSubmissions(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentAssignments = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentAssignments(studentId),
+    "تحميل الواجبات",
+  );
 
-const fetchStudentSubmissionById = async (studentId, submissionId) => {
-  try {
-    const data = await assistantServices.getStudentSubmissionById(
-      studentId,
-      submissionId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentAssignmentById = (studentId, assignmentId) =>
+  wrapAction(
+    () => assistantServices.getStudentAssignmentById(studentId, assignmentId),
+    "تحميل تفاصيل الواجب",
+  );
 
-const fetchStudentPlaylists = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentPlaylists(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentSubmissions = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentSubmissions(studentId),
+    "تحميل التسليمات",
+  );
 
-const createNewStudent = async (studentData) => {
-  try {
-    const data = await assistantServices.createStudent(studentData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentSubmissionById = (studentId, submissionId) =>
+  wrapAction(
+    () => assistantServices.getStudentSubmissionById(studentId, submissionId),
+    "تحميل تفاصيل التسليم",
+  );
 
-const updateStudentInfo = async (studentId, studentData) => {
-  try {
-    const data = await assistantServices.updateStudent(studentId, studentData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentPlaylists = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentPlaylists(studentId),
+    "تحميل قوائم التشغيل",
+  );
 
-const removeStudent = async (studentId) => {
-  try {
-    const data = await assistantServices.softDeleteStudent(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentsByGroup = (groupId) =>
+  wrapAction(
+    () => assistantServices.getStudentsByGroup(groupId),
+    "تحميل طلاب المجموعة",
+  );
 
-const permanentlyRemoveStudent = async (studentId) => {
-  try {
-    const data = await assistantServices.hardDeleteStudent(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewStudent = (studentData) =>
+  wrapAction(
+    () => assistantServices.createStudent(studentData),
+    "إنشاء الطالب",
+  );
 
-const restoreStudentAction = async (studentId) => {
-  try {
-    const data = await assistantServices.restoreStudent(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateStudentInfo = (studentId, studentData) =>
+  wrapAction(
+    () => assistantServices.updateStudent(studentId, studentData),
+    "تحديث الطالب",
+  );
 
-const startNewAttendanceSession = async (sessionData) => {
-  try {
-    const data = await assistantServices.startAttendanceSession(sessionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeStudent = (studentId) =>
+  wrapAction(
+    () => assistantServices.softDeleteStudent(studentId),
+    "حذف الطالب",
+  );
 
-const fetchActiveSession = async (groupId) => {
-  try {
-    const data = await assistantServices.getActiveSession(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const permanentlyRemoveStudent = (studentId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteStudent(studentId),
+    "حذف الطالب نهائياً",
+  );
 
-const toggleSessionMakeupMode = async (sessionId) => {
-  try {
-    const data = await assistantServices.toggleMakeupMode(sessionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const restoreStudentAction = (studentId) =>
+  wrapAction(
+    () => assistantServices.restoreStudent(studentId),
+    "استرجاع الطالب",
+  );
 
-const scanStudentBarcode = async (scanData) => {
-  try {
-    const data = await assistantServices.scanBarcode(scanData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// Alias للتوافق
+export const restoreStudent = restoreStudentAction;
 
-const lockAttendanceSession = async (sessionId, groupId) => {
-  try {
-    const data = await assistantServices.lockSession(sessionId, groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// ATTENDANCE - SESSIONS
+// ============================================
 
-const createNewAttendance = async (attendanceData) => {
-  try {
-    const data = await assistantServices.createAttendance(attendanceData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const startNewAttendanceSession = (sessionData) =>
+  wrapAction(
+    () => assistantServices.startAttendanceSession(sessionData),
+    "بدء الجلسة",
+  );
 
-const markRestAsAbsent = async (groupId, date) => {
-  try {
-    const data = await assistantServices.markRestAbsent(groupId, date);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const startAttendanceSession = startNewAttendanceSession;
 
-const fetchAttendanceById = async (attendanceId) => {
-  try {
-    const data = await assistantServices.getAttendanceById(attendanceId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchActiveSession = (groupId) =>
+  wrapAction(
+    () => assistantServices.getActiveSession(groupId),
+    "تحميل الجلسة النشطة",
+  );
 
-const updateAttendanceInfo = async (attendanceId, attendanceData) => {
-  try {
-    const data = await assistantServices.updateAttendance(
-      attendanceId,
-      attendanceData,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const toggleSessionMakeupMode = (sessionId) =>
+  wrapAction(
+    () => assistantServices.toggleMakeupMode(sessionId),
+    "تبديل الحضور التعويضي",
+  );
 
-const removeAttendance = async (attendanceId) => {
-  try {
-    const data = await assistantServices.deleteAttendance(attendanceId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const toggleMakeupMode = toggleSessionMakeupMode;
 
-const fetchAttendanceDashboard = async () => {
-  try {
-    const data = await assistantServices.getAttendanceDashboard();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const scanStudentBarcode = (scanData) =>
+  wrapAction(() => assistantServices.scanBarcode(scanData), "تسجيل الحضور");
 
-const fetchAttendanceOverview = async () => {
-  try {
+export const lockAttendanceSession = (sessionId, groupId) =>
+  wrapAction(
+    () => assistantServices.lockSession(sessionId, groupId),
+    "إغلاق الجلسة",
+  );
+
+export const createNewAttendance = (attendanceData) =>
+  wrapAction(
+    () => assistantServices.createAttendance(attendanceData),
+    "تسجيل الحضور",
+  );
+
+export const markRestAsAbsent = (groupId, date) =>
+  wrapAction(
+    () => assistantServices.markRestAbsent(groupId, date),
+    "تسجيل الغياب الجماعي",
+  );
+
+export const fetchAttendanceById = (attendanceId) =>
+  wrapAction(
+    () => assistantServices.getAttendanceById(attendanceId),
+    "تحميل سجل الحضور",
+  );
+
+export const updateAttendanceInfo = (attendanceId, attendanceData) =>
+  wrapAction(
+    () => assistantServices.updateAttendance(attendanceId, attendanceData),
+    "تحديث الحضور",
+  );
+
+export const removeAttendance = (attendanceId) =>
+  wrapAction(
+    () => assistantServices.deleteAttendance(attendanceId),
+    "حذف الحضور",
+  );
+
+// ============================================
+// ATTENDANCE - STATS
+// ============================================
+
+export const fetchAttendanceDashboard = () =>
+  wrapAction(
+    () => assistantServices.getAttendanceDashboard(),
+    "تحميل لوحة الحضور",
+  );
+
+export const fetchAttendanceOverview = () =>
+  wrapAction(async () => {
     const [overall, consecutiveAbsences] = await Promise.all([
       assistantServices.getAttendanceOverall(),
       assistantServices.getConsecutiveAbsences(),
     ]);
-    return { success: true, data: { overall, consecutiveAbsences } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { overall, consecutiveAbsences };
+  }, "تحميل نظرة عامة على الحضور");
 
-const fetchGradeAttendance = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeAttendance(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradeAttendance = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeAttendance(gradeId),
+    "تحميل حضور الصف",
+  );
 
-const fetchGroupAttendanceByDate = async (groupId, date) => {
-  try {
-    const data = await assistantServices.getGroupAttendanceByDate(
-      groupId,
-      date,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupAttendanceByDate = (groupId, date) =>
+  wrapAction(
+    () => assistantServices.getGroupAttendanceByDate(groupId, date),
+    "تحميل حضور اليوم",
+  );
 
-const fetchGroupAttendanceByMonth = async (groupId, month) => {
-  try {
-    const data = await assistantServices.getGroupAttendanceByMonth(
-      groupId,
-      month,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupAttendanceByMonth = (groupId, month) =>
+  wrapAction(
+    () => assistantServices.getGroupAttendanceByMonth(groupId, month),
+    "تحميل حضور الشهر",
+  );
 
-const fetchAttendanceSummary = async (groupId, date) => {
-  try {
-    const data = await assistantServices.getAttendanceSummary(groupId, date);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAttendanceSummary = (groupId, date) =>
+  wrapAction(
+    () => assistantServices.getAttendanceSummary(groupId, date),
+    "تحميل ملخص الحضور",
+  );
 
-const fetchPaymentOverview = async () => {
-  try {
+// ============================================
+// PAYMENTS
+// ============================================
+
+export const fetchAllPayments = (
+  page = 1,
+  search = "",
+  gradeId = "",
+  groupId = "",
+) =>
+  wrapPaginatedAction(
+    () => assistantServices.getPayments(page, search, gradeId, groupId),
+    "تحميل المدفوعات",
+  );
+
+export const fetchPaymentById = (paymentId) =>
+  wrapAction(() => assistantServices.getPaymentById(paymentId), "تحميل الدفعة");
+
+export const createNewPayment = (paymentData) =>
+  wrapAction(
+    () => assistantServices.createPayment(paymentData),
+    "تسجيل الدفعة",
+  );
+
+export const updatePaymentInfo = (paymentId, paymentData) =>
+  wrapAction(
+    () => assistantServices.updatePayment(paymentId, paymentData),
+    "تحديث الدفعة",
+  );
+
+export const removePayment = (paymentId) =>
+  wrapAction(() => assistantServices.deletePayment(paymentId), "حذف الدفعة");
+
+export const fetchPaymentCollections = () =>
+  wrapAction(
+    () => assistantServices.getPaymentCollections(),
+    "تحميل التحصيلات",
+  );
+
+export const fetchUnpaidStudents = () =>
+  wrapAction(
+    () => assistantServices.getUnpaidStudents(),
+    "تحميل الطلاب غير المدفوعين",
+  );
+
+export const fetchPaymentOverall = () =>
+  wrapAction(
+    () => assistantServices.getPaymentOverall(),
+    "تحميل إحصائيات المدفوعات",
+  );
+
+export const fetchStudentsPaymentStatus = () =>
+  wrapAction(
+    () => assistantServices.getStudentsPaymentStatus(),
+    "تحميل حالة الطلاب",
+  );
+
+export const fetchPaymentOverview = () =>
+  wrapAction(async () => {
     const [collections, unpaid, overall] = await Promise.all([
       assistantServices.getPaymentCollections(),
       assistantServices.getUnpaidStudents(),
       assistantServices.getPaymentOverall(),
     ]);
-    return { success: true, data: { collections, unpaid, overall } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { collections, unpaid, overall };
+  }, "تحميل نظرة عامة على المدفوعات");
 
-const fetchPaymentById = async (paymentId) => {
-  try {
-    const data = await assistantServices.getPaymentById(paymentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradePaymentStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradePaymentStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
 
-const createNewPayment = async (paymentData) => {
-  try {
-    const data = await assistantServices.createPayment(paymentData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupPaymentStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupPaymentStats(groupId),
+    "تحميل إحصائيات المجموعة",
+  );
 
-const updatePaymentInfo = async (paymentId, paymentData) => {
-  try {
-    const data = await assistantServices.updatePayment(paymentId, paymentData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchPaymentsByGradeAndMonth = (gradeId, month) =>
+  wrapAction(
+    () => assistantServices.getPaymentsByGradeAndMonth(gradeId, month),
+    "تحميل مدفوعات الصف",
+  );
 
-const removePayment = async (paymentId) => {
-  try {
-    const data = await assistantServices.deletePayment(paymentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchPaymentsByGroupAndMonth = (groupId, month) =>
+  wrapAction(
+    () => assistantServices.getPaymentsByGroupAndMonth(groupId, month),
+    "تحميل مدفوعات المجموعة",
+  );
 
-const fetchGradePaymentStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradePaymentStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// SUBSCRIPTIONS
+// ============================================
 
-const fetchGroupPaymentStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupPaymentStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewSubscription = (subscriptionData) =>
+  wrapAction(
+    () => assistantServices.createSubscription(subscriptionData),
+    "إنشاء الاشتراك",
+  );
 
-const fetchPaymentsByGradeAndMonth = async (gradeId, month) => {
-  try {
-    const data = await assistantServices.getPaymentsByGradeAndMonth(
-      gradeId,
-      month,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPaymentsByGroupAndMonth = async (groupId, month) => {
-  try {
-    const data = await assistantServices.getPaymentsByGroupAndMonth(
-      groupId,
-      month,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchSubscriptionOverview = async () => {
-  try {
+export const fetchSubscriptionOverview = () =>
+  wrapAction(async () => {
     const [withoutSubscription, overall] = await Promise.all([
       assistantServices.getStudentsWithoutSubscription(),
       assistantServices.getSubscriptionOverall(),
     ]);
-    return { success: true, data: { withoutSubscription, overall } };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+    return { withoutSubscription, overall };
+  }, "تحميل نظرة عامة على الاشتراكات");
 
-const createNewSubscription = async (subscriptionData) => {
-  try {
-    const data = await assistantServices.createSubscription(subscriptionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchStudentSubscriptions = (studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentSubscriptions(studentId),
+    "تحميل اشتراكات الطالب",
+  );
 
-const fetchStudentSubscriptions = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentSubscriptions(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchSubscriptionsByMonth = (month) =>
+  wrapAction(
+    () => assistantServices.getSubscriptionsByMonth(month),
+    "تحميل اشتراكات الشهر",
+  );
 
-const fetchSubscriptionsByMonth = async (month) => {
-  try {
-    const data = await assistantServices.getSubscriptionsByMonth(month);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradeSubscriptionStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeSubscriptionStats(gradeId),
+    "تحميل إحصائيات اشتراكات الصف",
+  );
 
-const fetchGradeSubscriptionStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeSubscriptionStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupSubscriptionStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupSubscriptionStats(groupId),
+    "تحميل إحصائيات اشتراكات المجموعة",
+  );
 
-const fetchGroupSubscriptionStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupSubscriptionStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateSubscriptionStatusAction = (subscriptionId, status) =>
+  wrapAction(
+    () => assistantServices.updateSubscriptionStatus(subscriptionId, status),
+    "تحديث حالة الاشتراك",
+  );
 
-const updateSubscriptionStatusAction = async (subscriptionId, status) => {
-  try {
-    const data = await assistantServices.updateSubscriptionStatus(
-      subscriptionId,
-      status,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// Alias للتوافق
+export const updateSubscriptionStatus = updateSubscriptionStatusAction;
 
-const removeSubscription = async (subscriptionId) => {
-  try {
-    const data = await assistantServices.deleteSubscription(subscriptionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeSubscription = (subscriptionId) =>
+  wrapAction(
+    () => assistantServices.deleteSubscription(subscriptionId),
+    "حذف الاشتراك",
+  );
 
-const fetchAllExams = async (page = 1) => {
-  try {
-    const response = await assistantServices.getExams(page);
-    return {
-      success: true,
-      data: response.data || [],
-      pagination: response.pagination || null,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// EXAMS (PAPER)
+// ============================================
 
-const fetchExamsByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getExamsByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAllExams = (page = 1) =>
+  wrapPaginatedAction(
+    () => assistantServices.getExams(page),
+    "تحميل الامتحانات",
+  );
 
-const fetchExamsByGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.getExamsByGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamsByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getExamsByGrade(gradeId),
+    "تحميل امتحانات الصف",
+  );
 
-const fetchGradeExamStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeExamStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamsByGroup = (groupId) =>
+  wrapAction(
+    () => assistantServices.getExamsByGroup(groupId),
+    "تحميل امتحانات المجموعة",
+  );
 
-const fetchExamById = async (examId) => {
-  try {
-    const data = await assistantServices.getExamById(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradeExamStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeExamStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
 
-const createNewExam = async (examData) => {
-  try {
-    const data = await assistantServices.createExam(examData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamById = (examId) =>
+  wrapAction(() => assistantServices.getExamById(examId), "تحميل الامتحان");
 
-const updateExamInfo = async (examId, examData) => {
-  try {
-    const data = await assistantServices.updateExam(examId, examData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamStats = (examId) =>
+  wrapAction(
+    () => assistantServices.getExamStats(examId),
+    "تحميل إحصائيات الامتحان",
+  );
 
-const removeExam = async (examId) => {
-  try {
-    const data = await assistantServices.softDeleteExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewExam = (examData) =>
+  wrapAction(() => assistantServices.createExam(examData), "إنشاء الامتحان");
 
-const permanentlyRemoveExam = async (examId) => {
-  try {
-    const data = await assistantServices.hardDeleteExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateExamInfo = (examId, examData) =>
+  wrapAction(
+    () => assistantServices.updateExam(examId, examData),
+    "تحديث الامتحان",
+  );
 
-const createExamResultAction = async (resultData) => {
-  try {
-    const data = await assistantServices.createExamResult(resultData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeExam = (examId) =>
+  wrapAction(() => assistantServices.softDeleteExam(examId), "حذف الامتحان");
 
-const upsertExamResultAction = async (resultData) => {
-  try {
-    const data = await assistantServices.upsertExamResult(resultData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const permanentlyRemoveExam = (examId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteExam(examId),
+    "حذف الامتحان نهائياً",
+  );
 
-const upsertBatchExamResultsAction = async (examId, records) => {
-  try {
-    const data = await assistantServices.upsertBatchExamResults(
-      examId,
-      records,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// EXAM RESULTS
+// ============================================
 
-const updateExamResultAction = async (resultId, resultData) => {
-  try {
-    const data = await assistantServices.updateExamResult(resultId, resultData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createExamResultAction = (resultData) =>
+  wrapAction(
+    () => assistantServices.createExamResult(resultData),
+    "تسجيل النتيجة",
+  );
 
-const removeExamResult = async (resultId) => {
-  try {
-    const data = await assistantServices.deleteExamResult(resultId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const upsertExamResultAction = (resultData) =>
+  wrapAction(
+    () => assistantServices.upsertExamResult(resultData),
+    "حفظ النتيجة",
+  );
 
-const fetchExamResults = async (examId) => {
-  try {
-    const data = await assistantServices.getExamResults(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const upsertBatchExamResultsAction = (examId, records) =>
+  wrapAction(
+    () => assistantServices.upsertBatchExamResults(examId, records),
+    "حفظ النتائج",
+  );
 
-const fetchExamResultStats = async (examId) => {
-  try {
-    const data = await assistantServices.getExamResultStats(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateExamResultAction = (resultId, resultData) =>
+  wrapAction(
+    () => assistantServices.updateExamResult(resultId, resultData),
+    "تحديث النتيجة",
+  );
 
-const fetchGradeExamResultsStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeExamResultsStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const removeExamResult = (resultId) =>
+  wrapAction(() => assistantServices.deleteExamResult(resultId), "حذف النتيجة");
 
-const fetchGroupExamResultsStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupExamResultsStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamResults = (examId) =>
+  wrapAction(() => assistantServices.getExamResults(examId), "تحميل النتائج");
 
-const fetchAllOnlineExams = async () => {
-  try {
-    const data = await assistantServices.getOnlineExams();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExamResultStats = (examId) =>
+  wrapAction(
+    () => assistantServices.getExamResultStats(examId),
+    "تحميل إحصائيات النتائج",
+  );
 
-const fetchAvailableOnlineExams = async () => {
-  try {
-    const data = await assistantServices.getAvailableOnlineExams();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradeExamResultsStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeExamResultsStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
 
-const fetchExpiredOnlineExams = async () => {
-  try {
-    const data = await assistantServices.getExpiredOnlineExams();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGroupExamResultsStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupExamResultsStats(groupId),
+    "تحميل إحصائيات المجموعة",
+  );
 
-const fetchOnlineExamsByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getOnlineExamsByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+// ============================================
+// ONLINE EXAMS
+// ============================================
 
-const fetchOnlineExamsByGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.getOnlineExamsByGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAllOnlineExams = () =>
+  wrapAction(
+    () => assistantServices.getOnlineExams(),
+    "تحميل الامتحانات الإلكترونية",
+  );
 
-const fetchGradeOnlineExamStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeOnlineExamStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchAvailableOnlineExams = () =>
+  wrapAction(
+    () => assistantServices.getAvailableOnlineExams(),
+    "تحميل الامتحانات المتاحة",
+  );
 
-const fetchOnlineExamById = async (examId) => {
-  try {
-    const data = await assistantServices.getOnlineExamById(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchExpiredOnlineExams = () =>
+  wrapAction(
+    () => assistantServices.getExpiredOnlineExams(),
+    "تحميل الامتحانات المنتهية",
+  );
 
-const createNewOnlineExam = async (examData) => {
-  try {
-    const data = await assistantServices.createOnlineExam(examData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchOnlineExamsByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getOnlineExamsByGrade(gradeId),
+    "تحميل امتحانات الصف",
+  );
 
-const updateOnlineExamInfo = async (examId, examData) => {
-  try {
-    const data = await assistantServices.updateOnlineExam(examId, examData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchOnlineExamsByGroup = (groupId) =>
+  wrapAction(
+    () => assistantServices.getOnlineExamsByGroup(groupId),
+    "تحميل امتحانات المجموعة",
+  );
 
-const removeOnlineExam = async (examId) => {
-  try {
-    const data = await assistantServices.softDeleteOnlineExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchGradeOnlineExamStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeOnlineExamStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
 
-const permanentlyRemoveOnlineExam = async (examId) => {
-  try {
-    const data = await assistantServices.hardDeleteOnlineExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchOnlineExamStats = (examId) =>
+  wrapAction(
+    () => assistantServices.getOnlineExamStats(examId),
+    "تحميل إحصائيات الامتحان",
+  );
 
-const fetchQuestionsByExam = async (examId) => {
-  try {
-    const data = await assistantServices.getQuestionsByExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const fetchOnlineExamById = (examId) =>
+  wrapAction(
+    () => assistantServices.getOnlineExamById(examId),
+    "تحميل الامتحان",
+  );
 
-const fetchQuestionById = async (questionId) => {
-  try {
-    const data = await assistantServices.getQuestionById(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const createNewOnlineExam = (examData) =>
+  wrapAction(
+    () => assistantServices.createOnlineExam(examData),
+    "إنشاء الامتحان",
+  );
 
-const downloadQuestionFileAction = async (questionId) => {
-  try {
-    const data = await assistantServices.downloadQuestionFile(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+export const updateOnlineExamInfo = (examId, examData) =>
+  wrapAction(
+    () => assistantServices.updateOnlineExam(examId, examData),
+    "تحديث الامتحان",
+  );
 
-const previewQuestionFileAction = async (questionId) => {
-  const url = `${apiUrl}/assistant/questions/${questionId}/download`;
-  return await previewFile(url);
-};
+export const removeOnlineExam = (examId) =>
+  wrapAction(
+    () => assistantServices.softDeleteOnlineExam(examId),
+    "حذف الامتحان",
+  );
 
-const previewAnswerFileAction = async (answerId) => {
-  const url = `${apiUrl}/assistant/student-answers/${answerId}/preview`;
-  return await previewFile(url);
-};
+export const permanentlyRemoveOnlineExam = (examId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteOnlineExam(examId),
+    "حذف الامتحان نهائياً",
+  );
 
-const downloadAnswerFileDirect = async (answerId, fileName = "answer-file") => {
-  const url = `${apiUrl}/assistant/student-answers/${answerId}/download`;
-  return await downloadFile(url, fileName);
-};
+// ============================================
+// QUESTIONS
+// ============================================
 
-const downloadQuestionFileDirect = async (
+export const fetchQuestionsByExam = (examId) =>
+  wrapAction(
+    () => assistantServices.getQuestionsByExam(examId),
+    "تحميل الأسئلة",
+  );
+
+export const fetchQuestionById = (questionId) =>
+  wrapAction(
+    () => assistantServices.getQuestionById(questionId),
+    "تحميل السؤال",
+  );
+
+export const createNewQuestion = (questionData) =>
+  wrapAction(
+    () => assistantServices.createQuestion(questionData),
+    "إنشاء السؤال",
+  );
+
+export const createNewQuestionWithFile = (questionData, file) =>
+  wrapAction(
+    () => assistantServices.createQuestionWithFile(questionData, file),
+    "إنشاء السؤال",
+  );
+
+export const updateQuestionInfo = (questionId, questionData) =>
+  wrapAction(
+    () => assistantServices.updateQuestion(questionId, questionData),
+    "تحديث السؤال",
+  );
+
+export const updateQuestionInfoWithFile = (questionId, questionData, file) =>
+  wrapAction(
+    () =>
+      assistantServices.updateQuestionWithFile(questionId, questionData, file),
+    "تحديث السؤال",
+  );
+
+export const removeQuestion = (questionId) =>
+  wrapAction(() => assistantServices.deleteQuestion(questionId), "حذف السؤال");
+
+export const downloadQuestionFileAction = (questionId) =>
+  wrapAction(
+    () => assistantServices.downloadQuestionFile(questionId),
+    "تحميل الملف",
+  );
+
+export const previewQuestionFileAction = (questionId) =>
+  previewFile(`${apiUrl}/assistant/questions/${questionId}/download`);
+
+export const downloadQuestionFileDirect = (
   questionId,
   fileName = "question-file",
-) => {
-  const url = `${apiUrl}/assistant/questions/${questionId}/download`;
-  return await downloadFile(url, fileName);
-};
-
-const createNewQuestionWithFile = async (questionData, file) => {
-  try {
-    const data = await assistantServices.createQuestionWithFile(
-      questionData,
-      file,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateQuestionInfoWithFile = async (questionId, questionData, file) => {
-  try {
-    const data = await assistantServices.updateQuestionWithFile(
-      questionId,
-      questionData,
-      file,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewQuestion = async (questionData) => {
-  try {
-    const data = await assistantServices.createQuestion(questionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateQuestionInfo = async (questionId, questionData) => {
-  try {
-    const data = await assistantServices.updateQuestion(
-      questionId,
-      questionData,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removeQuestion = async (questionId) => {
-  try {
-    const data = await assistantServices.deleteQuestion(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchOptionsByQuestion = async (questionId) => {
-  try {
-    const data = await assistantServices.getOptionsByQuestion(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchOptionById = async (optionId) => {
-  try {
-    const data = await assistantServices.getOptionById(optionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewOption = async (optionData) => {
-  try {
-    const data = await assistantServices.createOption(optionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateOptionInfo = async (optionId, optionData) => {
-  try {
-    const data = await assistantServices.updateOption(optionId, optionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removeOption = async (optionId) => {
-  try {
-    const data = await assistantServices.deleteOption(optionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPendingEssayAnswers = async () => {
-  try {
-    const data = await assistantServices.getPendingEssayAnswers();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchEssayAnswersByExam = async (examId) => {
-  try {
-    const data = await assistantServices.getEssayAnswersByExam(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const gradeEssayAnswerAction = async (answerId, isCorrect) => {
-  try {
-    const data = await assistantServices.gradeEssayAnswer(answerId, isCorrect);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentExams = async (examId) => {
-  try {
-    const data = await assistantServices.getStudentExams(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentExamStats = async (examId) => {
-  try {
-    const data = await assistantServices.getStudentExamStats(examId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchGradeStudentExamStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeStudentExamStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchGroupStudentExamStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupStudentExamStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchQuestionAnswerStats = async (questionId) => {
-  try {
-    const data = await assistantServices.getQuestionAnswerStats(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchQuestionMostSelectedOptions = async (questionId) => {
-  try {
-    const data =
-      await assistantServices.getQuestionMostSelectedOptions(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAllAssignments = async () => {
-  try {
-    const data = await assistantServices.getAssignments();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAssignmentsByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getAssignmentsByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAssignmentsByGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.getAssignmentsByGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const downloadAssignmentAction = async (assignmentId) => {
-  try {
-    const data = await assistantServices.downloadAssignment(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAssignmentById = async (assignmentId) => {
-  try {
-    const data = await assistantServices.getAssignmentById(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewAssignment = async (formData) => {
-  try {
-    const data = await assistantServices.createAssignment(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateAssignmentInfo = async (assignmentId, formData) => {
-  try {
-    const data = await assistantServices.updateAssignment(
-      assignmentId,
-      formData,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removeAssignment = async (assignmentId) => {
-  try {
-    const data = await assistantServices.softDeleteAssignment(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const permanentlyRemoveAssignment = async (assignmentId) => {
-  try {
-    const data = await assistantServices.hardDeleteAssignment(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchGradeSubmissionStats = async (gradeId) => {
-  try {
-    const data = await assistantServices.getGradeSubmissionStats(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchGroupSubmissionStats = async (groupId) => {
-  try {
-    const data = await assistantServices.getGroupSubmissionStats(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchSubmissions = async (assignmentId) => {
-  try {
-    const data = await assistantServices.getSubmissions(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentSubmission = async (assignmentId, studentId) => {
-  try {
-    const data = await assistantServices.getStudentSubmission(
-      assignmentId,
-      studentId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchSubmittedStudents = async (assignmentId) => {
-  try {
-    const data = await assistantServices.getSubmittedStudents(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchNotSubmittedStudents = async (assignmentId) => {
-  try {
-    const data = await assistantServices.getNotSubmittedStudents(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchSubmissionStats = async (assignmentId) => {
-  try {
-    const data = await assistantServices.getSubmissionStats(assignmentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const gradeStudentSubmission = async (submissionId, score, feedback) => {
-  try {
-    const data = await assistantServices.gradeSubmission(
-      submissionId,
-      score,
-      feedback,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAllVideos = async () => {
-  try {
-    const data = await assistantServices.getVideos();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchVideosByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getVideosByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const downloadVideoFileAction = async (videoId) => {
-  try {
-    const data = await assistantServices.downloadVideoFile(videoId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchVideoById = async (videoId) => {
-  try {
-    const data = await assistantServices.getVideoById(videoId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewVideo = async (formData) => {
-  try {
-    const data = await assistantServices.createVideo(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateVideoInfo = async (videoId, formData) => {
-  try {
-    const data = await assistantServices.updateVideo(videoId, formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removeVideo = async (videoId) => {
-  try {
-    const data = await assistantServices.deleteVideo(videoId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchAllPlaylists = async () => {
-  try {
-    const data = await assistantServices.getPlaylists();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPlaylistsByGrade = async (gradeId) => {
-  try {
-    const data = await assistantServices.getPlaylistsByGrade(gradeId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPlaylistById = async (playlistId) => {
-  try {
-    const data = await assistantServices.getPlaylistById(playlistId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const createNewPlaylist = async (formData) => {
-  try {
-    const data = await assistantServices.createPlaylist(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updatePlaylistInfo = async (playlistId, formData) => {
-  try {
-    const data = await assistantServices.updatePlaylist(playlistId, formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removePlaylist = async (playlistId) => {
-  try {
-    const data = await assistantServices.deletePlaylist(playlistId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPlaylistVideos = async (playlistId) => {
-  try {
-    const data = await assistantServices.getPlaylistVideos(playlistId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const addVideoToPlaylistAction = async (playlistId, videoId) => {
-  try {
-    const data = await assistantServices.addVideoToPlaylist(
-      playlistId,
-      videoId,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const removeVideoFromPlaylistAction = async (id) => {
-  try {
-    const data = await assistantServices.removeVideoFromPlaylist(id);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappTemplates = async () => {
-  try {
-    const res = await assistantServices.getWhatsappTemplates();
-    return {
-      success: res?.success !== false,
-      data: res?.data ?? [],
-      error: res?.error,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const toggleWhatsappTemplateAction = async (templateId) => {
-  try {
-    const res = await assistantServices.toggleWhatsappTemplate(templateId);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      error: res?.error,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateWhatsappTemplateAction = async (templateId, templateData) => {
-  try {
-    const res = await assistantServices.updateWhatsappTemplate(
-      templateId,
-      templateData,
-    );
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappStatus = async () => {
-  try {
-    const res = await assistantServices.getWhatsappStatus();
-    return {
-      success: res?.success !== false,
-      data: res?.data ?? {},
-      error: res?.error,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const sendWelcomeWhatsappAction = async (studentId, instant = false) => {
-  try {
-    const res = await assistantServices.sendWelcomeWhatsapp(studentId, instant);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const sendAbsenceWhatsappAction = async (studentId, date, instant = false) => {
-  try {
-    const res = await assistantServices.sendAbsenceWhatsapp(
-      studentId,
-      date,
-      instant,
-    );
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const sendPaymentWhatsappAction = async (paymentId, instant = false) => {
-  try {
-    const res = await assistantServices.sendPaymentWhatsapp(paymentId, instant);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const sendExamWhatsappAction = async (resultId, instant = false) => {
-  try {
-    const res = await assistantServices.sendExamWhatsapp(resultId, instant);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const sendWhatsappQueueAction = async (options) => {
-  try {
-    const res = await assistantServices.sendWhatsappQueue(options);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappStats = async () => {
-  try {
-    const res = await assistantServices.getWhatsappStats();
-    return {
-      success: res?.success !== false,
-      data: res?.data ?? {},
-      error: res?.error,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const resetFailedWhatsappAction = async () => {
-  try {
-    const res = await assistantServices.resetFailedWhatsappMessages();
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappMessages = async (options = {}) => {
-  try {
-    const res = await assistantServices.getWhatsappMessages(options);
-    return {
-      success: true,
-      data: Array.isArray(res?.data) ? res.data : [],
-      pagination: res?.pagination ?? null,
-    };
-  } catch (error) {
-    return { success: false, error: error.message, data: [] };
-  }
-};
-
-const fetchWhatsappMessageById = async (messageId) => {
-  try {
-    const res = await assistantServices.getWhatsappMessageById(messageId);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      error: res?.error,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const deleteWhatsappMessageAction = async (messageId) => {
-  try {
-    const res = await assistantServices.deleteWhatsappMessage(messageId);
-    return { success: res?.success !== false, message: res?.message };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchWhatsappDashboard = async () => {
-  try {
-    const response = await assistantServices.getWhatsappDashboard();
-    return {
-      success: response?.success !== false,
-      data: response?.data ?? {},
-      message: response?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message, data: {} };
-  }
-};
-
-const downloadStudentsTemplateAction = async () => {
-  try {
-    const data = await assistantServices.downloadStudentsTemplate();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const downloadGradesTemplateAction = async () => {
-  try {
-    const data = await assistantServices.downloadGradesTemplate();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const downloadGroupsTemplateAction = async () => {
-  try {
-    const data = await assistantServices.downloadGroupsTemplate();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const downloadExamResultsTemplateAction = async () => {
-  try {
-    const data = await assistantServices.downloadExamResultsTemplate();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const bulkUploadStudentsAction = async (formData) => {
-  try {
-    const data = await assistantServices.bulkUploadStudents(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const bulkUploadGradesAction = async (formData) => {
-  try {
-    const data = await assistantServices.bulkUploadGrades(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const bulkUploadGroupsAction = async (formData) => {
-  try {
-    const data = await assistantServices.bulkUploadGroups(formData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const bulkUploadExamResultsAction = async (examId, formData) => {
-  try {
-    const data = await assistantServices.bulkUploadExamResults(
-      examId,
-      formData,
-    );
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const startAttendanceSession = async (sessionData) => {
-  try {
-    const data = await assistantServices.startAttendanceSession(sessionData);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const toggleMakeupMode = async (id) => {
-  try {
-    const data = await assistantServices.toggleMakeupMode(id);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchPaymentOverall = async () => {
-  try {
-    const data = await assistantServices.getPaymentOverall();
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const updateSubscriptionStatus = async (id, status) => {
-  try {
-    const data = await assistantServices.updateSubscriptionStatus(id, status);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const restoreStudent = async (studentId) => {
-  try {
-    const data = await assistantServices.restoreStudent(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentProfile = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentProfile(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentStats = async (studentId) => {
-  try {
-    const data = await assistantServices.getStudentStats(studentId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-const fetchStudentsByGroup = async (groupId) => {
-  try {
-    const data = await assistantServices.getStudentsByGroup(groupId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-const updateWhatsappSettingsAction = async (settingsData) => {
-  try {
-    const res = await assistantServices.updateWhatsappSettings(settingsData);
-    return {
-      success: res?.success !== false,
-      data: res?.data,
-      message: res?.message,
-    };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-export {
-  updateWhatsappSettingsAction,
-  fetchAssistantProfile,
-  toggleMakeupMode,
-  fetchAssistantDashboard,
-  fetchActivityLog,
-  fetchPaymentOverall,
-  fetchStudentProfile,
-  updateAssistantProfileImageAction,
-  deleteAssistantProfileImageAction,
-  changeAssistantPassword,
-  fetchDashboardStats,
-  startAttendanceSession,
-  fetchStudentsByGroup,
-  fetchOnlineExamStats,
-  restoreStudent,
-  fetchStudentStats,
-  fetchAllPayments,
-  fetchPaymentCollections,
-  fetchUnpaidStudents,
-  updateSubscriptionStatus,
-  fetchStudentsPaymentStatus,
-  fetchExamStats,
-  fetchAllGrades,
-  fetchGradeDetails,
-  findGradeByNameAction,
-  createNewGrade,
-  updateGradeInfo,
-  removeGrade,
-  permanentlyRemoveGrade,
-  fetchAllGroups,
-  fetchGroupDetails,
-  fetchGroupFullStats,
-  fetchGroupsByGrade,
-  findGroupByNameAction,
-  createNewGroup,
-  updateGroupInfo,
-  removeGroup,
-  permanentlyRemoveGroup,
-  fetchAllStudents,
-  fetchDeletedStudents,
-  searchStudentByBarcode,
-  searchStudentByPhone,
-  searchStudentsByParentPhoneAction,
-  fetchStudentDetails,
-  fetchStudentFullDetails,
-  fetchStudentAttendanceHistory,
-  fetchStudentMonthlyAttendance,
-  fetchStudentTotalAttendance,
-  fetchStudentConsecutiveAbsences,
-  fetchStudentPayments,
-  fetchStudentPaymentsBalance,
-  fetchStudentCurrentSubscription,
-  fetchStudentPaperExams,
-  fetchStudentPaperExamById,
-  fetchStudentExamResults,
-  fetchStudentOnlineExams,
-  fetchStudentOnlineExamById,
-  fetchStudentAssignments,
-  fetchStudentAssignmentById,
-  fetchStudentSubmissions,
-  fetchStudentSubmissionById,
-  fetchStudentPlaylists,
-  createNewStudent,
-  updateStudentInfo,
-  removeStudent,
-  permanentlyRemoveStudent,
-  restoreStudentAction,
-  startNewAttendanceSession,
-  fetchActiveSession,
-  toggleSessionMakeupMode,
-  scanStudentBarcode,
-  lockAttendanceSession,
-  createNewAttendance,
-  markRestAsAbsent,
-  fetchAttendanceById,
-  updateAttendanceInfo,
-  removeAttendance,
-  fetchAttendanceDashboard,
-  fetchAttendanceOverview,
-  fetchGradeAttendance,
-  fetchGroupAttendanceByDate,
-  fetchGroupAttendanceByMonth,
-  fetchAttendanceSummary,
-  fetchPaymentOverview,
-  fetchPaymentById,
-  createNewPayment,
-  updatePaymentInfo,
-  removePayment,
-  fetchGradePaymentStats,
-  fetchGroupPaymentStats,
-  fetchPaymentsByGradeAndMonth,
-  fetchPaymentsByGroupAndMonth,
-  fetchSubscriptionOverview,
-  createNewSubscription,
-  fetchStudentSubscriptions,
-  fetchSubscriptionsByMonth,
-  fetchGradeSubscriptionStats,
-  fetchGroupSubscriptionStats,
-  updateSubscriptionStatusAction,
-  removeSubscription,
-  fetchAllExams,
-  fetchExamsByGrade,
-  fetchExamsByGroup,
-  fetchGradeExamStats,
-  fetchExamById,
-  createNewExam,
-  updateExamInfo,
-  removeExam,
-  permanentlyRemoveExam,
-  createExamResultAction,
-  upsertExamResultAction,
-  upsertBatchExamResultsAction,
-  updateExamResultAction,
-  removeExamResult,
-  fetchExamResults,
-  fetchExamResultStats,
-  fetchGradeExamResultsStats,
-  fetchGroupExamResultsStats,
-  fetchAllOnlineExams,
-  fetchAvailableOnlineExams,
-  fetchExpiredOnlineExams,
-  fetchOnlineExamsByGrade,
-  fetchOnlineExamsByGroup,
-  fetchGradeOnlineExamStats,
-  fetchOnlineExamById,
-  createNewOnlineExam,
-  updateOnlineExamInfo,
-  removeOnlineExam,
-  permanentlyRemoveOnlineExam,
-  fetchQuestionsByExam,
-  fetchQuestionById,
-  downloadQuestionFileAction,
-  createNewQuestion,
-  createNewQuestionWithFile,
-  updateQuestionInfo,
-  updateQuestionInfoWithFile,
-  previewQuestionFileAction,
-  downloadQuestionFileDirect,
-  previewAnswerFileAction,
-  downloadAnswerFileDirect,
-  removeQuestion,
-  fetchOptionsByQuestion,
-  fetchOptionById,
-  createNewOption,
-  updateOptionInfo,
-  removeOption,
-  fetchPendingEssayAnswers,
-  fetchEssayAnswersByExam,
-  gradeEssayAnswerAction,
-  fetchStudentExams,
-  fetchStudentExamStats,
-  fetchGradeStudentExamStats,
-  fetchGroupStudentExamStats,
-  fetchQuestionAnswerStats,
-  fetchQuestionMostSelectedOptions,
-  fetchAllAssignments,
-  fetchAssignmentsByGrade,
-  fetchAssignmentsByGroup,
-  downloadAssignmentAction,
-  fetchAssignmentById,
-  createNewAssignment,
-  updateAssignmentInfo,
-  removeAssignment,
-  permanentlyRemoveAssignment,
-  fetchGradeSubmissionStats,
-  fetchGroupSubmissionStats,
-  fetchSubmissions,
-  fetchStudentSubmission,
-  fetchSubmittedStudents,
-  fetchNotSubmittedStudents,
-  fetchSubmissionStats,
-  gradeStudentSubmission,
-  fetchAllVideos,
-  fetchVideosByGrade,
-  downloadVideoFileAction,
-  fetchVideoById,
-  createNewVideo,
-  updateVideoInfo,
-  removeVideo,
-  fetchAllPlaylists,
-  fetchPlaylistsByGrade,
-  fetchPlaylistById,
-  createNewPlaylist,
-  updatePlaylistInfo,
-  removePlaylist,
-  fetchPlaylistVideos,
-  addVideoToPlaylistAction,
-  removeVideoFromPlaylistAction,
-  fetchWhatsappTemplates,
-  toggleWhatsappTemplateAction,
-  updateWhatsappTemplateAction,
-  fetchWhatsappStatus,
-  sendWelcomeWhatsappAction,
-  sendAbsenceWhatsappAction,
-  sendPaymentWhatsappAction,
-  sendExamWhatsappAction,
-  sendWhatsappQueueAction,
-  fetchWhatsappStats,
-  resetFailedWhatsappAction,
-  fetchWhatsappMessages,
-  fetchWhatsappMessageById,
-  deleteWhatsappMessageAction,
-  fetchWhatsappDashboard,
-  downloadStudentsTemplateAction,
-  downloadGradesTemplateAction,
-  downloadGroupsTemplateAction,
-  downloadExamResultsTemplateAction,
-  bulkUploadStudentsAction,
-  bulkUploadGradesAction,
-  bulkUploadGroupsAction,
-  bulkUploadExamResultsAction,
-  previewVideoFileAction,
-};
+) =>
+  downloadFile(
+    `${apiUrl}/assistant/questions/${questionId}/download`,
+    fileName,
+  );
+
+// ============================================
+// OPTIONS
+// ============================================
+
+export const fetchOptionsByQuestion = (questionId) =>
+  wrapAction(
+    () => assistantServices.getOptionsByQuestion(questionId),
+    "تحميل الاختيارات",
+  );
+
+export const fetchOptionById = (optionId) =>
+  wrapAction(() => assistantServices.getOptionById(optionId), "تحميل الاختيار");
+
+export const createNewOption = (optionData) =>
+  wrapAction(
+    () => assistantServices.createOption(optionData),
+    "إنشاء الاختيار",
+  );
+
+export const updateOptionInfo = (optionId, optionData) =>
+  wrapAction(
+    () => assistantServices.updateOption(optionId, optionData),
+    "تحديث الاختيار",
+  );
+
+export const removeOption = (optionId) =>
+  wrapAction(() => assistantServices.deleteOption(optionId), "حذف الاختيار");
+
+// ============================================
+// STUDENT ANSWERS / ESSAY GRADING
+// ============================================
+
+export const fetchPendingEssayAnswers = () =>
+  wrapAction(
+    () => assistantServices.getPendingEssayAnswers(),
+    "تحميل الإجابات المعلقة",
+  );
+
+export const fetchEssayAnswersByExam = (examId) =>
+  wrapAction(
+    () => assistantServices.getEssayAnswersByExam(examId),
+    "تحميل الإجابات",
+  );
+
+export const gradeEssayAnswerAction = (answerId, isCorrect) =>
+  wrapAction(
+    () => assistantServices.gradeEssayAnswer(answerId, isCorrect),
+    "تصحيح الإجابة",
+  );
+
+export const previewAnswerFileAction = (answerId) =>
+  previewFile(`${apiUrl}/assistant/student-answers/${answerId}/preview`);
+
+export const downloadAnswerFileDirect = (answerId, fileName = "answer-file") =>
+  downloadFile(
+    `${apiUrl}/assistant/student-answers/${answerId}/download`,
+    fileName,
+  );
+
+// ============================================
+// STUDENT EXAMS
+// ============================================
+
+export const fetchStudentExams = (examId) =>
+  wrapAction(
+    () => assistantServices.getStudentExams(examId),
+    "تحميل محاولات الطلاب",
+  );
+
+export const fetchStudentExamStats = (examId) =>
+  wrapAction(
+    () => assistantServices.getStudentExamStats(examId),
+    "تحميل إحصائيات المحاولات",
+  );
+
+export const fetchGradeStudentExamStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeStudentExamStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
+
+export const fetchGroupStudentExamStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupStudentExamStats(groupId),
+    "تحميل إحصائيات المجموعة",
+  );
+
+// ============================================
+// STUDENT ANSWERS STATS
+// ============================================
+
+export const fetchQuestionAnswerStats = (questionId) =>
+  wrapAction(
+    () => assistantServices.getQuestionAnswerStats(questionId),
+    "تحميل إحصائيات السؤال",
+  );
+
+export const fetchQuestionMostSelectedOptions = (questionId) =>
+  wrapAction(
+    () => assistantServices.getQuestionMostSelectedOptions(questionId),
+    "تحميل الاختيارات الأكثر اختياراً",
+  );
+
+// ============================================
+// ASSIGNMENTS
+// ============================================
+
+export const fetchAllAssignments = () =>
+  wrapAction(() => assistantServices.getAssignments(), "تحميل الواجبات");
+
+export const fetchAssignmentsByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getAssignmentsByGrade(gradeId),
+    "تحميل واجبات الصف",
+  );
+
+export const fetchAssignmentsByGroup = (groupId) =>
+  wrapAction(
+    () => assistantServices.getAssignmentsByGroup(groupId),
+    "تحميل واجبات المجموعة",
+  );
+
+export const downloadAssignmentAction = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.downloadAssignment(assignmentId),
+    "تحميل الواجب",
+  );
+
+export const fetchAssignmentById = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.getAssignmentById(assignmentId),
+    "تحميل الواجب",
+  );
+
+export const createNewAssignment = (formData) =>
+  wrapAction(
+    () => assistantServices.createAssignment(formData),
+    "إنشاء الواجب",
+  );
+
+export const updateAssignmentInfo = (assignmentId, formData) =>
+  wrapAction(
+    () => assistantServices.updateAssignment(assignmentId, formData),
+    "تحديث الواجب",
+  );
+
+export const removeAssignment = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.softDeleteAssignment(assignmentId),
+    "حذف الواجب",
+  );
+
+export const permanentlyRemoveAssignment = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.hardDeleteAssignment(assignmentId),
+    "حذف الواجب نهائياً",
+  );
+
+// ============================================
+// ASSIGNMENT SUBMISSIONS
+// ============================================
+
+export const fetchGradeSubmissionStats = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getGradeSubmissionStats(gradeId),
+    "تحميل إحصائيات الصف",
+  );
+
+export const fetchGroupSubmissionStats = (groupId) =>
+  wrapAction(
+    () => assistantServices.getGroupSubmissionStats(groupId),
+    "تحميل إحصائيات المجموعة",
+  );
+
+export const fetchSubmissions = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.getSubmissions(assignmentId),
+    "تحميل التسليمات",
+  );
+
+export const fetchStudentSubmission = (assignmentId, studentId) =>
+  wrapAction(
+    () => assistantServices.getStudentSubmission(assignmentId, studentId),
+    "تحميل التسليم",
+  );
+
+export const fetchSubmittedStudents = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.getSubmittedStudents(assignmentId),
+    "تحميل الطلاب المسلّمين",
+  );
+
+export const fetchNotSubmittedStudents = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.getNotSubmittedStudents(assignmentId),
+    "تحميل الطلاب غير المسلّمين",
+  );
+
+export const fetchSubmissionStats = (assignmentId) =>
+  wrapAction(
+    () => assistantServices.getSubmissionStats(assignmentId),
+    "تحميل إحصائيات التسليمات",
+  );
+
+export const gradeStudentSubmission = (submissionId, score, feedback) =>
+  wrapAction(
+    () => assistantServices.gradeSubmission(submissionId, score, feedback),
+    "تصحيح التسليم",
+  );
+
+// ============================================
+// VIDEOS
+// ============================================
+
+export const fetchAllVideos = () =>
+  wrapAction(() => assistantServices.getVideos(), "تحميل الفيديوهات");
+
+export const fetchVideosByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getVideosByGrade(gradeId),
+    "تحميل فيديوهات الصف",
+  );
+
+export const downloadVideoFileAction = (videoId) =>
+  wrapAction(
+    () => assistantServices.downloadVideoFile(videoId),
+    "تحميل الفيديو",
+  );
+
+export const fetchVideoById = (videoId) =>
+  wrapAction(() => assistantServices.getVideoById(videoId), "تحميل الفيديو");
+
+export const previewVideoFileAction = (videoId) =>
+  previewFile(`${apiUrl}/assistant/videos/${videoId}/preview`);
+
+export const createNewVideo = (formData) =>
+  wrapAction(() => assistantServices.createVideo(formData), "إنشاء الفيديو");
+
+export const updateVideoInfo = (videoId, formData) =>
+  wrapAction(
+    () => assistantServices.updateVideo(videoId, formData),
+    "تحديث الفيديو",
+  );
+
+export const removeVideo = (videoId) =>
+  wrapAction(() => assistantServices.deleteVideo(videoId), "حذف الفيديو");
+
+// ============================================
+// PLAYLISTS
+// ============================================
+
+export const fetchAllPlaylists = () =>
+  wrapAction(() => assistantServices.getPlaylists(), "تحميل قوائم التشغيل");
+
+export const fetchPlaylistsByGrade = (gradeId) =>
+  wrapAction(
+    () => assistantServices.getPlaylistsByGrade(gradeId),
+    "تحميل قوائم الصف",
+  );
+
+export const fetchPlaylistById = (playlistId) =>
+  wrapAction(
+    () => assistantServices.getPlaylistById(playlistId),
+    "تحميل قائمة التشغيل",
+  );
+
+export const createNewPlaylist = (formData) =>
+  wrapAction(
+    () => assistantServices.createPlaylist(formData),
+    "إنشاء قائمة التشغيل",
+  );
+
+export const updatePlaylistInfo = (playlistId, formData) =>
+  wrapAction(
+    () => assistantServices.updatePlaylist(playlistId, formData),
+    "تحديث قائمة التشغيل",
+  );
+
+export const removePlaylist = (playlistId) =>
+  wrapAction(
+    () => assistantServices.deletePlaylist(playlistId),
+    "حذف قائمة التشغيل",
+  );
+
+export const fetchPlaylistVideos = (playlistId) =>
+  wrapAction(
+    () => assistantServices.getPlaylistVideos(playlistId),
+    "تحميل فيديوهات القائمة",
+  );
+
+export const addVideoToPlaylistAction = (playlistId, videoId) =>
+  wrapAction(
+    () => assistantServices.addVideoToPlaylist(playlistId, videoId),
+    "إضافة الفيديو للقائمة",
+  );
+
+export const removeVideoFromPlaylistAction = (id) =>
+  wrapAction(
+    () => assistantServices.removeVideoFromPlaylist(id),
+    "حذف الفيديو من القائمة",
+  );
+
+// ============================================
+// WHATSAPP - TEMPLATES
+// ============================================
+
+export const fetchWhatsappTemplates = () =>
+  wrapAction(() => assistantServices.getWhatsappTemplates(), "تحميل القوالب");
+
+export const toggleWhatsappTemplateAction = (templateId) =>
+  wrapAction(
+    () => assistantServices.toggleWhatsappTemplate(templateId),
+    "تبديل حالة القالب",
+  );
+
+export const updateWhatsappTemplateAction = (templateId, templateData) =>
+  wrapAction(
+    () => assistantServices.updateWhatsappTemplate(templateId, templateData),
+    "تحديث القالب",
+  );
+
+// ============================================
+// WHATSAPP - MESSAGES / QUEUE
+// ============================================
+
+export const fetchWhatsappStatus = () =>
+  wrapAction(
+    () => assistantServices.getWhatsappStatus(),
+    "تحميل حالة الواتساب",
+  );
+
+export const sendWelcomeWhatsappAction = (studentId, instant = false) =>
+  wrapAction(
+    () => assistantServices.sendWelcomeWhatsapp(studentId, instant),
+    "إرسال رسالة الترحيب",
+  );
+
+export const sendAbsenceWhatsappAction = (studentId, date, instant = false) =>
+  wrapAction(
+    () => assistantServices.sendAbsenceWhatsapp(studentId, date, instant),
+    "إرسال رسالة الغياب",
+  );
+
+export const sendPaymentWhatsappAction = (paymentId, instant = false) =>
+  wrapAction(
+    () => assistantServices.sendPaymentWhatsapp(paymentId, instant),
+    "إرسال رسالة الدفع",
+  );
+
+export const sendExamWhatsappAction = (resultId, instant = false) =>
+  wrapAction(
+    () => assistantServices.sendExamWhatsapp(resultId, instant),
+    "إرسال رسالة النتيجة",
+  );
+
+export const sendWhatsappQueueAction = (options) =>
+  wrapAction(
+    () => assistantServices.sendWhatsappQueue(options),
+    "إرسال الطابور",
+  );
+
+export const fetchWhatsappStats = () =>
+  wrapAction(
+    () => assistantServices.getWhatsappStats(),
+    "تحميل إحصائيات الطابور",
+  );
+
+export const resetFailedWhatsappAction = () =>
+  wrapAction(
+    () => assistantServices.resetFailedWhatsappMessages(),
+    "إعادة تعيين الرسائل الفاشلة",
+  );
+
+export const fetchWhatsappMessages = (options = {}) =>
+  wrapPaginatedAction(
+    () => assistantServices.getWhatsappMessages(options),
+    "تحميل الرسائل",
+  );
+
+export const fetchWhatsappMessageById = (messageId) =>
+  wrapAction(
+    () => assistantServices.getWhatsappMessageById(messageId),
+    "تحميل الرسالة",
+  );
+
+export const deleteWhatsappMessageAction = (messageId) =>
+  wrapAction(
+    () => assistantServices.deleteWhatsappMessage(messageId),
+    "حذف الرسالة",
+  );
+
+export const fetchWhatsappDashboard = () =>
+  wrapAction(
+    () => assistantServices.getWhatsappDashboard(),
+    "تحميل لوحة الواتساب",
+  );
+
+export const updateWhatsappSettingsAction = (settingsData) =>
+  wrapAction(
+    () => assistantServices.updateWhatsappSettings(settingsData),
+    "تحديث الإعدادات",
+  );
+
+// ============================================
+// BULK UPLOAD
+// ============================================
+
+export const downloadStudentsTemplateAction = () =>
+  wrapAction(
+    () => assistantServices.downloadStudentsTemplate(),
+    "تحميل القالب",
+  );
+
+export const downloadGradesTemplateAction = () =>
+  wrapAction(() => assistantServices.downloadGradesTemplate(), "تحميل القالب");
+
+export const downloadGroupsTemplateAction = () =>
+  wrapAction(() => assistantServices.downloadGroupsTemplate(), "تحميل القالب");
+
+export const downloadExamResultsTemplateAction = () =>
+  wrapAction(
+    () => assistantServices.downloadExamResultsTemplate(),
+    "تحميل القالب",
+  );
+
+export const bulkUploadStudentsAction = (formData) =>
+  wrapAction(
+    () => assistantServices.bulkUploadStudents(formData),
+    "رفع الطلاب",
+  );
+
+export const bulkUploadGradesAction = (formData) =>
+  wrapAction(() => assistantServices.bulkUploadGrades(formData), "رفع الصفوف");
+
+export const bulkUploadGroupsAction = (formData) =>
+  wrapAction(
+    () => assistantServices.bulkUploadGroups(formData),
+    "رفع المجموعات",
+  );
+
+export const bulkUploadExamResultsAction = (examId, formData) =>
+  wrapAction(
+    () => assistantServices.bulkUploadExamResults(examId, formData),
+    "رفع النتائج",
+  );
+
+// ============================================
+// EXPORTS FOR BACKWARD COMPATIBILITY
+// ============================================
+
+export { BASE_URL };
