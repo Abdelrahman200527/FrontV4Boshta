@@ -26,6 +26,7 @@ import {
   Clock,
   Volume2,
   Loader2,
+  Wallet,
 } from "lucide-react";
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useApiList, useInvalidate } from "../../../hooks/useApiQuery";
@@ -68,6 +69,7 @@ const SCANNER_TIMEOUT = 100; // ms between chars — scanners send chars much fa
 const MIN_BARCODE_LENGTH = 3;
 const DOUBLE_SUBMIT_GUARD = 500; // ms
 const FOCUS_RESTORE_DELAY = 200; // ms — delay before restoring focus after operations
+const PAYMENT_POPUP_DURATION = 5000; // ms — auto-hide payment popup after 5 seconds
 
 /* ============================ Helpers ============================ */
 
@@ -411,6 +413,10 @@ const Attendance = () => {
   const barcodeInputRef = useRef(null);
   const lastSubmitTimeRef = useRef(0);
   const savingRef = useRef(false);
+
+  /* ---------- Payment Popup ---------- */
+  const [paymentPopup, setPaymentPopup] = useState(null);
+  const paymentPopupTimerRef = useRef(null);
 
   /* ---------- Search ---------- */
   const [search, setSearch] = useState("");
@@ -831,7 +837,6 @@ const Attendance = () => {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive]);
 
   /* ============================ Smart Auto-Focus ============================ */
@@ -917,6 +922,48 @@ const Attendance = () => {
 
     return () => clearTimeout(timer);
   }, [sessionActive, saving, lastScan]);
+
+  /* ============================ Cleanup Payment Popup Timer ============================ */
+
+  useEffect(() => {
+    return () => {
+      if (paymentPopupTimerRef.current) {
+        clearTimeout(paymentPopupTimerRef.current);
+      }
+    };
+  }, []);
+
+  /* ============================ Payment Popup Helper ============================ */
+
+  const showPaymentPopup = useCallback((studentData) => {
+    // Clear any existing timer
+    if (paymentPopupTimerRef.current) {
+      clearTimeout(paymentPopupTimerRef.current);
+    }
+
+    setPaymentPopup({
+      full_name: studentData.full_name,
+      barcode: studentData.barcode,
+      grade_name: studentData.grade_name,
+      group_name: studentData.group_name,
+      profile_image: studentData.profile_image,
+      payment_status: studentData.payment_status || "unpaid",
+      required_amount:
+        studentData.required_amount || studentData.monthly_price || 0,
+    });
+
+    // Auto-hide after N seconds
+    paymentPopupTimerRef.current = setTimeout(() => {
+      setPaymentPopup(null);
+    }, PAYMENT_POPUP_DURATION);
+  }, []);
+
+  const dismissPaymentPopup = useCallback(() => {
+    if (paymentPopupTimerRef.current) {
+      clearTimeout(paymentPopupTimerRef.current);
+    }
+    setPaymentPopup(null);
+  }, []);
 
   /* ============================ Start Session ============================ */
 
@@ -1127,6 +1174,10 @@ const Attendance = () => {
           name: student.full_name,
           isMakeup: result.data.is_makeup === 1,
         });
+
+        // Show payment status popup
+        showPaymentPopup(student);
+
         notifySuccess(
           `${result.data.is_makeup === 1 ? "حضور تعويضي" : "تم تسجيل حضور"} ${student.full_name}`,
         );
@@ -2389,6 +2440,128 @@ const Attendance = () => {
                 </>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Status Popup */}
+      <AnimatePresence>
+        {paymentPopup && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md"
+            onClick={dismissPaymentPopup}
+          >
+            <div
+              className={`rounded-2xl shadow-2xl border-2 overflow-hidden cursor-pointer ${
+                paymentPopup.payment_status === "paid"
+                  ? "bg-green-50 border-green-300"
+                  : "bg-red-50 border-red-300"
+              }`}
+            >
+              {/* Header */}
+              <div
+                className={`flex items-center justify-between px-4 py-2.5 ${
+                  paymentPopup.payment_status === "paid"
+                    ? "bg-green-500"
+                    : "bg-red-500"
+                }`}
+              >
+                <div className="flex items-center gap-2 text-white">
+                  {paymentPopup.payment_status === "paid" ? (
+                    <>
+                      <CheckCircle size={18} />
+                      <span className="font-bold text-sm">الطالب مدفوع</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle size={18} />
+                      <span className="font-bold text-sm">
+                        الطالب غير مدفوع
+                      </span>
+                    </>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissPaymentPopup();
+                  }}
+                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-all"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-4 space-y-3">
+                {/* Student Info */}
+                <div className="flex items-center gap-3">
+                  {paymentPopup.profile_image ? (
+                    <img
+                      src={paymentPopup.profile_image}
+                      alt={paymentPopup.full_name}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-white shadow"
+                    />
+                  ) : (
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow ${
+                        paymentPopup.payment_status === "paid"
+                          ? "bg-green-500"
+                          : "bg-red-500"
+                      }`}
+                    >
+                      {String(paymentPopup.full_name || "?").charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 truncate">
+                      {paymentPopup.full_name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {paymentPopup.grade_name}
+                      {paymentPopup.group_name &&
+                        ` • ${paymentPopup.group_name}`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Amount */}
+                <div
+                  className={`rounded-xl p-3 flex items-center justify-between ${
+                    paymentPopup.payment_status === "paid"
+                      ? "bg-green-100"
+                      : "bg-red-100"
+                  }`}
+                >
+                  <span className="text-sm text-gray-700 flex items-center gap-1.5">
+                    <Wallet size={14} className="opacity-70" />
+                    <span className="font-medium">المبلغ المطلوب</span>
+                  </span>
+                  <span
+                    className={`text-xl font-bold ${
+                      paymentPopup.payment_status === "paid"
+                        ? "text-green-700"
+                        : "text-red-700"
+                    }`}
+                  >
+                    {Number(paymentPopup.required_amount || 0).toLocaleString(
+                      "ar-EG",
+                    )}{" "}
+                    <span className="text-sm">جنيه</span>
+                  </span>
+                </div>
+
+                {/* Barcode */}
+                <p className="text-xs text-center text-gray-400 font-mono">
+                  {paymentPopup.barcode}
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
