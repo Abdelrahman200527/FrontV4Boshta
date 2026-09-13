@@ -60,6 +60,9 @@ import {
   fetchGroupAttendanceByDate,
   fetchGroupAttendanceByMonth,
   fetchAttendanceSummary,
+  // ✅ New imports for payment
+  createNewPayment,
+  createNewSubscription,
 } from "../../../api/assistant/actions";
 
 /* ============================ Constants ============================ */
@@ -158,6 +161,243 @@ function playBeep(type = "success") {
   }
 }
 
+/* ============================ Payment Modal ============================ */
+
+const PaymentModal = ({ isOpen, onClose, student, onSubmit, isSubmitting }) => {
+  const [paymentMode, setPaymentMode] = useState("normal");
+  const [customAmount, setCustomAmount] = useState("");
+  const [notes, setNotes] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  });
+
+  const requiredAmount = Number(student?.required_amount || 0);
+
+  // Reset state when modal opens with a new student
+  useEffect(() => {
+    if (isOpen) {
+      setPaymentMode("normal");
+      setCustomAmount("");
+      setNotes("");
+      const d = new Date();
+      setPaymentDate(d.toISOString().slice(0, 10));
+    }
+  }, [isOpen, student?.id]);
+
+  if (!isOpen || !student) return null;
+
+  const finalAmount =
+    paymentMode === "custom" ? Number(customAmount) || 0 : requiredAmount;
+
+  const canSubmit =
+    paymentMode === "normal" ? requiredAmount > 0 : Number(customAmount) > 0;
+
+  const handleSubmit = () => {
+    if (!canSubmit || isSubmitting) return;
+
+    onSubmit({
+      payment_mode: paymentMode,
+      amount: finalAmount,
+      payment_date: paymentDate,
+      notes: notes.trim() || null,
+    });
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                <Wallet size={20} className="text-primary" />
+                تسجيل دفعة
+              </h3>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-40"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Student Info */}
+            <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+              <p className="text-sm text-gray-700">
+                الطالب: <b className="text-gray-900">{student.full_name}</b>
+              </p>
+              <p className="text-xs text-gray-500">
+                {student.grade_name}
+                {student.group_name && ` • ${student.group_name}`}
+              </p>
+              <p className="text-xs text-gray-500 font-mono">
+                {student.barcode}
+              </p>
+            </div>
+
+            {/* Required Amount */}
+            <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 flex items-center justify-between">
+              <span className="text-sm text-gray-700">
+                المبلغ المطلوب (الشهري)
+              </span>
+              <span className="text-lg font-bold text-primary">
+                {requiredAmount.toLocaleString("ar-EG")}{" "}
+                <span className="text-sm">جنيه</span>
+              </span>
+            </div>
+
+            {/* Payment Mode */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                نوع الدفع
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode("normal")}
+                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                    paymentMode === "normal"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  عادي (كامل المبلغ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMode("custom")}
+                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                    paymentMode === "custom"
+                      ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  مخصص (مبلغ مختلف)
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Amount */}
+            {paymentMode === "custom" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  المبلغ المخصص (جنيه)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  step="any"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  placeholder="أدخل المبلغ"
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg font-mono"
+                  dir="ltr"
+                />
+              </motion.div>
+            )}
+
+            {/* Payment Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                تاريخ الدفع
+              </label>
+              <input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                ملاحظات (اختياري)
+              </label>
+              <textarea
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="أي ملاحظات إضافية..."
+                className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+              />
+            </div>
+
+            {/* Final Amount Summary */}
+            <div
+              className={`rounded-xl p-3 flex items-center justify-between ${
+                paymentMode === "custom" ? "bg-amber-50" : "bg-green-50"
+              }`}
+            >
+              <span className="text-sm font-medium text-gray-700">
+                المبلغ النهائي
+              </span>
+              <span
+                className={`text-xl font-bold ${
+                  paymentMode === "custom" ? "text-amber-700" : "text-green-700"
+                }`}
+              >
+                {finalAmount.toLocaleString("ar-EG")}{" "}
+                <span className="text-sm">جنيه</span>
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!canSubmit || isSubmitting}
+                className="py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <Wallet size={16} />
+                    تسجيل الدفع
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 /* ============================ Attendance Row ============================ */
 
 const AttendanceRow = memo(function AttendanceRow({
@@ -170,10 +410,14 @@ const AttendanceRow = memo(function AttendanceRow({
   onMarkAbsent,
   onDetails,
   onDelete,
+  onPay,
 }) {
   const isPresent = record?.status === "present";
   const isAbsent = record?.status === "absent";
   const statusLabel = record ? (isPresent ? "حاضر" : "غائب") : "غير مسجل";
+
+  const isPaid = student?.payment_status === "paid";
+  const requiredAmount = Number(student?.required_amount || 0);
 
   const methodBadge =
     record?.method === "barcode" ? (
@@ -222,6 +466,32 @@ const AttendanceRow = memo(function AttendanceRow({
           {!record && <AlertCircle size={12} />}
           {statusLabel}
         </span>
+      </td>
+      {/* Payment Status Column */}
+      <td className="px-3 sm:px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+              isPaid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isPaid ? <CheckCircle size={12} /> : <XCircle size={12} />}
+            {isPaid ? "مدفوع" : "غير مدفوع"}
+          </span>
+          {!isPaid && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => onPay(student)}
+              title="تسجيل دفعة"
+              className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2 py-1.5 text-xs text-white font-medium hover:bg-emerald-600 transition-all shadow-sm"
+            >
+              <Wallet size={12} />
+              دفع
+            </motion.button>
+          )}
+        </div>
       </td>
       <td className="px-3 sm:px-5 py-3 text-xs sm:text-sm text-gray-500">
         {formatTimeLabel(record?.attendance_time)}
@@ -417,6 +687,10 @@ const Attendance = () => {
   /* ---------- Payment Popup ---------- */
   const [paymentPopup, setPaymentPopup] = useState(null);
   const paymentPopupTimerRef = useRef(null);
+
+  /* ---------- Payment Modal ---------- */
+  const [paymentStudent, setPaymentStudent] = useState(null);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   /* ---------- Search ---------- */
   const [search, setSearch] = useState("");
@@ -837,6 +1111,7 @@ const Attendance = () => {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive]);
 
   /* ============================ Smart Auto-Focus ============================ */
@@ -896,9 +1171,7 @@ const Attendance = () => {
   /* ============================ Continuous Focus Keeper ============================ */
 
   // Ensures the barcode input stays focused whenever the session is active
-  // and no other interaction is in progress. This handles cases where the
-  // focus is lost due to re-renders, toasts, or async state updates
-  // (e.g., after a barcode scan completes).
+  // and no other interaction is in progress.
   useEffect(() => {
     if (!sessionActive || saving) return;
 
@@ -907,7 +1180,6 @@ const Attendance = () => {
         barcodeInputRef.current &&
         document.activeElement !== barcodeInputRef.current
       ) {
-        // Don't steal focus if user is in another input
         const tag = document.activeElement?.tagName;
         const isOtherInput =
           tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
@@ -917,9 +1189,7 @@ const Attendance = () => {
       }
     };
 
-    // Small delay to allow re-renders to settle
     const timer = setTimeout(focusInput, 150);
-
     return () => clearTimeout(timer);
   }, [sessionActive, saving, lastScan]);
 
@@ -936,7 +1206,6 @@ const Attendance = () => {
   /* ============================ Payment Popup Helper ============================ */
 
   const showPaymentPopup = useCallback((studentData) => {
-    // Clear any existing timer
     if (paymentPopupTimerRef.current) {
       clearTimeout(paymentPopupTimerRef.current);
     }
@@ -952,7 +1221,6 @@ const Attendance = () => {
         studentData.required_amount || studentData.monthly_price || 0,
     });
 
-    // Auto-hide after N seconds
     paymentPopupTimerRef.current = setTimeout(() => {
       setPaymentPopup(null);
     }, PAYMENT_POPUP_DURATION);
@@ -964,6 +1232,97 @@ const Attendance = () => {
     }
     setPaymentPopup(null);
   }, []);
+
+  /* ============================ Payment Handlers ============================ */
+
+  const handlePayClick = useCallback((student) => {
+    setPaymentStudent(student);
+  }, []);
+
+  const handlePaymentClose = useCallback(() => {
+    if (paymentSubmitting) return;
+    setPaymentStudent(null);
+  }, [paymentSubmitting]);
+
+  const handlePaymentSubmit = useCallback(
+    async ({ payment_mode, amount, payment_date, notes }) => {
+      if (!paymentStudent || !selectedGroup) return;
+
+      setPaymentSubmitting(true);
+      try {
+        // Step 1: Ensure a subscription exists for the current month
+        let subscriptionId = paymentStudent.subscription_id;
+
+        if (!subscriptionId) {
+          const now = new Date();
+          const currentMonth = `${now.getFullYear()}-${String(
+            now.getMonth() + 1,
+          ).padStart(2, "0")}`;
+
+          const subResult = await createNewSubscription({
+            student_id: paymentStudent.id,
+            month: currentMonth,
+          });
+
+          if (!subResult.success || !subResult.data?.id) {
+            notifyError(subResult.error || "فشل إنشاء الاشتراك الشهري للطالب");
+            return;
+          }
+
+          subscriptionId = subResult.data.id;
+        }
+
+        // Step 2: Create the payment
+        const paymentPayload = {
+          subscription_id: subscriptionId,
+          student_id: paymentStudent.id,
+          payment_mode,
+          payment_date: new Date(payment_date).toISOString(),
+          notes,
+        };
+
+        if (payment_mode === "custom") {
+          paymentPayload.amount = Number(amount);
+        }
+
+        const payResult = await createNewPayment(paymentPayload);
+
+        if (payResult.success) {
+          notifySuccess(
+            `تم تسجيل دفعة ${Number(amount).toLocaleString(
+              "ar-EG",
+            )} جنيه للطالب ${paymentStudent.full_name}`,
+          );
+          setPaymentStudent(null);
+
+          // Refresh students list to reflect new payment status
+          await loadGroupStudents(selectedGroup, selectedDate, page);
+
+          // Return focus to barcode input
+          if (sessionActive) {
+            setTimeout(() => {
+              barcodeInputRef.current?.focus();
+            }, FOCUS_RESTORE_DELAY);
+          }
+        } else {
+          notifyError(payResult.error || "فشل تسجيل الدفعة");
+        }
+      } catch (error) {
+        console.error("Payment error:", error);
+        notifyError("حدث خطأ في تسجيل الدفعة");
+      } finally {
+        setPaymentSubmitting(false);
+      }
+    },
+    [
+      paymentStudent,
+      selectedGroup,
+      selectedDate,
+      page,
+      sessionActive,
+      loadGroupStudents,
+    ],
+  );
 
   /* ============================ Start Session ============================ */
 
@@ -980,8 +1339,6 @@ const Attendance = () => {
 
     setSaving(true);
     try {
-      // The backend determines lock_at from settings.default_lock_minutes.
-      // The frontend does NOT send lock_at.
       const result = await startAttendanceSession({
         group_id: Number(selectedGroup),
         grade_id: Number(selectedGrade),
@@ -1061,7 +1418,6 @@ const Attendance = () => {
       notifyError("حدث خطأ في تبديل الوضع التعويضي");
     } finally {
       setSaving(false);
-      // Return focus to barcode input after action
       if (sessionActive) {
         setTimeout(() => {
           barcodeInputRef.current?.focus();
@@ -1095,7 +1451,6 @@ const Attendance = () => {
           notifyError("حدث خطأ في تسجيل الغياب");
         } finally {
           setSaving(false);
-          // Return focus to barcode input after action
           if (sessionActive) {
             setTimeout(() => {
               barcodeInputRef.current?.focus();
@@ -1114,7 +1469,6 @@ const Attendance = () => {
     const code = barcode.trim();
     if (!code) return;
 
-    // Minimum barcode length check (prevents incomplete scans)
     if (code.length < MIN_BARCODE_LENGTH) {
       playBeep("error");
       notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
@@ -1125,7 +1479,6 @@ const Attendance = () => {
       return;
     }
 
-    // Prevent double submit
     const now = Date.now();
     if (now - lastSubmitTimeRef.current < DOUBLE_SUBMIT_GUARD) return;
     lastSubmitTimeRef.current = now;
@@ -1158,6 +1511,23 @@ const Attendance = () => {
           ...prev,
           [student.id]: attendance,
         }));
+
+        // Update students list: merge fresh payment data from backend response
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.id === student.id
+              ? {
+                  ...s,
+                  payment_status:
+                    student.payment_status || s.payment_status || "unpaid",
+                  required_amount:
+                    student.required_amount ||
+                    student.monthly_price ||
+                    s.required_amount,
+                }
+              : s,
+          ),
+        );
 
         // Update summary from server
         const summaryResult = await fetchAttendanceSummary(
@@ -1195,7 +1565,6 @@ const Attendance = () => {
     } finally {
       setBarcode("");
       setSaving(false);
-      // Restore focus after React has re-rendered and toasts appeared
       setTimeout(() => {
         barcodeInputRef.current?.focus();
       }, FOCUS_RESTORE_DELAY);
@@ -1207,7 +1576,6 @@ const Attendance = () => {
   async function markStatus(student, status) {
     if (!selectedGroup) return;
 
-    // Set row loading
     setRowLoading((prev) => ({ ...prev, [student.id]: true }));
 
     try {
@@ -1230,7 +1598,6 @@ const Attendance = () => {
       const result = await createNewAttendance(payload);
 
       if (result.success) {
-        // Optimistic update
         setAttendanceRecords((prev) => ({
           ...prev,
           [student.id]: {
@@ -1239,7 +1606,6 @@ const Attendance = () => {
           },
         }));
 
-        // Update summary
         const summaryResult = await fetchAttendanceSummary(
           selectedGroup,
           selectedDate,
@@ -1263,7 +1629,6 @@ const Attendance = () => {
         return next;
       });
 
-      // Restore focus to barcode input after operation
       if (sessionActive) {
         setTimeout(() => {
           barcodeInputRef.current?.focus();
@@ -1324,7 +1689,6 @@ const Attendance = () => {
         setDetailsRecord(null);
         setEditForm(null);
         await loadGroupStudents(selectedGroup, selectedDate, page);
-        // Return focus after modal closes
         if (sessionActive) {
           setTimeout(() => {
             barcodeInputRef.current?.focus();
@@ -1366,7 +1730,6 @@ const Attendance = () => {
             }
           } finally {
             setSaving(false);
-            // Return focus to barcode input after action
             if (sessionActive) {
               setTimeout(() => {
                 barcodeInputRef.current?.focus();
@@ -2125,6 +2488,9 @@ const Attendance = () => {
                             الحالة
                           </th>
                           <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                            حالة الدفع
+                          </th>
+                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
                             الوقت
                           </th>
                           <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
@@ -2146,6 +2512,7 @@ const Attendance = () => {
                               onMarkAbsent={markAbsent}
                               onDetails={openDetails}
                               onDelete={deleteRecord}
+                              onPay={handlePayClick}
                             />
                           ))}
                         </AnimatePresence>
@@ -2161,7 +2528,6 @@ const Attendance = () => {
                     limit={pagination.limit || PAGE_SIZE}
                     onChange={(newPage) => {
                       setPage(newPage);
-                      // Scroll to top of table
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   />
@@ -2462,7 +2828,6 @@ const Attendance = () => {
                   : "bg-red-50 border-red-300"
               }`}
             >
-              {/* Header */}
               <div
                 className={`flex items-center justify-between px-4 py-2.5 ${
                   paymentPopup.payment_status === "paid"
@@ -2497,9 +2862,7 @@ const Attendance = () => {
                 </button>
               </div>
 
-              {/* Body */}
               <div className="p-4 space-y-3">
-                {/* Student Info */}
                 <div className="flex items-center gap-3">
                   {paymentPopup.profile_image ? (
                     <img
@@ -2530,7 +2893,6 @@ const Attendance = () => {
                   </div>
                 </div>
 
-                {/* Amount */}
                 <div
                   className={`rounded-xl p-3 flex items-center justify-between ${
                     paymentPopup.payment_status === "paid"
@@ -2556,7 +2918,6 @@ const Attendance = () => {
                   </span>
                 </div>
 
-                {/* Barcode */}
                 <p className="text-xs text-center text-gray-400 font-mono">
                   {paymentPopup.barcode}
                 </p>
@@ -2565,6 +2926,15 @@ const Attendance = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={!!paymentStudent}
+        onClose={handlePaymentClose}
+        student={paymentStudent}
+        onSubmit={handlePaymentSubmit}
+        isSubmitting={paymentSubmitting}
+      />
     </motion.section>
   );
 };
