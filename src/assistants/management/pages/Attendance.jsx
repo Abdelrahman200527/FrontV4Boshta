@@ -67,6 +67,7 @@ const PAGE_SIZE = 20;
 const SCANNER_TIMEOUT = 100; // ms between chars — scanners send chars much faster than humans
 const MIN_BARCODE_LENGTH = 3;
 const DOUBLE_SUBMIT_GUARD = 500; // ms
+const FOCUS_RESTORE_DELAY = 200; // ms — delay before restoring focus after operations
 
 /* ============================ Helpers ============================ */
 
@@ -406,10 +407,10 @@ const Attendance = () => {
   /* ---------- Barcode ---------- */
   const [barcode, setBarcode] = useState("");
   const [lastScan, setLastScan] = useState(null);
-  const [scannerReady, setScannerReady] = useState(false); // visual indicator
+  const [scannerReady, setScannerReady] = useState(false);
   const barcodeInputRef = useRef(null);
   const lastSubmitTimeRef = useRef(0);
-  const savingRef = useRef(false); // ref to avoid stale closure in global listener
+  const savingRef = useRef(false);
 
   /* ---------- Search ---------- */
   const [search, setSearch] = useState("");
@@ -830,6 +831,7 @@ const Attendance = () => {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive]);
 
   /* ============================ Smart Auto-Focus ============================ */
@@ -886,6 +888,36 @@ const Attendance = () => {
     };
   }, []);
 
+  /* ============================ Continuous Focus Keeper ============================ */
+
+  // Ensures the barcode input stays focused whenever the session is active
+  // and no other interaction is in progress. This handles cases where the
+  // focus is lost due to re-renders, toasts, or async state updates
+  // (e.g., after a barcode scan completes).
+  useEffect(() => {
+    if (!sessionActive || saving) return;
+
+    const focusInput = () => {
+      if (
+        barcodeInputRef.current &&
+        document.activeElement !== barcodeInputRef.current
+      ) {
+        // Don't steal focus if user is in another input
+        const tag = document.activeElement?.tagName;
+        const isOtherInput =
+          tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+        if (!isOtherInput) {
+          barcodeInputRef.current.focus();
+        }
+      }
+    };
+
+    // Small delay to allow re-renders to settle
+    const timer = setTimeout(focusInput, 150);
+
+    return () => clearTimeout(timer);
+  }, [sessionActive, saving, lastScan]);
+
   /* ============================ Start Session ============================ */
 
   async function handleStartSession() {
@@ -915,7 +947,9 @@ const Attendance = () => {
         setSessionId(result.data.id);
         setIsMakeupEnabled(result.data.is_makeup_enabled === 1);
         notifySuccess("تم بدء الجلسة بنجاح");
-        requestAnimationFrame(() => barcodeInputRef.current?.focus());
+        setTimeout(() => {
+          barcodeInputRef.current?.focus();
+        }, FOCUS_RESTORE_DELAY);
       } else {
         notifyError(result.error || "حدث خطأ في بدء الجلسة");
       }
@@ -980,6 +1014,12 @@ const Attendance = () => {
       notifyError("حدث خطأ في تبديل الوضع التعويضي");
     } finally {
       setSaving(false);
+      // Return focus to barcode input after action
+      if (sessionActive) {
+        setTimeout(() => {
+          barcodeInputRef.current?.focus();
+        }, FOCUS_RESTORE_DELAY);
+      }
     }
   }
 
@@ -1008,6 +1048,12 @@ const Attendance = () => {
           notifyError("حدث خطأ في تسجيل الغياب");
         } finally {
           setSaving(false);
+          // Return focus to barcode input after action
+          if (sessionActive) {
+            setTimeout(() => {
+              barcodeInputRef.current?.focus();
+            }, FOCUS_RESTORE_DELAY);
+          }
         }
       },
       "تأكيد",
@@ -1026,7 +1072,9 @@ const Attendance = () => {
       playBeep("error");
       notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
       setBarcode("");
-      requestAnimationFrame(() => barcodeInputRef.current?.focus());
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100);
       return;
     }
 
@@ -1039,7 +1087,9 @@ const Attendance = () => {
       playBeep("error");
       notifyError("الجلسة غير نشطة، يرجى بدء جلسة أولاً");
       setBarcode("");
-      requestAnimationFrame(() => barcodeInputRef.current?.focus());
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 100);
       return;
     }
 
@@ -1094,7 +1144,10 @@ const Attendance = () => {
     } finally {
       setBarcode("");
       setSaving(false);
-      requestAnimationFrame(() => barcodeInputRef.current?.focus());
+      // Restore focus after React has re-rendered and toasts appeared
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, FOCUS_RESTORE_DELAY);
     }
   }
 
@@ -1158,6 +1211,13 @@ const Attendance = () => {
         delete next[student.id];
         return next;
       });
+
+      // Restore focus to barcode input after operation
+      if (sessionActive) {
+        setTimeout(() => {
+          barcodeInputRef.current?.focus();
+        }, FOCUS_RESTORE_DELAY);
+      }
     }
   }
 
@@ -1213,6 +1273,12 @@ const Attendance = () => {
         setDetailsRecord(null);
         setEditForm(null);
         await loadGroupStudents(selectedGroup, selectedDate, page);
+        // Return focus after modal closes
+        if (sessionActive) {
+          setTimeout(() => {
+            barcodeInputRef.current?.focus();
+          }, FOCUS_RESTORE_DELAY);
+        }
       } else {
         notifyError(res.error || "تعذر تحديث السجل");
       }
@@ -1249,12 +1315,18 @@ const Attendance = () => {
             }
           } finally {
             setSaving(false);
+            // Return focus to barcode input after action
+            if (sessionActive) {
+              setTimeout(() => {
+                barcodeInputRef.current?.focus();
+              }, FOCUS_RESTORE_DELAY);
+            }
           }
         },
         "حذف",
       );
     },
-    [selectedGroup, selectedDate],
+    [selectedGroup, selectedDate, sessionActive],
   );
 
   /* ============================ Filtered Students ============================ */
