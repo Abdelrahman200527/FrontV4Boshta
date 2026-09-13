@@ -64,6 +64,9 @@ import {
 /* ============================ Constants ============================ */
 
 const PAGE_SIZE = 20;
+const SCANNER_TIMEOUT = 100; // ms between chars — scanners send chars much faster than humans
+const MIN_BARCODE_LENGTH = 3;
+const DOUBLE_SUBMIT_GUARD = 500; // ms
 
 /* ============================ Helpers ============================ */
 
@@ -387,7 +390,6 @@ const Attendance = () => {
   const [sessionLocked, setSessionLocked] = useState(false);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [isMakeupEnabled, setIsMakeupEnabled] = useState(false);
-  const [lockAt, setLockAt] = useState("");
   const [lockRemaining, setLockRemaining] = useState(0);
 
   /* ---------- Students & Attendance ---------- */
@@ -404,8 +406,10 @@ const Attendance = () => {
   /* ---------- Barcode ---------- */
   const [barcode, setBarcode] = useState("");
   const [lastScan, setLastScan] = useState(null);
+  const [scannerReady, setScannerReady] = useState(false); // visual indicator
   const barcodeInputRef = useRef(null);
   const lastSubmitTimeRef = useRef(0);
+  const savingRef = useRef(false); // ref to avoid stale closure in global listener
 
   /* ---------- Search ---------- */
   const [search, setSearch] = useState("");
@@ -443,6 +447,11 @@ const Attendance = () => {
 
   const isToday = selectedDate === toLocalDate();
   const canEdit = sessionActive || !isToday;
+
+  // Keep a ref in sync with saving state (for global listener)
+  useEffect(() => {
+    savingRef.current = saving;
+  }, [saving]);
 
   /* ============================ Load Dashboard ============================ */
 
@@ -749,6 +758,134 @@ const Attendance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive, selectedGroup, sessionLocked, page]);
 
+  /* ============================ Global Barcode Scanner Listener ============================ */
+
+  // Captures barcode scanner input globally, even when the input is not focused.
+  // Barcode scanners send characters very fast (< 30ms apart) followed by Enter.
+  useEffect(() => {
+    if (!sessionActive) return;
+
+    let buffer = "";
+    let lastKeyTime = 0;
+
+    const handleGlobalKeyDown = (e) => {
+      // If the barcode input is already focused, let it handle normally
+      if (document.activeElement === barcodeInputRef.current) return;
+
+      // Ignore modifier keys
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      // Skip if user is typing in another input/textarea/select
+      const tag = document.activeElement?.tagName;
+      const isOtherInput =
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      const now = Date.now();
+
+      // If gap is too large, reset buffer (human typing)
+      if (now - lastKeyTime > SCANNER_TIMEOUT) {
+        buffer = "";
+      }
+      lastKeyTime = now;
+
+      // Enter pressed
+      if (e.key === "Enter") {
+        if (
+          buffer.length >= MIN_BARCODE_LENGTH &&
+          !isOtherInput &&
+          !savingRef.current
+        ) {
+          e.preventDefault();
+          const code = buffer.trim();
+          buffer = "";
+
+          // Focus the input and trigger the scan
+          if (barcodeInputRef.current) {
+            barcodeInputRef.current.focus();
+            // Set value natively so React picks it up
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+              window.HTMLInputElement.prototype,
+              "value",
+            ).set;
+            nativeInputValueSetter.call(barcodeInputRef.current, code);
+            barcodeInputRef.current.dispatchEvent(
+              new Event("input", { bubbles: true }),
+            );
+            // Trigger form submit
+            const form = barcodeInputRef.current.closest("form");
+            if (form) {
+              form.requestSubmit();
+            }
+          }
+        }
+        buffer = "";
+        return;
+      }
+
+      // Only accept printable characters
+      if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [sessionActive]);
+
+  /* ============================ Smart Auto-Focus ============================ */
+
+  // Re-focus the barcode input when user clicks anywhere in the page,
+  // unless they clicked on another input/select/textarea/button.
+  useEffect(() => {
+    if (!sessionActive) return;
+
+    const handleClick = (e) => {
+      const target = e.target;
+      const tag = target.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        tag === "BUTTON" ||
+        tag === "A" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (barcodeInputRef.current && !saving) {
+        barcodeInputRef.current.focus();
+      }
+    };
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [sessionActive, saving]);
+
+  /* ============================ Scanner Ready Indicator ============================ */
+
+  // Updates a visual indicator when the barcode input gains/loses focus.
+  useEffect(() => {
+    const input = barcodeInputRef.current;
+    if (!input) return;
+
+    const handleFocus = () => setScannerReady(true);
+    const handleBlur = () => setScannerReady(false);
+
+    input.addEventListener("focus", handleFocus);
+    input.addEventListener("blur", handleBlur);
+
+    // Initial state
+    if (document.activeElement === input) {
+      setScannerReady(true);
+    }
+
+    return () => {
+      input.removeEventListener("focus", handleFocus);
+      input.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
   /* ============================ Start Session ============================ */
 
   async function handleStartSession() {
@@ -764,14 +901,11 @@ const Attendance = () => {
 
     setSaving(true);
     try {
-      const lockDate = lockAt
-        ? new Date(lockAt)
-        : new Date(Date.now() + 2 * 60 * 60 * 1000);
-
+      // The backend determines lock_at from settings.default_lock_minutes.
+      // The frontend does NOT send lock_at.
       const result = await startAttendanceSession({
         group_id: Number(selectedGroup),
         grade_id: Number(selectedGrade),
-        lock_at: lockDate.toISOString(),
       });
 
       if (result.success) {
@@ -887,9 +1021,18 @@ const Attendance = () => {
     const code = barcode.trim();
     if (!code) return;
 
+    // Minimum barcode length check (prevents incomplete scans)
+    if (code.length < MIN_BARCODE_LENGTH) {
+      playBeep("error");
+      notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
+      setBarcode("");
+      requestAnimationFrame(() => barcodeInputRef.current?.focus());
+      return;
+    }
+
     // Prevent double submit
     const now = Date.now();
-    if (now - lastSubmitTimeRef.current < 500) return;
+    if (now - lastSubmitTimeRef.current < DOUBLE_SUBMIT_GUARD) return;
     lastSubmitTimeRef.current = now;
 
     if (!sessionActive) {
@@ -918,12 +1061,6 @@ const Attendance = () => {
           ...prev,
           [student.id]: attendance,
         }));
-
-        // If student not in current page, refetch to potentially show them
-        const isInCurrentPage = students.some((s) => s.id === student.id);
-        if (!isInCurrentPage) {
-          // Just update summary and don't add to list (keep pagination accurate)
-        }
 
         // Update summary from server
         const summaryResult = await fetchAttendanceSummary(
@@ -1405,19 +1542,10 @@ const Attendance = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  وقت قفل الجلسة (اختياري)
-                </label>
-                <input
-                  type="datetime-local"
-                  value={lockAt}
-                  onChange={(e) => setLockAt(e.target.value)}
-                  disabled={sessionActive}
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  لو سيبته فاضي هيتقفل بعد ساعتين تلقائياً
+              <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
+                <p className="text-xs text-gray-600 flex items-center gap-2">
+                  <Clock size={14} className="text-primary" />
+                  الجلسة هتقفل تلقائياً بعد المدة الافتراضية من إعدادات المنصة
                 </p>
               </div>
 
@@ -1598,20 +1726,40 @@ const Attendance = () => {
                   </p>
                 </div>
               </div>
-              <div
-                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                  sessionActive
-                    ? "bg-green-100 text-green-700"
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                    sessionActive
+                      ? "bg-green-100 text-green-700"
+                      : sessionLocked
+                        ? "bg-gray-100 text-gray-500"
+                        : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {sessionActive
+                    ? "جلسة مفتوحة"
                     : sessionLocked
-                      ? "bg-gray-100 text-gray-500"
-                      : "bg-yellow-100 text-yellow-700"
-                }`}
-              >
-                {sessionActive
-                  ? "جلسة مفتوحة"
-                  : sessionLocked
-                    ? "تم الإغلاق"
-                    : "غير نشطة"}
+                      ? "تم الإغلاق"
+                      : "غير نشطة"}
+                </div>
+                {sessionActive && (
+                  <div
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${
+                      scannerReady
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        scannerReady
+                          ? "bg-emerald-500 animate-pulse"
+                          : "bg-gray-400"
+                      }`}
+                    ></span>
+                    {scannerReady ? "جاهز للمسح" : "دوس على الحقل"}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1622,7 +1770,7 @@ const Attendance = () => {
               <div className="flex-1 relative">
                 <ScanLine
                   size={18}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-10"
                 />
                 <input
                   type="text"
@@ -1633,7 +1781,11 @@ const Attendance = () => {
                   placeholder="امسح الباركود أو اكتبه يدوياً"
                   autoFocus
                   autoComplete="off"
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-12 pl-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
+                  className={`w-full rounded-xl border-2 pr-12 pl-4 py-3 text-lg focus:outline-none transition-all ${
+                    scannerReady
+                      ? "border-emerald-400 bg-emerald-50/30 ring-2 ring-emerald-200"
+                      : "border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary"
+                  } disabled:bg-gray-100`}
                   dir="ltr"
                 />
               </div>
