@@ -39,7 +39,6 @@ import {
 } from "../../../lib/notify";
 import { motion, AnimatePresence } from "framer-motion";
 import Pagination from "../../../components/Pagination";
-import ResponsiveTable from "../../../components/ResponsiveTable";
 import {
   fetchAllGroups,
   fetchAllGrades,
@@ -60,7 +59,6 @@ import {
   fetchGroupAttendanceByDate,
   fetchGroupAttendanceByMonth,
   fetchAttendanceSummary,
-  // ✅ New imports for payment
   createNewPayment,
   createNewSubscription,
 } from "../../../api/assistant/actions";
@@ -68,11 +66,10 @@ import {
 /* ============================ Constants ============================ */
 
 const PAGE_SIZE = 20;
-const SCANNER_TIMEOUT = 100; // ms between chars — scanners send chars much faster than humans
+const SCANNER_TIMEOUT = 100;
 const MIN_BARCODE_LENGTH = 3;
-const DOUBLE_SUBMIT_GUARD = 500; // ms
-const FOCUS_RESTORE_DELAY = 200; // ms — delay before restoring focus after operations
-const PAYMENT_POPUP_DURATION = 5000; // ms — auto-hide payment popup after 5 seconds
+const DOUBLE_SUBMIT_GUARD = 500;
+const FOCUS_RESTORE_DELAY = 200;
 
 /* ============================ Helpers ============================ */
 
@@ -157,7 +154,7 @@ function playBeep(type = "success") {
 
     setTimeout(() => ctx.close(), 500);
   } catch (err) {
-    // silently ignore sound errors
+    // silently ignore
   }
 }
 
@@ -168,8 +165,7 @@ const PaymentModal = ({ isOpen, onClose, student, onSubmit, isSubmitting }) => {
 
   return (
     <PaymentModalContent
-      key={student.id}
-      isOpen={isOpen}
+      key={`${student.id}-${isOpen ? "open" : "closed"}`}
       onClose={onClose}
       student={student}
       onSubmit={onSubmit}
@@ -178,19 +174,13 @@ const PaymentModal = ({ isOpen, onClose, student, onSubmit, isSubmitting }) => {
   );
 };
 
-const PaymentModalContent = ({
-  isOpen,
-  onClose,
-  student,
-  onSubmit,
-  isSubmitting,
-}) => {
+const PaymentModalContent = ({ onClose, student, onSubmit, isSubmitting }) => {
   const [paymentMode, setPaymentMode] = useState("normal");
   const [customAmount, setCustomAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => {
     const d = new Date();
-    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+    return d.toISOString().slice(0, 10);
   });
 
   const requiredAmount = Number(student?.required_amount || 0);
@@ -203,7 +193,6 @@ const PaymentModalContent = ({
 
   const handleSubmit = () => {
     if (!canSubmit || isSubmitting) return;
-
     onSubmit({
       payment_mode: paymentMode,
       amount: finalAmount,
@@ -214,39 +203,41 @@ const PaymentModalContent = ({
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
+        onClick={onClose}
+      >
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={onClose}
+          initial={{ scale: 0.95, y: 40, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          exit={{ scale: 0.95, y: 40, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 26 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-hidden flex flex-col"
         >
-          <motion.div
-            initial={{ scale: 0.95, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                <Wallet size={20} className="text-primary" />
-                تسجيل دفعة
-              </h3>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-40"
-              >
-                <X size={18} />
-              </button>
-            </div>
+          {/* Header */}
+          <div className="bg-linear-to-r from-primary to-primary/80 px-5 py-4 flex items-center justify-between shrink-0">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <Wallet size={20} />
+              تسجيل دفعة
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white disabled:opacity-40 transition-all"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
+          {/* Body - scrollable */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
             {/* Student Info */}
-            <div className="bg-gray-50 rounded-xl p-3 space-y-1">
+            <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 border border-gray-100">
               <p className="text-sm text-gray-700">
                 الطالب: <b className="text-gray-900">{student.full_name}</b>
               </p>
@@ -254,19 +245,19 @@ const PaymentModalContent = ({
                 {student.grade_name}
                 {student.group_name && ` • ${student.group_name}`}
               </p>
-              <p className="text-xs text-gray-500 font-mono">
+              <p className="text-xs text-gray-400 font-mono">
                 {student.barcode}
               </p>
             </div>
 
             {/* Required Amount */}
-            <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 flex items-center justify-between">
-              <span className="text-sm text-gray-700">
-                المبلغ المطلوب (الشهري)
+            <div className="rounded-xl bg-linear-to-r from-blue-50 to-blue-50/60 border border-blue-100 p-3.5 flex items-center justify-between">
+              <span className="text-sm text-gray-700 font-medium">
+                المبلغ المطلوب
               </span>
-              <span className="text-lg font-bold text-primary">
+              <span className="text-xl font-bold text-primary">
                 {requiredAmount.toLocaleString("ar-EG")}{" "}
-                <span className="text-sm">جنيه</span>
+                <span className="text-sm font-medium">جنيه</span>
               </span>
             </div>
 
@@ -279,50 +270,58 @@ const PaymentModalContent = ({
                 <button
                   type="button"
                   onClick={() => setPaymentMode("normal")}
-                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  className={`px-4 py-3 rounded-xl font-medium text-sm transition-all ${
                     paymentMode === "normal"
                       ? "bg-primary text-white shadow-lg shadow-primary/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  عادي (كامل المبلغ)
+                  عادي
+                  <span className="block text-[10px] opacity-80 mt-0.5">
+                    كامل المبلغ
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMode("custom")}
-                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  className={`px-4 py-3 rounded-xl font-medium text-sm transition-all ${
                     paymentMode === "custom"
                       ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  مخصص (مبلغ مختلف)
+                  مخصص
+                  <span className="block text-[10px] opacity-80 mt-0.5">
+                    مبلغ مختلف
+                  </span>
                 </button>
               </div>
             </div>
 
             {/* Custom Amount */}
-            {paymentMode === "custom" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  المبلغ المخصص (جنيه)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="any"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="أدخل المبلغ"
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg font-mono"
-                  dir="ltr"
-                />
-              </motion.div>
-            )}
+            <AnimatePresence>
+              {paymentMode === "custom" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    المبلغ المخصص (جنيه)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="any"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="أدخل المبلغ"
+                    className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-lg font-mono"
+                    dir="ltr"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Payment Date */}
             <div>
@@ -351,17 +350,19 @@ const PaymentModalContent = ({
               />
             </div>
 
-            {/* Final Amount Summary */}
+            {/* Final Amount */}
             <div
-              className={`rounded-xl p-3 flex items-center justify-between ${
-                paymentMode === "custom" ? "bg-amber-50" : "bg-green-50"
+              className={`rounded-xl p-3.5 flex items-center justify-between border ${
+                paymentMode === "custom"
+                  ? "bg-linear-to-r from-amber-50 to-amber-50/60 border-amber-200"
+                  : "bg-linear-to-r from-green-50 to-green-50/60 border-green-200"
               }`}
             >
               <span className="text-sm font-medium text-gray-700">
                 المبلغ النهائي
               </span>
               <span
-                className={`text-xl font-bold ${
+                className={`text-2xl font-bold ${
                   paymentMode === "custom" ? "text-amber-700" : "text-green-700"
                 }`}
               >
@@ -369,44 +370,191 @@ const PaymentModalContent = ({
                 <span className="text-sm">جنيه</span>
               </span>
             </div>
+          </div>
 
-            {/* Actions */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-all"
-              >
-                إلغاء
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!canSubmit || isSubmitting}
-                className="py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 disabled:shadow-none transition-all flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    جاري الحفظ...
-                  </>
-                ) : (
-                  <>
-                    <Wallet size={16} />
-                    تسجيل الدفع
-                  </>
-                )}
-              </button>
-            </div>
-          </motion.div>
+          {/* Footer */}
+          <div className="grid grid-cols-2 gap-3 p-4 border-t border-gray-100 bg-white shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="py-3 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-all"
+            >
+              إلغاء
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSubmit || isSubmitting}
+              className="py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                <>
+                  <Wallet size={16} />
+                  تسجيل الدفع
+                </>
+              )}
+            </button>
+          </div>
         </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 };
 
-/* ============================ Attendance Row ============================ */
+/* ============================ Student Card (Mobile) ============================ */
+
+const StudentCard = memo(function StudentCard({
+  student,
+  index,
+  record,
+  canEdit,
+  isLoading,
+  onMarkPresent,
+  onMarkAbsent,
+  onDetails,
+  onDelete,
+  onPay,
+}) {
+  const isPresent = record?.status === "present";
+  const isAbsent = record?.status === "absent";
+  const statusLabel = record ? (isPresent ? "حاضر" : "غائب") : "غير مسجل";
+
+  const isPaid = student?.payment_status === "paid";
+
+  const methodBadge =
+    record?.method === "barcode" ? (
+      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+        باركود
+      </span>
+    ) : record?.method === "manual" ? (
+      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+        يدوي
+      </span>
+    ) : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.02, 0.3) }}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 space-y-3"
+    >
+      {/* Header: Name + Status */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-bold text-gray-800 truncate">
+              {student.full_name}
+            </p>
+            {record?.is_makeup === 1 && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                تعويضي
+              </span>
+            )}
+            {methodBadge}
+          </div>
+          <p className="text-xs text-gray-400 font-mono mt-1">
+            {student.barcode}
+          </p>
+        </div>
+        <span
+          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium shrink-0 ${
+            isPresent
+              ? "bg-green-100 text-green-700"
+              : isAbsent
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-500"
+          }`}
+        >
+          {isPresent && <CheckCircle size={12} />}
+          {isAbsent && <XCircle size={12} />}
+          {!record && <AlertCircle size={12} />}
+          {statusLabel}
+        </span>
+      </div>
+
+      {/* Payment + Time */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+              isPaid ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isPaid ? <CheckCircle size={12} /> : <XCircle size={12} />}
+            {isPaid ? "مدفوع" : "غير مدفوع"}
+          </span>
+          {!isPaid && (
+            <button
+              type="button"
+              onClick={() => onPay(student)}
+              className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs text-white font-medium hover:bg-emerald-600 transition-all shadow-sm"
+            >
+              <Wallet size={12} />
+              دفع
+            </button>
+          )}
+        </div>
+        <span className="text-xs text-gray-400 flex items-center gap-1">
+          <Clock size={12} />
+          {formatTimeLabel(record?.attendance_time)}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onMarkPresent(student)}
+          disabled={!canEdit || isPresent || isLoading}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
+        >
+          {isLoading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <UserCheck size={14} />
+          )}
+          حضور
+        </button>
+        <button
+          type="button"
+          onClick={() => onMarkAbsent(student)}
+          disabled={!canEdit || isAbsent || isLoading}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-red-500 px-3 py-2.5 text-xs text-white font-medium hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-300 transition-all"
+        >
+          <UserX size={14} />
+          غياب
+        </button>
+        <button
+          type="button"
+          onClick={() => onDetails(record)}
+          disabled={!record}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all px-3 py-2 text-xs"
+        >
+          <Info size={14} />
+          تفاصيل
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(record, student)}
+          disabled={!record || isLoading}
+          className="flex items-center justify-center gap-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all px-3 py-2 text-xs"
+        >
+          <Trash2 size={14} />
+          حذف
+        </button>
+      </div>
+    </motion.div>
+  );
+});
+
+/* ============================ Attendance Row (Desktop) ============================ */
 
 const AttendanceRow = memo(function AttendanceRow({
   student,
@@ -425,7 +573,6 @@ const AttendanceRow = memo(function AttendanceRow({
   const statusLabel = record ? (isPresent ? "حاضر" : "غائب") : "غير مسجل";
 
   const isPaid = student?.payment_status === "paid";
-  const requiredAmount = Number(student?.required_amount || 0);
 
   const methodBadge =
     record?.method === "barcode" ? (
@@ -440,10 +587,10 @@ const AttendanceRow = memo(function AttendanceRow({
 
   return (
     <motion.tr
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.02, 0.3) }}
-      className="hover:bg-blue-50/40 transition-all duration-200 group"
+      className="hover:bg-blue-50/40 transition-all duration-200"
     >
       <td className="px-3 sm:px-5 py-3 font-medium text-gray-800 text-sm">
         <div className="flex items-center gap-2 flex-wrap">
@@ -475,7 +622,6 @@ const AttendanceRow = memo(function AttendanceRow({
           {statusLabel}
         </span>
       </td>
-      {/* Payment Status Column */}
       <td className="px-3 sm:px-5 py-3">
         <div className="flex items-center gap-2">
           <span
@@ -562,17 +708,19 @@ const AttendanceRow = memo(function AttendanceRow({
 
 const StatsTable = ({ rows }) => {
   if (!Array.isArray(rows) || rows.length === 0) {
-    return <p className="text-center text-gray-400 py-8">لا توجد بيانات</p>;
+    return (
+      <p className="text-center text-gray-400 py-10 text-sm">لا توجد بيانات</p>
+    );
   }
   return (
-    <ResponsiveTable minWidth={600} maxHeight="max-h-[50vh]">
-      <table className="w-full text-right">
+    <div className="overflow-x-auto">
+      <table className="w-full text-right min-w-150">
         <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
             {["الشهر", "أيام", "سجلات", "حاضر", "غائب", "النسبة"].map((h) => (
               <th
                 key={h}
-                className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-600"
+                className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-600 whitespace-nowrap"
               >
                 {h}
               </th>
@@ -585,7 +733,7 @@ const StatsTable = ({ rows }) => {
               key={r.month || i}
               className="hover:bg-blue-50/40 text-xs sm:text-sm"
             >
-              <td className="px-3 sm:px-4 py-3 font-medium text-gray-800">
+              <td className="px-3 sm:px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                 {r.month}
               </td>
               <td className="px-3 sm:px-4 py-3 text-gray-600">
@@ -604,7 +752,7 @@ const StatsTable = ({ rows }) => {
                 <span className="inline-flex items-center gap-2">
                   <span className="w-16 sm:w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
                     <span
-                      className="block h-full bg-primary"
+                      className="block h-full bg-linear-to-r from-primary to-primary/80 transition-all"
                       style={{
                         width: `${Math.min(
                           num(r.attendance_percentage),
@@ -622,7 +770,7 @@ const StatsTable = ({ rows }) => {
           ))}
         </tbody>
       </table>
-    </ResponsiveTable>
+    </div>
   );
 };
 
@@ -692,30 +840,12 @@ const Attendance = () => {
   const lastSubmitTimeRef = useRef(0);
   const savingRef = useRef(false);
 
-  /* ---------- Payment Popup ---------- */
-  const [paymentPopup, setPaymentPopup] = useState(null);
-  const paymentPopupTimerRef = useRef(null);
-
   /* ---------- Payment Modal ---------- */
   const [paymentStudent, setPaymentStudent] = useState(null);
   const [paymentSubmitting, setPaymentSubmitting] = useState(false);
 
   /* ---------- Search ---------- */
   const [search, setSearch] = useState("");
-
-  const resetGroupData = useCallback(() => {
-    setStudents([]);
-    setAttendanceRecords({});
-    setServerSummary(null);
-    setSessionActive(false);
-    setSessionId(null);
-    setSessionInfo(null);
-    setSessionLocked(false);
-    setIsMakeupEnabled(false);
-    setLockRemaining(0);
-    setMonthRecords([]);
-    setPage(1);
-  }, []);
 
   /* ---------- Tabs ---------- */
   const [activeTab, setActiveTab] = useState("day");
@@ -737,7 +867,6 @@ const Attendance = () => {
   const isToday = selectedDate === toLocalDate();
   const canEdit = sessionActive || !isToday;
 
-  // Keep a ref in sync with saving state (for global listener)
   useEffect(() => {
     savingRef.current = saving;
   }, [saving]);
@@ -763,12 +892,10 @@ const Attendance = () => {
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       await loadDashboard();
       if (cancelled) return;
     })();
-
     return () => {
       cancelled = true;
     };
@@ -778,7 +905,6 @@ const Attendance = () => {
 
   useEffect(() => {
     if (!selectedGrade) return;
-
     let cancelled = false;
     (async () => {
       const res = await fetchGradeAttendance(selectedGrade);
@@ -816,7 +942,7 @@ const Attendance = () => {
     }
   }, []);
 
-  /* ============================ Load Group Students (Paginated) ============================ */
+  /* ============================ Load Group Students ============================ */
 
   const loadGroupStudents = useCallback(
     async (groupId, date, currentPage) => {
@@ -831,7 +957,6 @@ const Attendance = () => {
             fetchAttendanceSummary(groupId, date),
           ]);
 
-        // Process students with pagination
         if (studentsResult.success && Array.isArray(studentsResult.data)) {
           const sorted = [...studentsResult.data].sort((a, b) =>
             String(a.full_name || "").localeCompare(
@@ -844,7 +969,6 @@ const Attendance = () => {
           setStudents([]);
         }
 
-        // Process pagination
         if (studentsResult.pagination) {
           setPagination(studentsResult.pagination);
         } else {
@@ -856,7 +980,6 @@ const Attendance = () => {
           });
         }
 
-        // Process attendance records
         if (attendanceResult.success && Array.isArray(attendanceResult.data)) {
           const records = {};
           attendanceResult.data.forEach((r) => {
@@ -867,7 +990,6 @@ const Attendance = () => {
           setAttendanceRecords({});
         }
 
-        // Process summary
         setServerSummary(
           summaryResult.success ? summaryResult.data || null : null,
         );
@@ -880,7 +1002,7 @@ const Attendance = () => {
     [selectedGrade],
   );
 
-  /* ============================ Handle Group Change ============================ */
+  /* ============================ Group Change ============================ */
 
   useEffect(() => {
     if (!selectedGroup) {
@@ -897,11 +1019,9 @@ const Attendance = () => {
         setMonthRecords([]);
         setPage(1);
       }, 0);
-
       return () => clearTimeout(timer);
     }
 
-    // Reset page when group changes
     if (page !== 1) {
       const timer = setTimeout(() => setPage(1), 0);
       return () => clearTimeout(timer);
@@ -916,53 +1036,43 @@ const Attendance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGroup, checkActiveSession]);
 
-  /* ============================ Handle Date Change ============================ */
+  /* ============================ Date Change ============================ */
 
   useEffect(() => {
     if (!selectedGroup) return;
-
-    // Reset page on date change
     if (page !== 1) {
       const timer = setTimeout(() => setPage(1), 0);
       return () => clearTimeout(timer);
     }
-
     const timer = setTimeout(() => {
       void loadGroupStudents(selectedGroup, selectedDate, 1);
     }, 0);
-
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
-  /* ============================ Handle Grade Change ============================ */
+  /* ============================ Grade Change ============================ */
 
   useEffect(() => {
     if (!selectedGroup) return;
-
-    // Reload when grade changes (affects pagination filter)
     if (page !== 1) {
       const timer = setTimeout(() => setPage(1), 0);
       return () => clearTimeout(timer);
     }
-
     const timer = setTimeout(() => {
       void loadGroupStudents(selectedGroup, selectedDate, 1);
     }, 0);
-
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGrade]);
 
-  /* ============================ Handle Page Change ============================ */
+  /* ============================ Page Change ============================ */
 
   useEffect(() => {
     if (!selectedGroup || page === 1) return;
-
     const timer = setTimeout(() => {
       void loadGroupStudents(selectedGroup, selectedDate, page);
     }, 0);
-
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
@@ -985,15 +1095,13 @@ const Attendance = () => {
 
   useEffect(() => {
     if (activeTab !== "month") return;
-
     const timer = setTimeout(() => {
       void loadMonth();
     }, 0);
-
     return () => clearTimeout(timer);
   }, [activeTab, loadMonth]);
 
-  /* ============================ Lock Countdown Timer ============================ */
+  /* ============================ Lock Countdown ============================ */
 
   useEffect(() => {
     if (!sessionActive || !sessionInfo?.lock_at) {
@@ -1008,9 +1116,7 @@ const Attendance = () => {
       const lockTime = new Date(sessionInfo.lock_at).getTime();
       const diff = Math.max(0, Math.floor((lockTime - now) / 1000));
       setLockRemaining(diff);
-
       if (diff === 0 && sessionActive) {
-        // Auto-check session on lock
         checkActiveSession(selectedGroup);
       }
     };
@@ -1021,7 +1127,7 @@ const Attendance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive, sessionInfo?.lock_at, selectedGroup]);
 
-  /* ============================ Auto-Refresh Active Session ============================ */
+  /* ============================ Auto-Refresh ============================ */
 
   useEffect(() => {
     if (!sessionActive || !selectedGroup) return;
@@ -1035,22 +1141,19 @@ const Attendance = () => {
           setSessionLocked(s.status === "locked");
           setSessionActive(s.status === "active");
           setSessionLocked(s.attendance_locked === 1);
-          // Reload data after lock
           await loadGroupStudents(selectedGroup, selectedDate, page);
           await loadDashboard();
           notifyInfo("تم قفل تسجيل الحضور تلقائياً");
         }
       }
-    }, 30000); // كل 30 ثانية
+    }, 30000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive, selectedGroup, sessionLocked, page]);
 
-  /* ============================ Global Barcode Scanner Listener ============================ */
+  /* ============================ Global Scanner Listener ============================ */
 
-  // Captures barcode scanner input globally, even when the input is not focused.
-  // Barcode scanners send characters very fast (< 30ms apart) followed by Enter.
   useEffect(() => {
     if (!sessionActive) return;
 
@@ -1058,26 +1161,19 @@ const Attendance = () => {
     let lastKeyTime = 0;
 
     const handleGlobalKeyDown = (e) => {
-      // If the barcode input is already focused, let it handle normally
       if (document.activeElement === barcodeInputRef.current) return;
-
-      // Ignore modifier keys
       if (e.ctrlKey || e.altKey || e.metaKey) return;
 
-      // Skip if user is typing in another input/textarea/select
       const tag = document.activeElement?.tagName;
       const isOtherInput =
         tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
       const now = Date.now();
-
-      // If gap is too large, reset buffer (human typing)
       if (now - lastKeyTime > SCANNER_TIMEOUT) {
         buffer = "";
       }
       lastKeyTime = now;
 
-      // Enter pressed
       if (e.key === "Enter") {
         if (
           buffer.length >= MIN_BARCODE_LENGTH &&
@@ -1088,10 +1184,8 @@ const Attendance = () => {
           const code = buffer.trim();
           buffer = "";
 
-          // Focus the input and trigger the scan
           if (barcodeInputRef.current) {
             barcodeInputRef.current.focus();
-            // Set value natively so React picks it up
             const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
               window.HTMLInputElement.prototype,
               "value",
@@ -1100,7 +1194,6 @@ const Attendance = () => {
             barcodeInputRef.current.dispatchEvent(
               new Event("input", { bubbles: true }),
             );
-            // Trigger form submit
             const form = barcodeInputRef.current.closest("form");
             if (form) {
               form.requestSubmit();
@@ -1111,7 +1204,6 @@ const Attendance = () => {
         return;
       }
 
-      // Only accept printable characters
       if (e.key.length === 1) {
         buffer += e.key;
       }
@@ -1123,8 +1215,6 @@ const Attendance = () => {
 
   /* ============================ Smart Auto-Focus ============================ */
 
-  // Re-focus the barcode input when user clicks anywhere in the page,
-  // unless they clicked on another input/select/textarea/button.
   useEffect(() => {
     if (!sessionActive) return;
 
@@ -1153,7 +1243,6 @@ const Attendance = () => {
 
   /* ============================ Scanner Ready Indicator ============================ */
 
-  // Updates a visual indicator when the barcode input gains/loses focus.
   useEffect(() => {
     const input = barcodeInputRef.current;
     if (!input) return;
@@ -1164,7 +1253,6 @@ const Attendance = () => {
     input.addEventListener("focus", handleFocus);
     input.addEventListener("blur", handleBlur);
 
-    // Initial state
     if (document.activeElement === input) {
       setScannerReady(true);
     }
@@ -1177,8 +1265,6 @@ const Attendance = () => {
 
   /* ============================ Continuous Focus Keeper ============================ */
 
-  // Ensures the barcode input stays focused whenever the session is active
-  // and no other interaction is in progress.
   useEffect(() => {
     if (!sessionActive || saving) return;
 
@@ -1200,46 +1286,6 @@ const Attendance = () => {
     return () => clearTimeout(timer);
   }, [sessionActive, saving, lastScan]);
 
-  /* ============================ Cleanup Payment Popup Timer ============================ */
-
-  useEffect(() => {
-    return () => {
-      if (paymentPopupTimerRef.current) {
-        clearTimeout(paymentPopupTimerRef.current);
-      }
-    };
-  }, []);
-
-  /* ============================ Payment Popup Helper ============================ */
-
-  const showPaymentPopup = useCallback((studentData) => {
-    if (paymentPopupTimerRef.current) {
-      clearTimeout(paymentPopupTimerRef.current);
-    }
-
-    setPaymentPopup({
-      full_name: studentData.full_name,
-      barcode: studentData.barcode,
-      grade_name: studentData.grade_name,
-      group_name: studentData.group_name,
-      profile_image: studentData.profile_image,
-      payment_status: studentData.payment_status || "unpaid",
-      required_amount:
-        studentData.required_amount || studentData.monthly_price || 0,
-    });
-
-    paymentPopupTimerRef.current = setTimeout(() => {
-      setPaymentPopup(null);
-    }, PAYMENT_POPUP_DURATION);
-  }, []);
-
-  const dismissPaymentPopup = useCallback(() => {
-    if (paymentPopupTimerRef.current) {
-      clearTimeout(paymentPopupTimerRef.current);
-    }
-    setPaymentPopup(null);
-  }, []);
-
   /* ============================ Payment Handlers ============================ */
 
   const handlePayClick = useCallback((student) => {
@@ -1257,7 +1303,6 @@ const Attendance = () => {
 
       setPaymentSubmitting(true);
       try {
-        // Step 1: Ensure a subscription exists for the current month
         let subscriptionId = paymentStudent.subscription_id;
 
         if (!subscriptionId) {
@@ -1272,14 +1317,13 @@ const Attendance = () => {
           });
 
           if (!subResult.success || !subResult.data?.id) {
-            notifyError(subResult.error || "فشل إنشاء الاشتراك الشهري للطالب");
+            notifyError(subResult.error || "فشل إنشاء الاشتراك الشهري");
             return;
           }
 
           subscriptionId = subResult.data.id;
         }
 
-        // Step 2: Create the payment
         const paymentPayload = {
           subscription_id: subscriptionId,
           student_id: paymentStudent.id,
@@ -1301,11 +1345,7 @@ const Attendance = () => {
             )} جنيه للطالب ${paymentStudent.full_name}`,
           );
           setPaymentStudent(null);
-
-          // Refresh students list to reflect new payment status
           await loadGroupStudents(selectedGroup, selectedDate, page);
-
-          // Return focus to barcode input
           if (sessionActive) {
             setTimeout(() => {
               barcodeInputRef.current?.focus();
@@ -1338,7 +1378,6 @@ const Attendance = () => {
       notifyError("يرجى اختيار المرحلة والمجموعة أولاً");
       return;
     }
-
     if (!isToday) {
       notifyError("لا يمكن بدء جلسة في يوم غير اليوم الحالي");
       return;
@@ -1478,7 +1517,7 @@ const Attendance = () => {
 
     if (code.length < MIN_BARCODE_LENGTH) {
       playBeep("error");
-      notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
+      notifyError("الباركود قصير جداً");
       setBarcode("");
       setTimeout(() => {
         barcodeInputRef.current?.focus();
@@ -1513,13 +1552,11 @@ const Attendance = () => {
         const student = result.data.student;
         const attendance = result.data.attendance;
 
-        // Optimistic update
         setAttendanceRecords((prev) => ({
           ...prev,
           [student.id]: attendance,
         }));
 
-        // Update students list: merge fresh payment data from backend response
         setStudents((prev) =>
           prev.map((s) =>
             s.id === student.id
@@ -1536,7 +1573,6 @@ const Attendance = () => {
           ),
         );
 
-        // Update summary from server
         const summaryResult = await fetchAttendanceSummary(
           selectedGroup,
           selectedDate,
@@ -1550,11 +1586,8 @@ const Attendance = () => {
           type: "success",
           name: student.full_name,
           isMakeup: result.data.is_makeup === 1,
+          isPaid: student.payment_status === "paid",
         });
-
-        // Show payment status popup
-        showPaymentPopup(student);
-
         notifySuccess(
           `${result.data.is_makeup === 1 ? "حضور تعويضي" : "تم تسجيل حضور"} ${student.full_name}`,
         );
@@ -1823,44 +1856,44 @@ const Attendance = () => {
       label: "إجمالي الطلاب",
       value: summary.total,
       icon: Users,
-      cls: "bg-blue-100 text-blue-600",
+      cls: "from-blue-500 to-blue-600",
     },
     {
       label: "حاضر",
       value: summary.present,
       icon: UserCheck,
-      cls: "bg-green-100 text-green-600",
+      cls: "from-green-500 to-green-600",
     },
     {
       label: "غائب",
       value: summary.absent,
       icon: UserX,
-      cls: "bg-red-100 text-red-600",
+      cls: "from-red-500 to-red-600",
     },
     {
       label: "غير مسجل",
       value: summary.notMarked,
       icon: AlertCircle,
-      cls: "bg-gray-100 text-gray-600",
+      cls: "from-gray-500 to-gray-600",
     },
     {
       label: "نسبة الحضور",
       value: `${attendanceRate}%`,
       icon: BarChart3,
-      cls: "bg-amber-100 text-amber-600",
+      cls: "from-amber-500 to-amber-600",
     },
   ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
   };
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 100, damping: 12 },
+      transition: { type: "spring", stiffness: 100, damping: 14 },
     },
   };
 
@@ -1870,31 +1903,34 @@ const Attendance = () => {
     <motion.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen"
+      transition={{ duration: 0.4 }}
+      className="min-h-screen pb-8"
     >
-      {/* Header */}
+      {/* ==================== Header ==================== */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="mb-6"
+        className="mb-5 sm:mb-6"
       >
-        <div className="flex flex-wrap justify-between items-center gap-3">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-primary rounded-2xl shadow-lg shadow-primary/30">
-              <CalendarCheck size={24} className="text-white" />
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          {/* Title */}
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 sm:p-3 bg-linear-to-br from-primary to-primary/80 rounded-2xl shadow-lg shadow-primary/30 shrink-0">
+              <CalendarCheck size={22} className="text-white sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">
                 تسجيل الحضور والغياب
               </h1>
-              <p className="text-sm text-gray-500 flex flex-wrap items-center gap-2">
-                <span>{todayLabel}</span>
-                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+              <div className="text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
+                <span className="truncate">{todayLabel}</span>
+                <span className="w-1 h-1 bg-gray-300 rounded-full shrink-0"></span>
                 <span
-                  className={`inline-flex items-center gap-1 ${
-                    sessionActive ? "text-green-600" : "text-gray-400"
+                  className={`inline-flex items-center gap-1 shrink-0 ${
+                    sessionActive
+                      ? "text-green-600 font-medium"
+                      : "text-gray-400"
                   }`}
                 >
                   <span
@@ -1911,60 +1947,78 @@ const Attendance = () => {
                       : "جلسة غير نشطة"}
                 </span>
                 {isMakeupEnabled && sessionActive && (
-                  <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-xs">
-                    <RefreshCw size={12} />
+                  <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] sm:text-xs shrink-0">
+                    <RefreshCw size={10} />
                     تعويضي
                   </span>
                 )}
-              </p>
+              </div>
             </div>
           </div>
 
+          {/* Dashboard Stats */}
           {dashboard && (
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex flex-wrap items-center gap-3 sm:gap-4 px-3 sm:px-4 py-2.5 bg-white rounded-2xl shadow-lg border border-gray-100 text-xs sm:text-sm"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-3 sm:px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 text-xs"
             >
-              <span className="text-xs text-gray-400 hidden sm:inline">
+              <span className="text-gray-500 hidden sm:block col-span-4 text-[10px] -mb-1">
                 إحصائيات اليوم
               </span>
-              <span className="text-gray-600">
-                الطلاب: <b>{num(dashboard.total_students)}</b>
-              </span>
-              <span className="text-green-600">
-                حاضر: <b>{num(dashboard.present_today)}</b>
-              </span>
-              <span className="text-red-600">
-                غائب: <b>{num(dashboard.absent_today)}</b>
-              </span>
-              <span className="text-gray-500">
-                غير مسجل: <b>{num(dashboard.not_marked_today)}</b>
-              </span>
+              <div className="text-center">
+                <p className="text-gray-400 text-[10px]">الطلاب</p>
+                <p className="font-bold text-gray-700">
+                  {num(dashboard.total_students)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-gray-400 text-[10px]">حاضر</p>
+                <p className="font-bold text-green-600">
+                  {num(dashboard.present_today)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-gray-400 text-[10px]">غائب</p>
+                <p className="font-bold text-red-600">
+                  {num(dashboard.absent_today)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-gray-400 text-[10px]">غير مسجل</p>
+                <p className="font-bold text-gray-500">
+                  {num(dashboard.not_marked_today)}
+                </p>
+              </div>
             </motion.div>
           )}
         </div>
 
+        {/* Stat Cards */}
         {selectedGroup && (
           <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3"
+            className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3"
           >
             {statCards.map((stat, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.07 }}
-                className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100"
+                transition={{ delay: idx * 0.05 }}
+                className="group relative overflow-hidden flex items-center gap-3 p-3 sm:p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
               >
-                <div className={`p-2 rounded-lg ${stat.cls.split(" ")[0]}`}>
-                  <stat.icon size={16} className={stat.cls.split(" ")[1]} />
+                <div
+                  className={`p-2 sm:p-2.5 rounded-xl bg-linear-to-br ${stat.cls} text-white shadow-sm shrink-0`}
+                >
+                  <stat.icon size={16} className="sm:w-4.5 sm:h-4.5" />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-lg font-bold text-gray-800">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-gray-500 truncate">
+                    {stat.label}
+                  </p>
+                  <p className="text-base sm:text-lg font-bold text-gray-800">
                     {stat.value}
                   </p>
                 </div>
@@ -1974,23 +2028,27 @@ const Attendance = () => {
         )}
       </motion.header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Panel */}
+      {/* ==================== Main Grid ==================== */}
+      <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+        {/* ==================== Left Panel ==================== */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="lg:col-span-1 space-y-4"
         >
+          {/* Session Setup */}
           <motion.div
             variants={itemVariants}
-            className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 hover:shadow-md transition-all duration-300"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-primary rounded-xl">
+              <div className="p-2 bg-linear-to-br from-primary to-primary/80 rounded-xl shadow-sm">
                 <Play size={18} className="text-white" />
               </div>
-              <h2 className="text-lg font-bold text-gray-800">إعداد الجلسة</h2>
+              <h2 className="text-base sm:text-lg font-bold text-gray-800">
+                إعداد الجلسة
+              </h2>
             </div>
 
             <div className="space-y-4">
@@ -2005,7 +2063,7 @@ const Attendance = () => {
                     setSelectedGroup("");
                   }}
                   disabled={sessionActive}
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all text-sm"
                 >
                   <option value="">اختر المرحلة</option>
                   {grades.map((g) => (
@@ -2024,7 +2082,7 @@ const Attendance = () => {
                   value={selectedGroup}
                   onChange={(e) => setSelectedGroup(e.target.value)}
                   disabled={sessionActive}
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all"
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 transition-all text-sm"
                 >
                   <option value="">اختر المجموعة</option>
                   {groupsForSelectedGrade.map((g) => (
@@ -2037,8 +2095,8 @@ const Attendance = () => {
 
               <div className="rounded-xl bg-gray-50 border border-gray-100 p-3">
                 <p className="text-xs text-gray-600 flex items-center gap-2">
-                  <Clock size={14} className="text-primary" />
-                  الجلسة هتقفل تلقائياً بعد المدة الافتراضية من إعدادات المنصة
+                  <Clock size={14} className="text-primary shrink-0" />
+                  الجلسة هتقفل تلقائياً بعد المدة الافتراضية
                 </p>
               </div>
 
@@ -2049,12 +2107,12 @@ const Attendance = () => {
                   type="button"
                   onClick={handleStartSession}
                   disabled={!selectedGroup || sessionActive || saving}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-primary to-primary/90 px-4 py-3 text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-md disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:shadow-none text-sm"
                 >
                   {saving && !sessionActive ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
-                    <Play size={18} />
+                    <Play size={16} />
                   )}
                   بدء الجلسة
                 </motion.button>
@@ -2064,9 +2122,9 @@ const Attendance = () => {
                   type="button"
                   onClick={handleEndSession}
                   disabled={!sessionActive || saving}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-red-600 to-red-700 px-4 py-3 text-white font-medium hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/30 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none transition-all"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-red-600 to-red-700 px-4 py-3 text-white font-medium hover:from-red-700 hover:to-red-800 shadow-md shadow-red-500/20 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:shadow-none transition-all text-sm"
                 >
-                  <Square size={18} />
+                  <Square size={16} />
                   إنهاء الجلسة
                 </motion.button>
               </div>
@@ -2078,13 +2136,13 @@ const Attendance = () => {
                   type="button"
                   onClick={handleToggleMakeup}
                   disabled={saving}
-                  className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-white font-medium transition-all duration-300 ${
+                  className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-white font-medium transition-all duration-300 text-sm ${
                     isMakeupEnabled
-                      ? "bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30"
-                      : "bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-400/30"
-                  } disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none`}
+                      ? "bg-linear-to-r from-amber-600 to-amber-700 shadow-md shadow-amber-500/20"
+                      : "bg-linear-to-r from-amber-500 to-amber-600 shadow-md shadow-amber-400/20"
+                  } disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:shadow-none`}
                 >
-                  <RefreshCw size={18} />
+                  <RefreshCw size={16} />
                   {isMakeupEnabled
                     ? "إلغاء الحضور التعويضي"
                     : "تفعيل الحضور التعويضي"}
@@ -2097,64 +2155,74 @@ const Attendance = () => {
                 type="button"
                 onClick={handleMarkRestAbsent}
                 disabled={!selectedGroup || saving}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-800 px-4 py-3 text-white font-medium hover:bg-gray-900 transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-800 px-4 py-3 text-white font-medium hover:bg-gray-900 transition-all disabled:cursor-not-allowed disabled:bg-gray-300 text-sm"
               >
-                <UserX size={18} />
+                <UserX size={16} />
                 تسجيل الباقي غياب
               </motion.button>
 
               {sessionInfo && (
-                <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600 space-y-1.5">
-                  <p>
-                    رقم الجلسة: <b className="font-mono">{sessionInfo.id}</b>
-                  </p>
-                  <p>
-                    بدأت:{" "}
-                    {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}
-                  </p>
+                <div className="rounded-xl bg-linear-to-br from-gray-50 to-white border border-gray-100 p-3.5 text-xs text-gray-600 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span>رقم الجلسة</span>
+                    <b className="font-mono text-primary">{sessionInfo.id}</b>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>بدأت</span>
+                    <b className="text-gray-700 text-[11px]">
+                      {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}
+                    </b>
+                  </div>
                   {sessionInfo.lock_at && (
-                    <p>
-                      تقفل:{" "}
-                      {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <span>تقفل</span>
+                      <b className="text-gray-700 text-[11px]">
+                        {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}
+                      </b>
+                    </div>
                   )}
                   {sessionActive && lockRemaining > 0 && (
-                    <p
-                      className={`flex items-center gap-1.5 font-bold ${
+                    <div
+                      className={`flex items-center justify-between pt-2 border-t border-gray-100 font-bold ${
                         lockRemaining < 300 ? "text-red-600" : "text-primary"
                       }`}
                     >
-                      <Clock size={12} />
-                      الوقت المتبقي: {formatDuration(lockRemaining)}
-                      {lockRemaining < 300 && (
-                        <AlertTriangle size={12} className="animate-pulse" />
-                      )}
-                    </p>
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        متبقي
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        {formatDuration(lockRemaining)}
+                        {lockRemaining < 300 && (
+                          <AlertTriangle size={12} className="animate-pulse" />
+                        )}
+                      </span>
+                    </div>
                   )}
                   {sessionActive && sessionInfo.attendance_locked === 1 && (
-                    <p className="text-red-600 font-bold flex items-center gap-1">
+                    <div className="text-red-600 font-bold flex items-center gap-1 pt-2 border-t border-gray-100">
                       <AlertCircle size={12} />
                       تم قفل تسجيل الحضور
-                    </p>
+                    </div>
                   )}
                 </div>
               )}
 
-              <div className="rounded-xl bg-blue-50 p-4 border border-blue-100">
+              <div className="rounded-xl bg-linear-to-br from-blue-50 to-blue-50/40 p-4 border border-blue-100">
                 <div className="flex items-start gap-2">
                   <AlertCircle
-                    size={18}
+                    size={16}
                     className="text-primary mt-0.5 shrink-0"
                   />
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <p className="font-semibold text-primary">تنبيهات الجلسة</p>
-                    <ul className="text-xs text-gray-600 space-y-1">
+                  <div className="text-xs text-gray-700 space-y-1">
+                    <p className="font-semibold text-primary text-sm">
+                      تنبيهات
+                    </p>
+                    <ul className="space-y-1">
                       <li>• ابدأ الجلسة لتسجيل الحضور بالباركود</li>
                       <li>• التسجيل اليدوي شغال لأي تاريخ</li>
-                      <li>• عند إنهاء الجلسة، يُسجل الباقي كغائبين</li>
-                      <li>
-                        • الطلاب اللي عندهم 3 غيابات متتالية يتحذفوا تلقائياً
-                      </li>
+                      <li>• عند إنهاء الجلسة يُسجل الباقي كغائبين</li>
+                      <li>• 3 غيابات متتالية = حذف تلقائي</li>
                     </ul>
                   </div>
                 </div>
@@ -2165,25 +2233,29 @@ const Attendance = () => {
           {/* Consecutive Absences */}
           <motion.div
             variants={itemVariants}
-            className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5"
           >
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={18} className="text-red-500" />
-              <h3 className="font-bold text-gray-800">غياب متتالي (3 أيام+)</h3>
+              <div className="p-1.5 bg-red-100 rounded-lg">
+                <AlertTriangle size={16} className="text-red-500" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-sm sm:text-base">
+                غياب متتالي (3 أيام+)
+              </h3>
             </div>
             {overview.consecutiveAbsences.length === 0 ? (
-              <p className="text-sm text-gray-400">لا يوجد طلاب حالياً</p>
+              <p className="text-xs text-gray-400 py-2">لا يوجد طلاب حالياً</p>
             ) : (
               <ul className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
                 {overview.consecutiveAbsences.map((s, i) => (
                   <li
                     key={s.student_id || s.id || i}
-                    className="flex items-center justify-between text-sm bg-red-50 rounded-xl px-3 py-2"
+                    className="flex items-center justify-between text-xs bg-red-50 rounded-xl px-3 py-2 border border-red-100"
                   >
-                    <span className="text-gray-800">
+                    <span className="text-gray-800 truncate">
                       {s.full_name || s.name}
                     </span>
-                    <span className="text-xs text-red-600 font-bold">
+                    <span className="text-red-600 font-bold shrink-0 mr-2">
                       {s.consecutive_absences ?? s.absences ?? ""}
                     </span>
                   </li>
@@ -2193,7 +2265,7 @@ const Attendance = () => {
           </motion.div>
         </motion.div>
 
-        {/* Right Panel */}
+        {/* ==================== Right Panel ==================== */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -2203,25 +2275,25 @@ const Attendance = () => {
           {/* Barcode Scan */}
           <motion.div
             variants={itemVariants}
-            className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5 hover:shadow-xl transition-all duration-300"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 hover:shadow-md transition-all duration-300"
           >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary rounded-xl">
+                <div className="p-2 bg-linear-to-br from-primary to-primary/80 rounded-xl shadow-sm">
                   <ScanLine size={18} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800">
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base">
                     تسجيل سريع بالباركود
                   </h3>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-[10px] sm:text-xs text-gray-400">
                     امسح باركود الطالب لتسجيل الحضور
                   </p>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                  className={`px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium ${
                     sessionActive
                       ? "bg-green-100 text-green-700"
                       : sessionLocked
@@ -2237,7 +2309,7 @@ const Attendance = () => {
                 </div>
                 {sessionActive && (
                   <div
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium flex items-center gap-1.5 ${
                       scannerReady
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-gray-100 text-gray-500"
@@ -2250,7 +2322,7 @@ const Attendance = () => {
                           : "bg-gray-400"
                       }`}
                     ></span>
-                    {scannerReady ? "جاهز للمسح" : "دوس على الحقل"}
+                    {scannerReady ? "جاهز" : "دوس على الحقل"}
                   </div>
                 )}
               </div>
@@ -2263,7 +2335,7 @@ const Attendance = () => {
               <div className="flex-1 relative">
                 <ScanLine
                   size={18}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-10"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"
                 />
                 <input
                   type="text"
@@ -2271,10 +2343,10 @@ const Attendance = () => {
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
                   disabled={!sessionActive || saving}
-                  placeholder="امسح الباركود أو اكتبه يدوياً"
+                  placeholder="امسح الباركود..."
                   autoFocus
                   autoComplete="off"
-                  className={`w-full rounded-xl border-2 pr-12 pl-4 py-3 text-lg focus:outline-none transition-all ${
+                  className={`w-full rounded-xl border-2 pr-12 pl-4 py-3.5 text-base sm:text-lg focus:outline-none transition-all font-mono ${
                     scannerReady
                       ? "border-emerald-400 bg-emerald-50/30 ring-2 ring-emerald-200"
                       : "border-gray-200 bg-gray-50 focus:ring-2 focus:ring-primary"
@@ -2283,11 +2355,11 @@ const Attendance = () => {
                 />
               </div>
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={!sessionActive || saving}
-                className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 justify-center"
+                className="px-6 py-3.5 bg-linear-to-r from-primary to-primary/90 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-md disabled:cursor-not-allowed disabled:bg-gray-300 disabled:bg-none disabled:shadow-none flex items-center gap-2 justify-center"
               >
                 {saving ? (
                   <>
@@ -2310,7 +2382,7 @@ const Attendance = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-3"
+                  className="mt-3 overflow-hidden"
                 >
                   <div
                     className={`rounded-xl p-3 text-sm flex items-center gap-2 ${
@@ -2321,8 +2393,8 @@ const Attendance = () => {
                   >
                     {lastScan.type === "success" ? (
                       <>
-                        <Volume2 size={16} />
-                        <span>
+                        <Volume2 size={16} className="shrink-0" />
+                        <span className="truncate">
                           {lastScan.isMakeup
                             ? "حضور تعويضي: "
                             : "تم تسجيل حضور: "}
@@ -2331,8 +2403,8 @@ const Attendance = () => {
                       </>
                     ) : (
                       <>
-                        <XCircle size={16} />
-                        <span>{lastScan.message}</span>
+                        <XCircle size={16} className="shrink-0" />
+                        <span className="truncate">{lastScan.message}</span>
                       </>
                     )}
                   </div>
@@ -2344,7 +2416,7 @@ const Attendance = () => {
           {/* Controls & Tabs */}
           <motion.div
             variants={itemVariants}
-            className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5"
           >
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {[
@@ -2356,13 +2428,13 @@ const Attendance = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      ? "bg-linear-to-r from-primary to-primary/90 text-white shadow-md shadow-primary/30"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <tab.icon size={16} />
+                  <tab.icon size={14} className="sm:w-4 sm:h-4" />
                   {tab.label}
                 </button>
               ))}
@@ -2373,7 +2445,7 @@ const Attendance = () => {
                 <div className="relative">
                   <Search
                     size={18}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                   />
                   <input
                     type="search"
@@ -2381,14 +2453,14 @@ const Attendance = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     disabled={!selectedGroup}
                     placeholder="ابحث بالاسم أو الباركود..."
-                    className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-12 pl-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
+                    className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-12 pl-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all text-sm"
                   />
                 </div>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm"
                 />
               </div>
             )}
@@ -2399,13 +2471,13 @@ const Attendance = () => {
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm flex-1 min-w-40"
                 />
                 <button
                   type="button"
                   onClick={loadMonth}
                   disabled={!selectedGroup || monthLoading}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 transition-all"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 transition-all text-sm"
                 >
                   <RefreshCw
                     size={16}
@@ -2417,19 +2489,19 @@ const Attendance = () => {
             )}
           </motion.div>
 
-          {/* Day Tab */}
+          {/* ==================== Day Tab ==================== */}
           {activeTab === "day" && (
             <motion.div
               variants={itemVariants}
-              className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300"
             >
               <div className="p-4 sm:p-5 border-b border-gray-100">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2 text-sm sm:text-base">
                     <Users size={18} className="text-primary" />
                     قائمة الطلاب
                     {selectedGroup && (
-                      <span className="text-sm font-normal text-gray-500">
+                      <span className="text-xs sm:text-sm font-normal text-gray-500 truncate">
                         -{" "}
                         {
                           groups.find(
@@ -2439,41 +2511,45 @@ const Attendance = () => {
                       </span>
                     )}
                   </h3>
-                  <div className="flex flex-wrap gap-3 text-sm">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                      الكل: {summary.total}
+                      الكل: <b>{summary.total}</b>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      حاضر: {summary.present}
+                      حاضر: <b className="text-green-600">{summary.present}</b>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                      غائب: {summary.absent}
+                      غائب: <b className="text-red-600">{summary.absent}</b>
                     </span>
                   </div>
                 </div>
               </div>
 
               {!selectedGroup ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Users size={32} className="mx-auto text-gray-300 mb-2" />
-                  <p>اختر المجموعة أولاً لعرض الطلاب</p>
+                <div className="text-center py-16 text-gray-400 px-4">
+                  <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                    <Users size={28} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm">اختر المجموعة أولاً لعرض الطلاب</p>
                 </div>
               ) : loading ? (
-                <div className="p-6 space-y-3">
+                <div className="p-4 sm:p-6 space-y-3">
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="h-14 rounded-xl bg-gray-100 animate-pulse"
+                      className="h-16 sm:h-14 rounded-xl bg-linear-to-r from-gray-100 to-gray-50 animate-pulse"
                     />
                   ))}
                 </div>
               ) : filteredStudents.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Users size={32} className="mx-auto text-gray-300 mb-2" />
-                  <p>
+                <div className="text-center py-16 text-gray-400 px-4">
+                  <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                    <Users size={28} className="text-gray-300" />
+                  </div>
+                  <p className="text-sm">
                     {search
                       ? "لا يوجد طلاب مطابقين للبحث"
                       : "لا يوجد طلاب في هذه المجموعة"}
@@ -2481,53 +2557,71 @@ const Attendance = () => {
                 </div>
               ) : (
                 <>
-                  <ResponsiveTable minWidth={800} maxHeight="max-h-[60vh]">
-                    <table className="w-full text-right">
-                      <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الاسم
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الباركود
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الحالة
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            حالة الدفع
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الوقت
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            إجراء
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        <AnimatePresence>
-                          {filteredStudents.map((student, index) => (
-                            <AttendanceRow
-                              key={student.id || index}
-                              student={student}
-                              index={index}
-                              record={attendanceRecords[student.id]}
-                              canEdit={canEdit}
-                              isLoading={!!rowLoading[student.id]}
-                              onMarkPresent={markPresent}
-                              onMarkAbsent={markAbsent}
-                              onDetails={openDetails}
-                              onDelete={deleteRecord}
-                              onPay={handlePayClick}
-                            />
-                          ))}
-                        </AnimatePresence>
-                      </tbody>
-                    </table>
-                  </ResponsiveTable>
+                  {/* Desktop Table - hidden on mobile */}
+                  <div className="hidden md:block">
+                    <div className="max-h-[60vh] overflow-auto custom-scrollbar">
+                      <table className="w-full text-right min-w-225">
+                        <thead className="bg-linear-to-r from-gray-50 to-gray-100/60 sticky top-0 z-10 backdrop-blur">
+                          <tr>
+                            {[
+                              "الاسم",
+                              "الباركود",
+                              "الحالة",
+                              "حالة الدفع",
+                              "الوقت",
+                              "إجراء",
+                            ].map((h) => (
+                              <th
+                                key={h}
+                                className="px-5 py-3.5 text-sm font-semibold text-gray-600 whitespace-nowrap"
+                              >
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          <AnimatePresence>
+                            {filteredStudents.map((student, index) => (
+                              <AttendanceRow
+                                key={student.id || index}
+                                student={student}
+                                index={index}
+                                record={attendanceRecords[student.id]}
+                                canEdit={canEdit}
+                                isLoading={!!rowLoading[student.id]}
+                                onMarkPresent={markPresent}
+                                onMarkAbsent={markAbsent}
+                                onDetails={openDetails}
+                                onDelete={deleteRecord}
+                                onPay={handlePayClick}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                  {/* Pagination */}
+                  {/* Mobile Cards - hidden on desktop */}
+                  <div className="md:hidden p-3 sm:p-4 space-y-3 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                    {filteredStudents.map((student, index) => (
+                      <StudentCard
+                        key={student.id || index}
+                        student={student}
+                        index={index}
+                        record={attendanceRecords[student.id]}
+                        canEdit={canEdit}
+                        isLoading={!!rowLoading[student.id]}
+                        onMarkPresent={markPresent}
+                        onMarkAbsent={markAbsent}
+                        onDetails={openDetails}
+                        onDelete={deleteRecord}
+                        onPay={handlePayClick}
+                      />
+                    ))}
+                  </div>
+
                   <Pagination
                     currentPage={pagination.page}
                     totalPages={pagination.totalPages}
@@ -2543,42 +2637,42 @@ const Attendance = () => {
             </motion.div>
           )}
 
-          {/* Month Tab */}
+          {/* ==================== Month Tab ==================== */}
           {activeTab === "month" && (
             <motion.div
               variants={itemVariants}
-              className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
             >
               <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center gap-2">
                 <ClipboardList size={18} className="text-primary" />
-                <h3 className="font-bold text-gray-800">
+                <h3 className="font-bold text-gray-800 text-sm sm:text-base">
                   سجل الحضور - {selectedMonth}
                 </h3>
               </div>
-              <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-4 space-y-3">
+              <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-3 sm:p-4 space-y-3">
                 {!selectedGroup ? (
-                  <p className="text-center text-gray-400 py-10">
+                  <p className="text-center text-gray-400 py-10 text-sm">
                     اختر المجموعة أولاً
                   </p>
                 ) : monthLoading ? (
                   [0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="h-20 rounded-xl bg-gray-100 animate-pulse"
+                      className="h-20 rounded-xl bg-linear-to-r from-gray-100 to-gray-50 animate-pulse"
                     />
                   ))
                 ) : monthGrouped.length === 0 ? (
-                  <p className="text-center text-gray-400 py-10">
+                  <p className="text-center text-gray-400 py-10 text-sm">
                     لا توجد سجلات في هذا الشهر
                   </p>
                 ) : (
                   monthGrouped.map((day) => (
                     <div
                       key={day.day}
-                      className="rounded-xl border border-gray-100 overflow-hidden"
+                      className="rounded-xl border border-gray-100 overflow-hidden bg-white"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2 bg-gray-50 px-4 py-2.5">
-                        <span className="font-medium text-gray-800">
+                      <div className="flex flex-wrap items-center justify-between gap-2 bg-linear-to-r from-gray-50 to-gray-50/50 px-4 py-2.5">
+                        <span className="font-medium text-gray-800 text-xs sm:text-sm">
                           {new Date(day.day).toLocaleDateString("ar-EG", {
                             weekday: "long",
                             day: "numeric",
@@ -2586,10 +2680,12 @@ const Attendance = () => {
                           })}
                         </span>
                         <span className="flex gap-3 text-xs">
-                          <span className="text-green-600">
+                          <span className="text-green-600 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                             حاضر: {day.present}
                           </span>
-                          <span className="text-red-600">
+                          <span className="text-red-600 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
                             غائب: {day.absent}
                           </span>
                         </span>
@@ -2598,15 +2694,17 @@ const Attendance = () => {
                         {day.rows.map((r) => (
                           <li
                             key={r.id}
-                            className="flex items-center justify-between px-4 py-2 text-sm"
+                            className="flex items-center justify-between px-4 py-2.5 text-xs sm:text-sm hover:bg-gray-50/50 transition-colors"
                           >
-                            <span className="text-gray-700">{r.full_name}</span>
-                            <span className="flex items-center gap-3">
-                              <span className="text-xs text-gray-400">
+                            <span className="text-gray-700 truncate mr-2">
+                              {r.full_name}
+                            </span>
+                            <span className="flex items-center gap-2 sm:gap-3 shrink-0">
+                              <span className="text-[10px] sm:text-xs text-gray-400 font-mono">
                                 {formatTimeLabel(r.attendance_time)}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded-full text-xs ${
+                                className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
                                   r.status === "present"
                                     ? "bg-green-100 text-green-700"
                                     : "bg-red-100 text-red-700"
@@ -2625,23 +2723,23 @@ const Attendance = () => {
             </motion.div>
           )}
 
-          {/* Stats Tab */}
+          {/* ==================== Stats Tab ==================== */}
           {activeTab === "stats" && (
             <motion.div variants={itemVariants} className="space-y-4">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">
                   <TrendingUp size={18} className="text-primary" />
-                  <h3 className="font-bold text-gray-800">
-                    إحصائيات عامة (كل المراحل)
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base">
+                    إحصائيات عامة
                   </h3>
                 </div>
                 <StatsTable rows={overview.overall} />
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex items-center gap-2">
                   <BarChart3 size={18} className="text-primary" />
-                  <h3 className="font-bold text-gray-800">
+                  <h3 className="font-bold text-gray-800 text-sm sm:text-base truncate">
                     إحصائيات المرحلة{" "}
                     {selectedGrade
                       ? `- ${
@@ -2655,7 +2753,7 @@ const Attendance = () => {
                 {selectedGrade ? (
                   <StatsTable rows={gradeStats} />
                 ) : (
-                  <p className="text-center text-gray-400 py-8">
+                  <p className="text-center text-gray-400 py-8 text-sm">
                     اختر المرحلة أولاً
                   </p>
                 )}
@@ -2665,29 +2763,30 @@ const Attendance = () => {
         </motion.div>
       </div>
 
-      {/* Details Modal */}
+      {/* ==================== Details Modal ==================== */}
       <AnimatePresence>
         {detailsRecord && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
             onClick={() => {
               setDetailsRecord(null);
               setEditForm(null);
             }}
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 0.95, y: 40 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.95, y: 40 }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 space-y-4"
+              className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                  <Pencil size={18} className="text-primary" />
+              <div className="bg-linear-to-r from-primary to-primary/80 px-5 py-4 flex items-center justify-between shrink-0">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <Pencil size={18} />
                   تفاصيل سجل الحضور
                 </h3>
                 <button
@@ -2696,245 +2795,134 @@ const Attendance = () => {
                     setDetailsRecord(null);
                     setEditForm(null);
                   }}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-all"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {detailsLoading || !editForm ? (
-                <div className="space-y-3">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="h-10 rounded-xl bg-gray-100 animate-pulse"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="text-sm text-gray-600 space-y-1 bg-gray-50 rounded-xl p-3">
-                    <p>
-                      الطالب:{" "}
-                      <b className="text-gray-800">{detailsRecord.full_name}</b>
-                    </p>
-                    <p>المجموعة: {detailsRecord.group_name || "-"}</p>
-                    <p>
-                      التاريخ: {toLocalDate(detailsRecord.attendance_date)} •
-                      الطريقة:{" "}
-                      {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}
-                    </p>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
+                {detailsLoading || !editForm ? (
+                  <div className="space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-10 rounded-xl bg-linear-to-r from-gray-100 to-gray-50 animate-pulse"
+                      />
+                    ))}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        الحالة
-                      </label>
-                      <select
-                        value={editForm.status}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            status: e.target.value,
-                          }))
-                        }
-                        className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="present">حاضر</option>
-                        <option value="absent">غائب</option>
-                      </select>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-sm text-gray-600 space-y-1.5 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+                      <p>
+                        الطالب:{" "}
+                        <b className="text-gray-800">
+                          {detailsRecord.full_name}
+                        </b>
+                      </p>
+                      <p>المجموعة: {detailsRecord.group_name || "-"}</p>
+                      <p>
+                        التاريخ: {toLocalDate(detailsRecord.attendance_date)} •
+                        الطريقة:{" "}
+                        {detailsRecord.method === "barcode" ? "باركود" : "يدوي"}
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">
-                        الوقت
-                      </label>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1.5">
+                          الحالة
+                        </label>
+                        <select
+                          value={editForm.status}
+                          onChange={(e) =>
+                            setEditForm((f) => ({
+                              ...f,
+                              status: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                        >
+                          <option value="present">حاضر</option>
+                          <option value="absent">غائب</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1.5">
+                          الوقت
+                        </label>
+                        <input
+                          type="time"
+                          value={editForm.attendance_time}
+                          onChange={(e) =>
+                            setEditForm((f) => ({
+                              ...f,
+                              attendance_time: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                       <input
-                        type="time"
-                        value={editForm.attendance_time}
+                        type="checkbox"
+                        checked={editForm.is_makeup === 1}
                         onChange={(e) =>
                           setEditForm((f) => ({
                             ...f,
-                            attendance_time: e.target.value,
+                            is_makeup: e.target.checked ? 1 : 0,
                           }))
                         }
-                        className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-4 h-4 accent-amber-500 rounded"
+                      />
+                      حضور تعويضي
+                    </label>
+
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1.5">
+                        ملاحظات
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={editForm.notes}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            notes: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary resize-none text-sm"
                       />
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={editForm.is_makeup === 1}
-                      onChange={(e) =>
-                        setEditForm((f) => ({
-                          ...f,
-                          is_makeup: e.target.checked ? 1 : 0,
-                        }))
-                      }
-                      className="w-4 h-4 accent-amber-500"
-                    />
-                    حضور تعويضي
-                  </label>
-
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      ملاحظات
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={editForm.notes}
-                      onChange={(e) =>
-                        setEditForm((f) => ({
-                          ...f,
-                          notes: e.target.value,
-                        }))
-                      }
-                      className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={saveRecordEdit}
-                    disabled={saving}
-                    className="w-full py-3 rounded-xl bg-primary text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 transition-all flex items-center justify-center gap-2"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        جاري الحفظ...
-                      </>
-                    ) : (
-                      "حفظ التعديلات"
-                    )}
-                  </button>
-                </>
-              )}
+              <div className="p-4 border-t border-gray-100 bg-white shrink-0">
+                <button
+                  type="button"
+                  onClick={saveRecordEdit}
+                  disabled={saving}
+                  className="w-full py-3 rounded-xl bg-linear-to-r from-primary to-primary/90 text-white font-medium hover:shadow-lg hover:shadow-primary/30 disabled:bg-gray-300 disabled:bg-none transition-all flex items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      جاري الحفظ...
+                    </>
+                  ) : (
+                    "حفظ التعديلات"
+                  )}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Payment Status Popup */}
-      <AnimatePresence>
-        {paymentPopup && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md"
-            onClick={dismissPaymentPopup}
-          >
-            <div
-              className={`rounded-2xl shadow-2xl border-2 overflow-hidden cursor-pointer ${
-                paymentPopup.payment_status === "paid"
-                  ? "bg-green-50 border-green-300"
-                  : "bg-red-50 border-red-300"
-              }`}
-            >
-              <div
-                className={`flex items-center justify-between px-4 py-2.5 ${
-                  paymentPopup.payment_status === "paid"
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                }`}
-              >
-                <div className="flex items-center gap-2 text-white">
-                  {paymentPopup.payment_status === "paid" ? (
-                    <>
-                      <CheckCircle size={18} />
-                      <span className="font-bold text-sm">الطالب مدفوع</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle size={18} />
-                      <span className="font-bold text-sm">
-                        الطالب غير مدفوع
-                      </span>
-                    </>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dismissPaymentPopup();
-                  }}
-                  className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-all"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  {paymentPopup.profile_image ? (
-                    <img
-                      src={paymentPopup.profile_image}
-                      alt={paymentPopup.full_name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-white shadow"
-                    />
-                  ) : (
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow ${
-                        paymentPopup.payment_status === "paid"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                      }`}
-                    >
-                      {String(paymentPopup.full_name || "?").charAt(0)}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-800 truncate">
-                      {paymentPopup.full_name}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {paymentPopup.grade_name}
-                      {paymentPopup.group_name &&
-                        ` • ${paymentPopup.group_name}`}
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  className={`rounded-xl p-3 flex items-center justify-between ${
-                    paymentPopup.payment_status === "paid"
-                      ? "bg-green-100"
-                      : "bg-red-100"
-                  }`}
-                >
-                  <span className="text-sm text-gray-700 flex items-center gap-1.5">
-                    <Wallet size={14} className="opacity-70" />
-                    <span className="font-medium">المبلغ المطلوب</span>
-                  </span>
-                  <span
-                    className={`text-xl font-bold ${
-                      paymentPopup.payment_status === "paid"
-                        ? "text-green-700"
-                        : "text-red-700"
-                    }`}
-                  >
-                    {Number(paymentPopup.required_amount || 0).toLocaleString(
-                      "ar-EG",
-                    )}{" "}
-                    <span className="text-sm">جنيه</span>
-                  </span>
-                </div>
-
-                <p className="text-xs text-center text-gray-400 font-mono">
-                  {paymentPopup.barcode}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Payment Modal */}
+      {/* ==================== Payment Modal ==================== */}
       <PaymentModal
         isOpen={!!paymentStudent}
         onClose={handlePaymentClose}
