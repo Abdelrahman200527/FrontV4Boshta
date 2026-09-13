@@ -164,6 +164,27 @@ function playBeep(type = "success") {
 /* ============================ Payment Modal ============================ */
 
 const PaymentModal = ({ isOpen, onClose, student, onSubmit, isSubmitting }) => {
+  if (!isOpen || !student) return null;
+
+  return (
+    <PaymentModalContent
+      key={student.id}
+      isOpen={isOpen}
+      onClose={onClose}
+      student={student}
+      onSubmit={onSubmit}
+      isSubmitting={isSubmitting}
+    />
+  );
+};
+
+const PaymentModalContent = ({
+  isOpen,
+  onClose,
+  student,
+  onSubmit,
+  isSubmitting,
+}) => {
   const [paymentMode, setPaymentMode] = useState("normal");
   const [customAmount, setCustomAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -173,19 +194,6 @@ const PaymentModal = ({ isOpen, onClose, student, onSubmit, isSubmitting }) => {
   });
 
   const requiredAmount = Number(student?.required_amount || 0);
-
-  // Reset state when modal opens with a new student
-  useEffect(() => {
-    if (isOpen) {
-      setPaymentMode("normal");
-      setCustomAmount("");
-      setNotes("");
-      const d = new Date();
-      setPaymentDate(d.toISOString().slice(0, 10));
-    }
-  }, [isOpen, student?.id]);
-
-  if (!isOpen || !student) return null;
 
   const finalAmount =
     paymentMode === "custom" ? Number(customAmount) || 0 : requiredAmount;
@@ -1111,7 +1119,6 @@ const Attendance = () => {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive]);
 
   /* ============================ Smart Auto-Focus ============================ */
