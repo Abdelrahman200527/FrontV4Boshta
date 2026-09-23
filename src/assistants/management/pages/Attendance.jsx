@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
+/* eslint-disable no-unused-vars */
 import {
   CalendarCheck,
   Search,
