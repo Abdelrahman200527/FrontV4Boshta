@@ -2240,17 +2240,6 @@ const Attendance = () => {
                 </motion.button>
               )}
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={handleMarkRestAbsent}
-                disabled={!selectedGroup || saving}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-800 px-4 py-3 text-white font-medium hover:bg-gray-900 transition-all disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                <UserX size={18} />
-                تسجيل الباقي غياب
-              </motion.button>
 
               {sessionInfo && (
                 <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-xs text-gray-600 space-y-1.5">
