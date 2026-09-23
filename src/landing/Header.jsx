@@ -10,12 +10,12 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogin = () => {
-    navigate("/login");
+    navigate("/login?role=الطالب");
     setMobileMenuOpen(false);
   };
 
   const handleStartFree = () => {
-    navigate("/login?role=طالب");
+    navigate("/login?role=ولي الأمر");
     setMobileMenuOpen(false);
   };
 
@@ -48,7 +48,7 @@ const Header = () => {
             onClick={handleStartFree}
             className="text-white bg-[#1a5d1a] py-2 px-7 rounded-4xl hover:scale-[1.03] transition-all duration-300 cursor-pointer text-sm font-semibold"
           >
-            ابدأ مجاناً
+            بوابة ولي الأمر
           </button>
         </div>
 

@@ -577,6 +577,14 @@ const getAttendanceSummary = async (groupId, date) => {
   return response.data;
 };
 
+const getAbsentByDate = async (date) => {
+  const response = await httpGet(
+    `/assistant/attendance/absent?date=${date}`,
+  );
+
+  return response.date;
+};
+
 // ============================================
 // PAYMENTS
 // ============================================
@@ -1572,6 +1580,7 @@ export {
   getGroupAttendanceByDate,
   getGroupAttendanceByMonth,
   getAttendanceSummary,
+  getAbsentByDate,
 
   // Payments
   getPayments,

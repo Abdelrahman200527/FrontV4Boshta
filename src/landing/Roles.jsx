@@ -17,20 +17,12 @@ const Roles = () => {
             features: ['دورات تفاعلية', 'امتحانات أونلاين', 'متابعة الدرجات']
         },
         {
-            label: 'المعلم',
+            label: 'ولي الأمر',
             role: 'teacher',
             Icon: UserRoundPen,
             borderColor: 'hover:border-[#D4B45C]/50',
-            description: 'أدر طلابك ومحتواك التعليمي',
-            features: ['إدارة الطلاب', 'إنشاء امتحانات', 'تقارير متقدمة']
-        },
-        {
-            label: 'المساعد',
-            role: 'assistant',
-            Icon: UsersRound,
-            borderColor: 'hover:border-[#D4B45C]/50',
-            description: 'ساعد في الإدارة والمتابعة',
-            features: ['متابعة الحضور', 'إدارة المدفوعات', 'تنظيم الفيديوهات']
+            description: 'تابع ابنك لحظة بلحظة',
+            features: ['متابعة الامتحانات', 'متابعة الغياب', 'متابعة واجبات']
         }
     ];
 
@@ -49,7 +41,7 @@ const Roles = () => {
                 </div>
 
                 {/* Roles Grid */}
-                <div className='w-full grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8'>
+                <div className='w-full grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8'>
                     {roles.map(({ label, Icon, description, features, role }) => (
                         <div 
                             key={role} 

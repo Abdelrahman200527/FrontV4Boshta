@@ -14,7 +14,6 @@ import Background from "../assets/background.png";
 
 // Auth Context
 import { authenticate } from "../api/auth/actions";
-import { fetchParentDashboard } from "../api/parent/actions";
 
 const Badge = ({ title, subtitle, style, rotate = "0" }) => (
   <div className="absolute z-20" style={style}>
@@ -32,64 +31,38 @@ const Badge = ({ title, subtitle, style, rotate = "0" }) => (
   </div>
 );
 
-const Login = () => {
+const LoginSystem = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [role, setRole] = useState(searchParams.get("role") || "الطالب");
+  const [role, setRole] = useState(searchParams.get("role") || "المساعد");
   const [phone, setPhone] = useState("");
-  const [parentPhone, setParentPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPasswords, setShowPasswords] = useState(false);
 
-  const handleSubmit_s = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     const roleMap = {
-      الطالب: "student",
+      المعلم: "teacher",
+      المساعد: "assistant",
     };
 
     try {
-      const Sresult = await authenticate(roleMap[role], phone, password);
+      const result = await authenticate(roleMap[role], phone, password);
 
-      if (Sresult.success) {
+      if (result.success) {
         const selectedRole = roleMap[role];
-        if (selectedRole === "student") {
-          navigate("/student");
+        if (selectedRole === "teacher") {
+          navigate("/teacher");
+        } else if (selectedRole === "assistant") {
+          navigate("/assistant");
         }
       } else {
-        setError(Sresult.error || "حدث خطأ في تسجيل الدخول");
-      }
-    } catch (err) {
-      setError("حدث خطأ غير متوقع");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit_p = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const roleMap = {
-      "ولي الأمر": "parent",
-    };
-
-    try {
-      const Presult = await fetchParentDashboard(parentPhone);
-
-      if (Presult.success) {
-        localStorage.setItem("phone", parentPhone);
-        const selectedRole = roleMap[role];
-        if (selectedRole === "parent") {
-          navigate("/parent");
-        }
-      } else {
-        setError(Presult.error || "حدث خطأ في تسجيل الدخول");
+        setError(result.error || "حدث خطأ في تسجيل الدخول");
       }
     } catch (err) {
       setError("حدث خطأ غير متوقع");
@@ -135,7 +108,7 @@ const Login = () => {
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-              onSubmit={role === "الطالب" ? handleSubmit_s : handleSubmit_p}
+              onSubmit={handleSubmit}
               className="bg-white/95 backdrop-blur-sm border-2 border-[#1a5d1a]/30 rounded-2xl px-6 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14 w-full max-w-sm lg:max-w-md shrink-0 flex flex-col items-center gap-5 lg:gap-8 shadow-xl"
             >
               <div className="text-center">
@@ -147,36 +120,7 @@ const Login = () => {
                 </span>
               </div>
 
-              {/* Role Selector */}
-              <div className="flex items-center justify-center gap-4 sm:gap-10">
-                {[
-                  { label: "الطالب", Icon: User, color: "text-green-700" },
-                  {
-                    label: "ولي الأمر",
-                    Icon: UserRoundPen,
-                    color: "text-blue-600",
-                  },
-                ].map(({ label, Icon, color }) => (
-                  <button
-                    type="button"
-                    key={label}
-                    onClick={() => {
-                      setRole(label);
-                      navigate(`/login?role=${label}`);
-                    }}
-                    className={`flex flex-col items-center gap-1 w-16 sm:w-20 p-2 rounded-lg transition ${
-                      role === label
-                        ? "bg-blue-50 ring-2 ring-[#4871C6]"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <Icon className={color} />
-                    <span className="text-sm sm:text-base jomhuria-regular">
-                      {label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              
 
               {/* Error */}
               {error && (
@@ -185,83 +129,52 @@ const Login = () => {
                 </div>
               )}
 
-              {role === "الطالب" && (
-                <>
-                  {/* Phone */}
-                  <div className="flex flex-col items-start gap-2 w-full">
-                    <label
-                      htmlFor="phone"
-                      className="text-sm font-medium jomhuria-regular"
-                    >
-                      رقم الهاتف
-                    </label>
-                    <input
-                      id="phone"
-                      placeholder="ادخل رقم هاتفك"
-                      className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
-                  </div>
+              {/* Phone */}
+              <div className="flex flex-col items-start gap-2 w-full">
+                <label
+                  htmlFor="phone"
+                  className="text-sm font-medium jomhuria-regular"
+                >
+                  رقم الهاتف
+                </label>
+                <input
+                  id="phone"
+                  placeholder="ادخل رقم هاتفك"
+                  className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
 
-                  {/* Password */}
-                  <div className="flex flex-col items-start gap-2 w-full">
-                    <label
-                      htmlFor="password"
-                      className="text-sm font-medium jomhuria-regular"
-                    >
-                      كلمة السر
-                    </label>
-                    <div className="w-full relative">
-                      <input
-                        id="password"
-                        placeholder="ادخل كلمة السر"
-                        className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
-                        type={showPasswords ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords(!showPasswords)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPasswords ? (
-                          <EyeOff size={16} />
-                        ) : (
-                          <Eye size={16} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {role === "ولي الأمر" && (
-                <>
-                  {/* Phone */}
-                  <div className="flex flex-col items-start gap-2 w-full">
-                    <label
-                      htmlFor="phone"
-                      className="text-sm font-medium jomhuria-regular"
-                    >
-                      رقم الهاتف
-                    </label>
-                    <input
-                      id="phone"
-                      placeholder="ادخل رقم هاتفك"
-                      className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
-                      type="tel"
-                      value={parentPhone}
-                      onChange={(e) => setParentPhone(e.target.value)}
-                      required
-                    />
-                  </div>
-                </>
-              )}
+              {/* Password */}
+              <div className="flex flex-col items-start gap-2 w-full">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium jomhuria-regular"
+                >
+                  كلمة السر
+                </label>
+                <div className="w-full relative">
+                  <input
+                    id="password"
+                    placeholder="ادخل كلمة السر"
+                    className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
+                    type={showPasswords ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
 
               {/* Submit */}
               <button
@@ -356,4 +269,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LoginSystem;

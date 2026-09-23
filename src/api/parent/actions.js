@@ -1,8 +1,8 @@
 import { getParentData } from "./services";
 
-const fetchParentDashboard = async (token) => {
+const fetchParentDashboard = async (parent_phone) => {
   try {
-    const data = await getParentData(token);
+    const data = await getParentData(parent_phone);
     return {
       success: true,
       data,

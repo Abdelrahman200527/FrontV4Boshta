@@ -38,7 +38,7 @@ const Grades = () => {
   const [grade, setGrade] = useState({
     id: "",
     name: "",
-    monthlyPrice: "",
+    monthly_price: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -168,7 +168,7 @@ const Grades = () => {
           variables.id ? "تم تحديث الصف بنجاح" : "تم إضافة الصف بنجاح",
         );
         setIsEditing(false);
-        setGrade({ id: "", name: "", monthlyPrice: "" });
+        setGrade({ id: "", name: "", monthly_price: "" });
       },
     },
   );
@@ -182,14 +182,14 @@ const Grades = () => {
   function saveGrade() {
     if (!grade.name || grade.name.trim() === "")
       return notifyError("يرجى إدخال اسم الصف");
-    if (!grade.monthlyPrice || Number(grade.monthlyPrice) <= 0)
+    if (!grade.monthly_price || Number(grade.monthly_price) <= 0)
       return notifyError("يرجى إدخال المصاريف الشهرية");
 
     saveMutation.mutate({
       id: isEditing && grade.id ? grade.id : null,
       payload: {
         name: grade.name.trim(),
-        monthlyPrice: Number(grade.monthlyPrice),
+        monthly_price: Number(grade.monthly_price),
       },
     });
   }
@@ -207,7 +207,7 @@ const Grades = () => {
     setGrade({
       id: gradeData.id,
       name: gradeData.name || "",
-      monthlyPrice: gradeData.monthly_price || 0,
+      monthly_price: gradeData.monthly_price || 0,
     });
     setIsEditing(true);
   }
@@ -412,9 +412,9 @@ const Grades = () => {
                 </label>
                 <input
                   type="number"
-                  value={grade.monthlyPrice}
+                  value={grade.monthly_price}
                   onChange={(e) =>
-                    setGrade({ ...grade, monthlyPrice: e.target.value })
+                    setGrade({ ...grade, monthly_price: e.target.value })
                   }
                   placeholder="200"
                   className="w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 border-2 border-gray-200 rounded-xl py-3 px-4 transition-all duration-200 hover:border-blue-300"
@@ -438,7 +438,7 @@ const Grades = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       setIsEditing(false);
-                      setGrade({ id: "", name: "", monthlyPrice: "" });
+                      setGrade({ id: "", name: "", monthly_price: "" });
                     }}
                     className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all"
                   >

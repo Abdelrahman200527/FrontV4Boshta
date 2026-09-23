@@ -1,6 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* src/assistants/management/pages/Attendance.jsx */
-
 import {
   CalendarCheck,
   Search,
@@ -27,6 +24,8 @@ import {
   Volume2,
   Loader2,
   Wallet,
+  Bell,
+  Phone,
 } from "lucide-react";
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useApiList, useInvalidate } from "../../../hooks/useApiQuery";
@@ -60,6 +59,7 @@ import {
   fetchGroupAttendanceByDate,
   fetchGroupAttendanceByMonth,
   fetchAttendanceSummary,
+  fetchAbsentByDate,
   // ✅ New imports for payment
   createNewPayment,
   createNewSubscription,
@@ -653,6 +653,9 @@ const Attendance = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedDate, setSelectedDate] = useState(toLocalDate());
+  const [absentStudents, setAbsentStudents] = useState([]);
+  const [showAbsentNotifications, setShowAbsentNotifications] = useState(false);
+  const [absentNotificationsLoading, setAbsentNotificationsLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(toLocalMonth());
 
   /* ---------- Pagination ---------- */
@@ -1349,6 +1352,7 @@ const Attendance = () => {
             notifySuccess("تم إنهاء الجلسة وتسجيل الغائبين");
             await loadGroupStudents(selectedGroup, selectedDate, page);
             await loadDashboard();
+            await loadAbsentNotifications(todayDateStr);
           } else {
             notifyError(result.error || "حدث خطأ في إنهاء الجلسة");
           }
@@ -1406,6 +1410,7 @@ const Attendance = () => {
             notifySuccess(`تم تسجيل ${count} طالب كغائبين`);
             await loadGroupStudents(selectedGroup, selectedDate, page);
             await loadDashboard();
+            await loadAbsentNotifications(todayDateStr);
           } else {
             notifyError(result.error || "حدث خطأ");
           }
@@ -1816,6 +1821,48 @@ const Attendance = () => {
     },
   };
 
+
+  // ============================ Notifications (Absent Students for Today) ============================
+  const todayDateStr = useMemo(() => toLocalDate(new Date()), []);
+
+  const loadAbsentNotifications = useCallback(async (dateToFetch) => {
+    const targetDate = dateToFetch || toLocalDate(new Date());
+    setAbsentNotificationsLoading(true);
+
+    try {
+      const result = await fetchAbsentByDate(targetDate);
+
+      // Support result.date as array (from new API response) or fallback to result.data or result
+      const rawList = Array.isArray(result?.date)
+        ? result.date
+        : Array.isArray(result?.data)
+        ? result.data
+        : Array.isArray(result)
+        ? result
+        : [];
+
+      setAbsentStudents(rawList);
+    } catch (error) {
+      setAbsentStudents([]);
+    } finally {
+      setAbsentNotificationsLoading(false);
+    }
+  }, []);
+
+  // Fetch today's absents immediately when entering the page
+  useEffect(() => {
+    loadAbsentNotifications(todayDateStr);
+  }, [loadAbsentNotifications, todayDateStr]);
+
+  // Total absent students across all grades
+  const absentCount = useMemo(() => {
+    if (!Array.isArray(absentStudents)) return 0;
+    return absentStudents.reduce(
+      (total, grade) => total + Number(grade.total_absent || 0),
+      0
+    );
+  }, [absentStudents]);
+
   /* ============================ Render ============================ */
 
   return (
@@ -1870,6 +1917,156 @@ const Attendance = () => {
                 )}
               </p>
             </div>
+          </div>
+
+          {/* Notifications Button & Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowAbsentNotifications((prev) => !prev)}
+              className="relative p-3 rounded-xl bg-white border border-gray-100 shadow-sm hover:bg-gray-50 transition-all cursor-pointer"
+              title="إشعارات غياب اليوم"
+            >
+              <Bell size={22} className="text-gray-700" />
+
+              {absentCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center shadow-sm">
+                  {absentCount}
+                </span>
+              )}
+            </button>
+
+            {/* Dropdown */}
+            <AnimatePresence>
+              {showAbsentNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                  className="absolute left-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="p-4 border-b border-gray-100 bg-linear-to-r from-red-50/50 to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-gray-800">
+                          الطلاب الغائبون اليوم ({todayDateStr})
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {absentCount > 0 ? (
+                            <span>{absentCount} طالب غائب</span>
+                          ) : (
+                            <span>لا يوجد غيابات مسجلة اليوم</span>
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="p-2 bg-red-50 rounded-xl text-red-500">
+                        <UserX size={18} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* List Content */}
+                  <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                    {absentNotificationsLoading ? (
+                      <div className="p-8 text-center text-gray-400">
+                        <Loader2 size={28} className="mx-auto mb-2 animate-spin text-primary" />
+                        <p className="text-xs">جاري تحميل بيانات الغائبين...</p>
+                      </div>
+                    ) : absentCount === 0 ? (
+                      <div className="p-8 text-center text-gray-400">
+                        <UserCheck size={32} className="mx-auto mb-2 text-green-500" />
+                        <p className="font-medium text-gray-600">لا يوجد طلاب غائبون</p>
+                        <p className="text-xs text-gray-400 mt-1">جميع الطلاب حاضرون أو لم يتم تسجيل غيابات</p>
+                      </div>
+                    ) : (
+                      absentStudents.map((grade, gradeIdx) => {
+                        if (!grade.groups || grade.groups.length === 0) return null;
+
+                        return (
+                          <div key={gradeIdx} className="bg-white">
+                            {/* Grade Header */}
+                            <div className="bg-gray-50/90 px-4 py-2 flex items-center justify-between border-b border-gray-100 sticky top-0 z-10 backdrop-blur-xs">
+                              <span className="text-xs font-bold text-gray-700">
+                                {grade.grade_name}
+                              </span>
+                              <span className="text-[11px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-semibold">
+                                {grade.total_absent} غائب
+                              </span>
+                            </div>
+
+                            {/* Groups */}
+                            {grade.groups.map((group, groupIdx) => {
+                              if (!group.students || group.students.length === 0) return null;
+
+                              return (
+                                <div key={groupIdx} className="border-b border-gray-50 last:border-b-0">
+                                  {/* Group Header */}
+                                  <div className="px-4 py-1.5 bg-gray-50/40 text-[11px] font-medium text-gray-500 flex items-center justify-between border-b border-gray-50">
+                                    <span>مجموعة: {group.group_name}</span>
+                                    <span className="text-red-500 font-bold">{group.total_absent}</span>
+                                  </div>
+
+                                  {/* Students List */}
+                                  <div className="divide-y divide-gray-50">
+                                    {group.students.map((student, sIdx) => (
+                                      <div
+                                        key={student.barcode ? `${student.barcode}-${sIdx}` : sIdx}
+                                        className="p-3.5 hover:bg-red-50/30 transition-all flex items-start justify-between gap-3"
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-gray-800 text-sm truncate">
+                                              {student.full_name}
+                                            </p>
+                                            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.2 rounded font-medium">
+                                              غائب
+                                            </span>
+                                          </div>
+
+                                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
+                                            {student.barcode && (
+                                              <span className="inline-flex items-center gap-1">
+                                                <span>كود:</span>
+                                                <span className="font-mono bg-gray-100 px-1 rounded text-[11px] text-gray-700">
+                                                  {student.barcode}
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {student.parent_phone && (
+                                              <a
+                                                href={`tel:${student.parent_phone}`}
+                                                className="inline-flex items-center gap-1 text-primary hover:underline"
+                                                title="اتصال بولي الأمر"
+                                              >
+                                                <Phone size={12} />
+                                                <span dir="ltr">{student.parent_phone}</span>
+                                              </a>
+                                            )}
+
+                                            {student.phone && (
+                                              <span className="text-gray-400" dir="ltr">
+                                                طالب: {student.phone}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {dashboard && (

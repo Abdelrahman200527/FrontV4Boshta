@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { fetchParentDashboard } from "../api/parent/actions";
 import {
   CalendarCheck2,
@@ -39,8 +38,7 @@ import {
 const COLORS = ["#16a34a", "#dc2626"];
 
 const ParentDashboard = () => {
-  const { token } = useParams();
-
+  const phone = localStorage.getItem("phone");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,14 +47,9 @@ const ParentDashboard = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!token) {
-        setError("الرابط غير صالح - التوكن مطلوب");
-        setLoading(false);
-        return;
-      }
 
       try {
-        const res = await fetchParentDashboard(token);
+        const res = await fetchParentDashboard(phone);
         if (res.success) {
           setData(res.data);
         } else {
@@ -69,7 +62,7 @@ const ParentDashboard = () => {
       }
     };
     loadData();
-  }, [token]);
+  }, []);
 
   if (loading) {
     return (

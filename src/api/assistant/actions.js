@@ -527,6 +527,12 @@ export const fetchAttendanceSummary = (groupId, date) =>
     "تحميل ملخص الحضور",
   );
 
+export const fetchAbsentByDate = (date) =>
+  wrapAction(
+    () => assistantServices.getAbsentByDate(date),
+    "تحميل الغائبين اليوم",
+  );
+
 // ============================================
 // PAYMENTS
 // ============================================

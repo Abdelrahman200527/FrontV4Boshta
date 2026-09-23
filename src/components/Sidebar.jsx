@@ -131,11 +131,11 @@ const assistantCenterNavItems = [
         icon: BadgeDollarSign,
         path: "/assistant/management/payments",
       },
-      {
-        title: "واتساب",
-        icon: MessageCircle,
-        path: "/assistant/management/whatsapp",
-      },
+      // {
+      //   title: "واتساب",
+      //   icon: MessageCircle,
+      //   path: "/assistant/management/whatsapp",
+      // },
     ],
   },
   { title: "الملف الشخصي", icon: User, path: "/assistant/profile" },

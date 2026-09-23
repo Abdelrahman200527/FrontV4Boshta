@@ -1,6 +1,6 @@
-import { httpGet } from "../http";
+import { httpPost } from "../http";
 
-export const getParentData = async (token) => {
-  const response = await httpGet(`/parent/${token}`);
+export const getParentData = async (parent_phone) => {
+  const response = await httpPost("/parent", {parent_phone});
   return response.data;
 };

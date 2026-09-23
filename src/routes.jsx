@@ -14,7 +14,7 @@ import StudentCourses from "./students/Courses.jsx";
 import StudentDegrees from "./students/Degrees.jsx";
 import StudentExams from "./students/Exams.jsx";
 import StudentExamTaking from "./students/ExamTaking.jsx";
-import StudentExamReview from "./students/ExamReview.jsx"; // ✅ جديد
+import StudentExamReview from "./students/ExamReview.jsx";
 import StudentHomework from "./students/Homework.jsx";
 import StudentProfile from "./students/Profile.jsx";
 import StudentWatchVideo from "./students/WatchVideo.jsx";
@@ -36,7 +36,7 @@ import AssistantManagementGroups from "./assistants/management/pages/Groups.jsx"
 import AssistantManagementGrades from "./assistants/management/pages/Grades.jsx";
 import AssistantManagementExams from "./assistants/management/pages/Exams.jsx";
 import AssistantManagementPayments from "./assistants/management/pages/Payments.jsx";
-import AssistantManagementWhatsApp from "./assistants/management/pages/WhatsApp.jsx";
+// import AssistantManagementWhatsApp from "./assistants/management/pages/WhatsApp.jsx";
 import AssistantManagementSettings from "./assistants/management/pages/Settings.jsx";
 import AssistantManagementAddDegree from "./assistants/management/components/AddDegree.jsx";
 
@@ -55,6 +55,7 @@ import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
 import TeacherHomeworks from "./teachers/Homework.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
+import LoginSystem from "./pages/LoginSystem.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -75,9 +76,18 @@ export const router = createBrowserRouter([
     ),
   },
 
+  {
+    path: "/user/login",
+    Component: () => (
+      <GuestMiddleware>
+        <LoginSystem />
+      </GuestMiddleware>
+    )
+  },
+
   // Parent Route - Public
   {
-    path: "/parent/:token",
+    path: "/parent",
     Component: ParentDashboard,
   },
 
@@ -141,7 +151,7 @@ export const router = createBrowserRouter([
         Component: AssistantManagementAddDegree,
       },
       { path: "management/payments", Component: AssistantManagementPayments },
-      { path: "management/whatsapp", Component: AssistantManagementWhatsApp },
+      // { path: "management/whatsapp", Component: AssistantManagementWhatsApp },
       {
         path: "management/settings",
         Component: AssistantManagementSettings,
