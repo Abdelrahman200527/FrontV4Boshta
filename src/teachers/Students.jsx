@@ -13,6 +13,7 @@ import {
   Eye,
   Barcode,
   Loader2,
+  Printer,
 } from "lucide-react";
 import React, {
   useEffect,
@@ -27,6 +28,7 @@ import {
   fetchStudentFilters,
   fetchStudentDetails,
 } from "../api/teacher/actions";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -46,8 +48,8 @@ const Students = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [previewStudent, setPreviewStudent] = useState(null);
-  const [searching, setSearching] = useState(false);
   const debounceRef = useRef(null);
 
   const loadFilters = useCallback(async () => {
@@ -140,6 +142,106 @@ const Students = () => {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setExporting(true);
+      const result = await fetchAllStudents(
+        1,
+        searchQuery,
+        selectedGrade,
+        selectedGroup,
+        10000,
+      );
+      const studentList =
+        result.success && Array.isArray(result.data) && result.data.length > 0
+          ? result.data
+          : students;
+
+      if (!studentList || studentList.length === 0) return;
+
+      const gradeLabel = selectedGrade
+        ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
+        : "";
+      const groupLabel = selectedGroup
+        ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
+        : "";
+      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join(" - ");
+      const title = filterDesc
+        ? `قائمة الطلاب (${filterDesc}) - العدد: ${studentList.length}`
+        : `قائمة جميع الطلاب - العدد: ${studentList.length}`;
+
+      exportPdfTable(
+        `قائمة_الطلاب_${filterDesc ? `${filterDesc.replace(/\s+/g, "_")}_` : ""}${new Date().toISOString().slice(0, 10)}.pdf`,
+        title,
+        [
+          { header: "#", key: "index", width: 8 },
+          { header: "الاسم", key: "full_name", width: 35 },
+          { header: "الباركود", key: "barcode", width: 18 },
+          { header: "الصف", key: "grade_name", width: 22 },
+          { header: "المجموعة", key: "group_name", width: 18 },
+          { header: "هاتف الطالب", key: "phone", width: 22 },
+          { header: "هاتف ولي الأمر", key: "parent_phone", width: 22 },
+        ],
+        studentList.map((s, idx) => ({
+          ...s,
+          index: idx + 1,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to export students PDF:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      const result = await fetchAllStudents(
+        1,
+        searchQuery,
+        selectedGrade,
+        selectedGroup,
+        10000,
+      );
+      const studentList =
+        result.success && Array.isArray(result.data) && result.data.length > 0
+          ? result.data
+          : students;
+
+      if (!studentList || studentList.length === 0) return;
+
+      const gradeLabel = selectedGrade
+        ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
+        : "";
+      const groupLabel = selectedGroup
+        ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
+        : "";
+      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join(" - ");
+
+      const headers = ["#", "الاسم", "الباركود", "الصف", "المجموعة", "هاتف الطالب", "هاتف ولي الأمر"];
+      const rows = studentList.map((s, idx) => [
+        idx + 1,
+        s.full_name || "-",
+        s.barcode || "-",
+        s.grade_name || "-",
+        s.group_name || "-",
+        s.phone || "-",
+        s.parent_phone || "-",
+      ]);
+
+      exportAoaExcel(
+        `قائمة_الطلاب_${filterDesc ? `${filterDesc.replace(/\s+/g, "_")}_` : ""}${new Date().toISOString().slice(0, 10)}.xlsx`,
+        "الطلاب",
+        [headers, ...rows]
+      );
+    } catch (err) {
+      console.error("Failed to export students Excel:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filteredGroups = useMemo(
     () =>
       selectedGrade
@@ -203,18 +305,42 @@ const Students = () => {
               </span>
             </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition disabled:opacity-50"
-          >
-            {refreshing ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <RefreshCw size={14} />
-            )}
-            {refreshing ? "جاري التحديث..." : "تحديث"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              disabled={exporting || students.length === 0}
+              className="flex items-center gap-1.5 bg-[#009966] text-white px-3.5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#007a52] transition disabled:opacity-50 shadow-xs"
+              title="طباعة / تصدير PDF لكافة الطلاب المحددين"
+            >
+              {exporting ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Printer size={15} />
+              )}
+              <span>{exporting ? "جاري التجهيز..." : "طباعة PDF"}</span>
+            </button>
+            <button
+              onClick={handleExportExcel}
+              disabled={exporting || students.length === 0}
+              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3.5 py-2.5 rounded-lg text-sm font-bold hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50 shadow-xs"
+              title="تصدير كشف Excel لكافة الطلاب المحددين"
+            >
+              <Download size={15} />
+              <span>تصدير Excel</span>
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition disabled:opacity-50"
+            >
+              {refreshing ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <RefreshCw size={14} />
+              )}
+              {refreshing ? "جاري التحديث..." : "تحديث"}
+            </button>
+          </div>
         </div>
 
         {/* Search & Filter */}
@@ -407,22 +533,49 @@ const Students = () => {
           students.map((student) => (
             <div
               key={student.id}
-              className="bg-white rounded-xl border border-gray-200 p-3.5"
+              onClick={() => handleStudentClick(student)}
+              className="bg-white rounded-xl border border-gray-200 p-3.5 hover:border-[#009966] transition-all cursor-pointer shadow-xs"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <span className="font-bold text-sm text-gray-900 block truncate">
-                    {student.full_name}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {student.barcode}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-gray-900 block truncate">
+                      {student.full_name}
+                    </span>
+                    <span
+                      className="text-[11px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded"
+                      dir="ltr"
+                    >
+                      #{student.barcode}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-500 flex-wrap">
+                    {student.grade_name && (
+                      <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                        {student.grade_name}
+                      </span>
+                    )}
+                    {student.group_name && (
+                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[11px] font-semibold">
+                        {student.group_name}
+                      </span>
+                    )}
+                    {student.phone && (
+                      <span className="text-gray-600 text-[11px]" dir="ltr">
+                        {student.phone}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
-                  onClick={() => handleQuickView(student)}
-                  className="p-2 text-[#009966] hover:bg-[#009966]/10 rounded-lg transition"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleQuickView(student);
+                  }}
+                  className="p-2 text-[#009966] hover:bg-[#009966]/10 rounded-lg transition shrink-0"
+                  title="عرض سريع"
                 >
-                  <Eye size={15} />
+                  <Eye size={16} />
                 </button>
               </div>
             </div>

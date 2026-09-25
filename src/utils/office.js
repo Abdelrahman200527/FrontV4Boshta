@@ -103,7 +103,7 @@ export async function exportPdfTable(filename, title, columns, rows) {
     text-align: center; 
     font-size: 22px; 
     margin: 0 0 8px; 
-    color: #1e40af;
+    color: #009966;
   }
   
   .report-info {
@@ -113,9 +113,9 @@ export async function exportPdfTable(filename, title, columns, rows) {
     color: #555;
     margin: 8px 0 16px;
     padding: 10px 16px;
-    background: #f0f4ff;
+    background: #f0fdf4;
     border-radius: 8px;
-    border: 1px solid #dbeafe;
+    border: 1px solid #bbf7d0;
   }
   
   .subtitle {
@@ -132,23 +132,23 @@ export async function exportPdfTable(filename, title, columns, rows) {
   }
   
   th, td { 
-    border: 1px solid #999; 
+    border: 1px solid #cbd5e1; 
     padding: 8px 10px; 
     text-align: right; 
   }
   
   th { 
-    background: #1e40af !important; 
+    background: #009966 !important; 
     color: #fff !important; 
     font-weight: bold;
   }
   
   tr:nth-child(even) td { 
-    background: #f5f7fb; 
+    background: #f8fafc; 
   }
   
   tr:hover td {
-    background: #e8edf9;
+    background: #f1f5f9;
   }
   
   .actions { 
@@ -160,7 +160,7 @@ export async function exportPdfTable(filename, title, columns, rows) {
     padding: 10px 24px; 
     border: 0; 
     border-radius: 8px;
-    background: #1e40af; 
+    background: #009966; 
     color: #fff; 
     cursor: pointer; 
     font-size: 14px;
@@ -169,7 +169,7 @@ export async function exportPdfTable(filename, title, columns, rows) {
   }
   
   .actions button:hover {
-    background: #1e3a8a;
+    background: #007a52;
   }
   
   .footer {
@@ -185,19 +185,19 @@ export async function exportPdfTable(filename, title, columns, rows) {
     .actions { display: none; } 
     body { background: #fff !important; }
     .report-info {
-      background: #f0f4ff !important;
-      border: 1px solid #dbeafe !important;
+      background: #f0fdf4 !important;
+      border: 1px solid #bbf7d0 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     th { 
-      background: #1e40af !important; 
-      color: #fff !important;
+      background: #009966 !important; 
+      color: #fff !important; 
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
     tr:nth-child(even) td { 
-      background: #f5f7fb !important;
+      background: #f8fafc !important; 
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }

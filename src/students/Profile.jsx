@@ -14,8 +14,6 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
-  Copy,
-  Link2,
 } from "lucide-react";
 import {
   changeStudentPassword,
@@ -45,7 +43,6 @@ const Profile = () => {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageMessage, setImageMessage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [copyMessage, setCopyMessage] = useState(null);
 
   const loadProfile = useCallback(async () => {
     const [profileRes, statsRes] = await Promise.all([
@@ -165,34 +162,6 @@ const Profile = () => {
     setImageLoading(false);
   };
 
-  const handleCopyParentLink = async () => {
-    if (!profile?.parent_token) return;
-
-    const parentLink = `${window.location.origin}/parent/${profile.parent_token}`;
-
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(parentLink);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = parentLink;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
-
-      setCopyMessage("تم نسخ الرابط بنجاح");
-      setTimeout(() => setCopyMessage(null), 3000);
-    } catch (error) {
-      console.error("Copy error:", error);
-      setCopyMessage("فشل نسخ الرابط");
-      setTimeout(() => setCopyMessage(null), 3000);
-    }
-  };
-
   return (
     <motion.section
       variants={pageVariants}
@@ -244,21 +213,6 @@ const Profile = () => {
                 <AlertCircle size={16} />
               )}
               {imageMessage.text}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Copy Message */}
-        <AnimatePresence>
-          {copyMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold bg-green-50 text-green-700 border border-green-200"
-            >
-              <CheckCircle2 size={16} />
-              {copyMessage}
             </motion.div>
           )}
         </AnimatePresence>
@@ -368,7 +322,7 @@ const Profile = () => {
 
             {/* Parent Phone */}
             {profile?.parent_phone && (
-              <div className="bg-gray-50 hover:bg-green-50/50 rounded-xl p-4 flex items-center gap-3 border border-transparent hover:border-green-200 transition-all duration-200">
+              <div className="bg-gray-50 hover:bg-green-50/50 rounded-xl p-4 flex items-center gap-3 border border-transparent hover:border-green-200 transition-all duration-200 sm:col-span-2">
                 <div className="bg-white rounded-lg p-2.5 shadow-sm shrink-0">
                   <Phone size={18} className="text-[#009966]" />
                 </div>
@@ -382,33 +336,6 @@ const Profile = () => {
                 </div>
               </div>
             )}
-
-            {/* Parent Link */}
-            <div
-              className="bg-gray-50 hover:bg-green-50/50 rounded-xl p-4 flex items-center gap-3 border border-transparent hover:border-green-200 transition-all duration-200 cursor-pointer group sm:col-span-2"
-              onClick={handleCopyParentLink}
-            >
-              <div className="bg-white rounded-lg p-2.5 shadow-sm shrink-0">
-                <Link2
-                  size={18}
-                  className="text-[#009966] group-hover:scale-110 transition-transform"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] text-gray-500 block mb-0.5">
-                  رابط متابعة ولي الأمر
-                </span>
-                <span className="font-bold text-sm text-gray-900">
-                  انسخ الرابط وشاركه
-                </span>
-              </div>
-              {profile?.parent_token && (
-                <Copy
-                  size={16}
-                  className="text-gray-400 group-hover:text-[#009966] transition-colors shrink-0"
-                />
-              )}
-            </div>
           </div>
         </motion.div>
 

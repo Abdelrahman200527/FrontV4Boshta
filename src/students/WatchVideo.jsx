@@ -15,11 +15,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { fetchPlaylists, fetchPlaylistVideos } from "../api/student/actions";
 import getImageUrl from "../utils/imageUrl";
 import { downloadFile, previewFile } from "../utils/fileHandler";
-import config from "../config";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
-
-const { apiUrl } = config;
 
 // ✅ دالة تحويل YouTube URL لصيغة embed
 const getYouTubeEmbedUrl = (url) => {
@@ -65,25 +62,33 @@ const WatchVideo = () => {
       if (playlistsResult.success) {
         const playlists = playlistsResult.data || [];
         let foundVideo = null;
-        let foundPlaylistId = null;
         let foundPlaylist = null;
 
-        for (const playlist of playlists) {
-          const playlistId = playlist.playlist_id || playlist.playlist_id;
-          const videosResult = await fetchPlaylistVideos(playlistId);
+        const results = await Promise.all(
+          playlists.map(async (playlist) => {
+            const playlistId = playlist.playlist_id || playlist.id;
+            const res = await fetchPlaylistVideos(playlistId);
+            return {
+              playlist,
+              playlistId,
+              videos: res.success ? res.data || [] : [],
+            };
+          }),
+        );
 
-          if (videosResult.success) {
-            const videos = videosResult.data || [];
-            const video = videos.find(
-              (v) => String(v.video_id || v.id) === String(videoId),
+        for (const item of results) {
+          const video = item.videos.find(
+            (v) => String(v.video_id || v.id) === String(videoId),
+          );
+
+          if (video) {
+            foundVideo = video;
+            foundPlaylist = item.playlist;
+            const related = item.videos.filter(
+              (v) => String(v.video_id || v.id) !== String(videoId),
             );
-
-            if (video) {
-              foundVideo = video;
-              foundPlaylistId = playlistId;
-              foundPlaylist = playlist;
-              break;
-            }
+            setRelatedVideos(related);
+            break;
           }
         }
 
@@ -94,15 +99,6 @@ const WatchVideo = () => {
             playlist_title: foundPlaylist?.title || "",
             embed_url: getYouTubeEmbedUrl(foundVideo.video_url),
           });
-
-          const relatedResult = await fetchPlaylistVideos(foundPlaylistId);
-          if (relatedResult.success) {
-            const allVideos = relatedResult.data || [];
-            const related = allVideos.filter(
-              (v) => String(v.video_id || v.id) !== String(videoId),
-            );
-            setRelatedVideos(related);
-          }
         } else {
           setError("الفيديو غير موجود");
         }
@@ -129,14 +125,14 @@ const WatchVideo = () => {
 
   const handlePreview = async () => {
     if (currentVideo?.file_url) {
-      const url = `${apiUrl.replace("/api", "")}/${currentVideo.file_url.replace(/^\//, "")}`;
+      const url = getImageUrl(currentVideo.file_url);
       await previewFile(url);
     }
   };
 
   const handleDownload = async () => {
     if (currentVideo?.file_url) {
-      const url = `${apiUrl.replace("/api", "")}/${currentVideo.file_url.replace(/^\//, "")}`;
+      const url = getImageUrl(currentVideo.file_url);
       await downloadFile(url);
     }
   };

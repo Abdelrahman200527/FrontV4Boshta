@@ -38,7 +38,7 @@ import {
   fetchStudentSubscriptions,
   createNewSubscription,
 } from "../../../api/assistant/actions";
-import { exportPdfTable } from "../../../utils/office.js";
+import { exportPdfTable, exportAoaExcel } from "../../../utils/office.js";
 import { ARABIC_MONTHS } from "../../../utils/helpers.js";
 import { useDebounce } from "../../../hooks/useDebounce";
 import {
@@ -611,22 +611,31 @@ const Payments = () => {
     }
 
     const columns = [
+      { header: "#", key: "index" },
       { header: "الطالب", key: "full_name" },
+      { header: "الباركود", key: "barcode" },
       { header: "المرحلة", key: "grade_name" },
       { header: "المجموعة", key: "group_name" },
       { header: "المطلوب", key: "required_amount" },
       { header: "المدفوع", key: "paid_amount" },
+      { header: "المتبقي", key: "remaining_amount" },
       { header: "الحالة", key: "status_label" },
     ];
 
-    const pdfRows = filteredStudents.map((s) => {
+    const pdfRows = filteredStudents.map((s, idx) => {
       const status = getPaymentStatus(s, currentMonthStr);
+      const req = Number(s.required_amount || 0);
+      const paid = Number(s.paid_amount || 0);
+      const rem = Math.max(0, req - paid);
       return {
+        index: idx + 1,
         full_name: s.full_name || "غير معروف",
+        barcode: s.barcode || "-",
         grade_name: s.grade_name || "—",
         group_name: s.group_name || "—",
-        required_amount: `${s.required_amount || 0} ج`,
-        paid_amount: `${s.paid_amount || 0} ج`,
+        required_amount: `${req.toLocaleString()} ج.م`,
+        paid_amount: `${paid.toLocaleString()} ج.م`,
+        remaining_amount: `${rem.toLocaleString()} ج.م`,
         status_label:
           status === "paid"
             ? "مدفوع"
@@ -640,11 +649,58 @@ const Payments = () => {
     const currentMonthArabic = ARABIC_MONTHS[currentMonth - 1];
 
     exportPdfTable(
-      `كشف_مدفوعات_المصاريف_${dateStr}.pdf`,
-      `كشف مدفوعات المصاريف - شهر ${currentMonthArabic} ${currentYear}`,
+      `كشف_مدفوعات_${currentMonthArabic}_${currentYear}_${dateStr}.pdf`,
+      `كشف مدفوعات المصاريف - شهر ${currentMonthArabic} ${currentYear} (${pdfRows.length} طالب)`,
       columns,
       pdfRows,
     );
+    toast.success(`تم تصدير كشف ${pdfRows.length} طالب بنجاح`);
+  };
+
+  const handleExportExcel = () => {
+    if (!filteredStudents.length) {
+      toast.error("لا يوجد طلاب لتصديرهم");
+      return;
+    }
+
+    const headers = [
+      "#",
+      "اسم الطالب",
+      "الباركود",
+      "المرحلة",
+      "المجموعة",
+      "المطلوب (ج.م)",
+      "المدفوع (ج.م)",
+      "المتبقي (ج.م)",
+      "حالة السداد",
+    ];
+
+    const rows = filteredStudents.map((s, index) => {
+      const status = getPaymentStatus(s, currentMonthStr);
+      const req = Number(s.required_amount || 0);
+      const paid = Number(s.paid_amount || 0);
+      const rem = Math.max(0, req - paid);
+      return [
+        index + 1,
+        s.full_name || "غير معروف",
+        s.barcode || "-",
+        s.grade_name || "—",
+        s.group_name || "—",
+        req,
+        paid,
+        rem,
+        status === "paid" ? "مدفوع" : status === "unpaid" ? "مستحق" : "بدون اشتراك",
+      ];
+    });
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    const currentMonthArabic = ARABIC_MONTHS[currentMonth - 1];
+    exportAoaExcel(
+      `كشف_مدفوعات_${currentMonthArabic}_${currentYear}_${dateStr}.xlsx`,
+      "المدفوعات",
+      [headers, ...rows]
+    );
+    toast.success(`تم تصدير ${rows.length} طالب إلى Excel بنجاح`);
   };
 
   // ============================================
@@ -751,9 +807,21 @@ const Payments = () => {
               whileTap={{ scale: 0.97 }}
               onClick={handleExportPdf}
               className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+              title="تصدير كشف المدفوعات بصيغة PDF"
             >
               <FileText size={14} />
               <span className="hidden sm:inline">كشف PDF</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+              title="تصدير كشف المدفوعات بصيغة Excel"
+            >
+              <FileText size={14} />
+              <span className="hidden sm:inline">كشف Excel</span>
             </motion.button>
           </div>
         </div>
@@ -820,7 +888,7 @@ const Payments = () => {
                 إجمالي المدفوع
               </p>
               <p className="text-sm sm:text-lg font-bold text-amber-600 truncate">
-                {overallStats.total_paid || 0} ج
+                <span dir="ltr">{(Number(overallStats.total_paid) || 0).toLocaleString()}</span> ج.م
               </p>
             </div>
           </div>
@@ -1014,7 +1082,7 @@ const Payments = () => {
                             </span>
                             {student.required_amount > 0 && (
                               <p className="text-[10px] text-gray-500 mt-0.5">
-                                {student.required_amount} ج
+                                <span dir="ltr">{(Number(student.required_amount) || 0).toLocaleString()}</span> ج.م
                               </p>
                             )}
                           </div>
@@ -1117,7 +1185,7 @@ const Payments = () => {
                             >
                               {sub.month}
                               <span className="opacity-70">
-                                {sub.required_amount} ج
+                                <span dir="ltr">{(Number(sub.required_amount) || 0).toLocaleString()}</span> ج.م
                               </span>
                               {sub.status === "paid" ? (
                                 <CheckCircle2 size={10} />
@@ -1234,7 +1302,7 @@ const Payments = () => {
                       />
                       {paymentMode === "normal" && expectedAmount > 0 && (
                         <p className="text-[10px] text-gray-500 mt-1">
-                          المبلغ الثابت: {expectedAmount} ج
+                          المبلغ الثابت: <span dir="ltr">{(Number(expectedAmount) || 0).toLocaleString()}</span> ج.م
                         </p>
                       )}
                       {paymentMode === "custom" && (
@@ -1402,7 +1470,7 @@ const Payments = () => {
                                       : "-"}
                                   </td>
                                   <td className="px-2 py-2 text-xs font-bold text-green-600 whitespace-nowrap">
-                                    {p.amount} ج
+                                    <span dir="ltr">{(Number(p.amount) || 0).toLocaleString()}</span> ج.م
                                   </td>
                                   <td className="px-2 py-2 whitespace-nowrap">
                                     <span

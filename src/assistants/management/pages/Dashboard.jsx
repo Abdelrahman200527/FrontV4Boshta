@@ -306,7 +306,7 @@ const Dashboard = () => {
         },
         {
             label: "المدفوعات هذا الشهر",
-            value: `${stats.totalPaid} ج`,
+            value: `${(Number(stats.totalPaid) || 0).toLocaleString()} ج.م`,
             Icon: DollarSign,
             gradient: "from-amber-500 to-yellow-600",
             iconBg: "bg-amber-100",

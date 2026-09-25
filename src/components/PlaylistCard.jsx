@@ -2,6 +2,7 @@ import { FolderOpen, Play, Trash2, Pencil } from "lucide-react";
 import React from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
+import getImageUrl from "../utils/imageUrl";
 
 const PlaylistCard = ({
   playlist,
@@ -11,14 +12,7 @@ const PlaylistCard = ({
   canDelete = false,
   canEdit = false,
 }) => {
-  // ✅ الصورة المرفوعة فقط
-  const getThumbnailUrl = (thumbnailPath) => {
-    if (!thumbnailPath) return null;
-    if (thumbnailPath.startsWith("http")) return thumbnailPath;
-    return `https://backend.benb3n.cloud/${thumbnailPath.replace(/^\//, "")}`;
-  };
-
-  const thumbnailUrl = getThumbnailUrl(playlist.thumbnail_url);
+  const thumbnailUrl = getImageUrl(playlist.thumbnail_url);
 
   return (
     <motion.div

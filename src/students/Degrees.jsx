@@ -42,7 +42,23 @@ const formatDate = (value) => {
   });
 };
 
-const getGrade = (percentage, graded) => {
+const getGrade = (percentage, graded, status) => {
+  if (status === "absent") {
+    return {
+      label: "غائب",
+      text: "text-red-700",
+      bg: "bg-red-100",
+      bar: "#dc2626",
+    };
+  }
+  if (status === "pending") {
+    return {
+      label: "قيد التصحيح",
+      text: "text-amber-700",
+      bg: "bg-amber-100",
+      bar: "#f59e0b",
+    };
+  }
   if (!graded)
     return {
       label: "لم تُرصد",
@@ -386,7 +402,7 @@ const Degrees = () => {
             </div>
           ) : (
             filteredExams.map((exam, idx) => {
-              const grade = getGrade(exam.percentage, exam.graded);
+              const grade = getGrade(exam.percentage, exam.graded, exam.status);
 
               return (
                 <motion.div
@@ -423,10 +439,10 @@ const Degrees = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                       <div className="text-center">
-                        <span className="font-bold text-base sm:text-lg text-gray-900 block">
-                          {exam.graded ? `${exam.score}/${exam.total}` : `—/${exam.total}`}
+                        <span className="font-bold text-base sm:text-lg text-gray-900 block" dir="ltr">
+                          {exam.graded ? `${exam.score} / ${exam.total}` : `— / ${exam.total}`}
                         </span>
                         <span className="text-[10px] text-gray-500">الدرجة</span>
                       </div>

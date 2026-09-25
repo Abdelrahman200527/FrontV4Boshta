@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Accent from "../assets/Accent.svg";
 import {
   Users,
@@ -24,6 +25,7 @@ import {
   CreditCard,
   CalendarClock,
   CheckCircle2,
+  Eye,
 } from "lucide-react";
 import {
   PieChart,
@@ -48,15 +50,9 @@ import {
   fetchAllExams,
 } from "../api/teacher/actions";
 import getUser from "../utils/getUser";
+import getImageUrl from "../utils/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
-
-// Image helper
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith("http")) return imagePath;
-  return `https://backend.benb3n.cloud/${imagePath.replace(/^\//, "")}`;
-};
 
 const StudentAvatarModal = ({ student }) => {
   const [imgError, setImgError] = useState(false);
@@ -100,6 +96,7 @@ const Dashboard = () => {
   const [toastMessage, setToastMessage] = useState(null);
 
   const user = getUser();
+  const navigate = useNavigate();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -307,141 +304,230 @@ const Dashboard = () => {
         variants={itemVariants}
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3"
       >
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <GraduationCap size={18} className="text-blue-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+        <div
+          onClick={() => navigate("/teacher/students")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <GraduationCap size={20} className="text-blue-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_students || 0}
           </span>
-          <span className="text-[10px] text-gray-500">الطلاب</span>
+          <span className="text-[11px] text-gray-500 font-bold">الطلاب</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <Layers size={18} className="text-green-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+
+        <div
+          onClick={() => navigate("/teacher/courses")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <Layers size={20} className="text-green-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_grades || 0}
           </span>
-          <span className="text-[10px] text-gray-500">الصفوف</span>
+          <span className="text-[11px] text-gray-500 font-bold">الصفوف</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <Users size={18} className="text-orange-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+
+        <div
+          onClick={() => navigate("/teacher/students")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <Users size={20} className="text-orange-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_groups || 0}
           </span>
-          <span className="text-[10px] text-gray-500">المجموعات</span>
+          <span className="text-[11px] text-gray-500 font-bold">المجموعات</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <UserCog size={18} className="text-purple-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+
+        <div
+          onClick={() => navigate("/teacher/assistants")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <UserCog size={20} className="text-purple-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_assistants || 0}
           </span>
-          <span className="text-[10px] text-gray-500">المساعدين</span>
+          <span className="text-[11px] text-gray-500 font-bold">المساعدين</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <PlayCircle size={18} className="text-red-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+
+        <div
+          onClick={() => navigate("/teacher/courses")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <PlayCircle size={20} className="text-red-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_videos || 0}
           </span>
-          <span className="text-[10px] text-gray-500">الفيديوهات</span>
+          <span className="text-[11px] text-gray-500 font-bold">الفيديوهات</span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <Monitor size={18} className="text-indigo-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
+
+        <div
+          onClick={() => navigate("/teacher/courses")}
+          className="bg-white rounded-xl border border-gray-200 p-3 text-center cursor-pointer hover:border-[#009966] hover:shadow-xs transition"
+        >
+          <Monitor size={20} className="text-indigo-600 mx-auto mb-1" />
+          <span className="text-lg font-black text-gray-900 block" dir="ltr">
             {overview.total_playlists || 0}
           </span>
-          <span className="text-[10px] text-gray-500">قوائم التشغيل</span>
+          <span className="text-[11px] text-gray-500 font-bold">قوائم التشغيل</span>
         </div>
       </motion.div>
 
       {/* Attendance Today */}
       <motion.div
         variants={itemVariants}
-        className="grid grid-cols-3 gap-2 sm:gap-3"
+        className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs"
       >
-        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-          <span className="text-lg font-bold text-green-700 block">
-            {attendanceToday.present_count || 0}
-          </span>
-          <span className="text-[10px] text-green-600">حاضر اليوم</span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <CalendarCheck2 size={18} className="text-[#009966]" />
+            <h2 className="text-sm font-bold text-gray-900">حضور اليوم</h2>
+          </div>
+          <button
+            onClick={() => navigate("/teacher/attendance")}
+            className="text-xs font-bold text-[#009966] hover:underline"
+          >
+            متابعة الحضور والغياب &larr;
+          </button>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
-          <span className="text-lg font-bold text-red-700 block">
-            {attendanceToday.absent_count || 0}
-          </span>
-          <span className="text-[10px] text-red-600">غائب اليوم</span>
-        </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
-          <span className="text-lg font-bold text-yellow-700 block">
-            {attendanceToday.not_marked_count || 0}
-          </span>
-          <span className="text-[10px] text-yellow-600">غير محدد</span>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div
+            onClick={() => navigate("/teacher/attendance")}
+            className="bg-green-50 border border-green-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <span className="text-xl font-black text-green-700 block" dir="ltr">
+              {attendanceToday.present_count || 0}
+            </span>
+            <span className="text-xs text-green-700 font-bold">حاضر اليوم</span>
+          </div>
+          <div
+            onClick={() => navigate("/teacher/attendance")}
+            className="bg-red-50 border border-red-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <span className="text-xl font-black text-red-700 block" dir="ltr">
+              {attendanceToday.absent_count || 0}
+            </span>
+            <span className="text-xs text-red-700 font-bold">غائب اليوم</span>
+          </div>
+          <div
+            onClick={() => navigate("/teacher/attendance")}
+            className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <span className="text-xl font-black text-yellow-700 block" dir="ltr">
+              {attendanceToday.not_marked_count || 0}
+            </span>
+            <span className="text-xs text-yellow-700 font-bold">لم يسجل بعد</span>
+          </div>
         </div>
       </motion.div>
 
-      {/* Exams Summary */}
+      {/* Exams & Assignments Summary */}
       <motion.div
         variants={itemVariants}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3"
+        className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs"
       >
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <CalendarClock size={18} className="text-blue-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
-            {examsSummary.upcoming_paper_exams || 0}
-          </span>
-          <span className="text-[10px] text-gray-500">ورقي قادم</span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={18} className="text-blue-600" />
+            <h2 className="text-sm font-bold text-gray-900">الامتحانات والواجبات</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/teacher/degrees")}
+              className="text-xs font-bold text-blue-600 hover:underline"
+            >
+              الامتحانات &larr;
+            </button>
+            <button
+              onClick={() => navigate("/teacher/homework")}
+              className="text-xs font-bold text-[#009966] hover:underline"
+            >
+              الواجبات &larr;
+            </button>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <Clock size={18} className="text-green-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
-            {examsSummary.active_online_exams || 0}
-          </span>
-          <span className="text-[10px] text-gray-500">نشط الآن</span>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <FileCheck2 size={18} className="text-red-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
-            {assignmentsSummary.pending_grading || 0}
-          </span>
-          <span className="text-[10px] text-gray-500">بانتظار التصحيح</span>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-          <TrendingUp size={18} className="text-orange-600 mx-auto mb-1" />
-          <span className="text-lg font-bold text-gray-900 block">
-            {toNumber(paymentsMonth.paid_percentage)}%
-          </span>
-          <span className="text-[10px] text-gray-500">نسبة الدفع</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <div
+            onClick={() => navigate("/teacher/degrees")}
+            className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <CalendarClock size={18} className="text-blue-600 mx-auto mb-1" />
+            <span className="text-lg font-black text-gray-900 block" dir="ltr">
+              {examsSummary.upcoming_paper_exams || 0}
+            </span>
+            <span className="text-[11px] text-gray-600 font-bold">ورقي قادم</span>
+          </div>
+          <div
+            onClick={() => navigate("/teacher/degrees")}
+            className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <Clock size={18} className="text-emerald-600 mx-auto mb-1" />
+            <span className="text-lg font-black text-gray-900 block" dir="ltr">
+              {examsSummary.active_online_exams || 0}
+            </span>
+            <span className="text-[11px] text-gray-600 font-bold">إلكتروني نشط</span>
+          </div>
+          <div
+            onClick={() => navigate("/teacher/homework")}
+            className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <FileCheck2 size={18} className="text-amber-600 mx-auto mb-1" />
+            <span className="text-lg font-black text-gray-900 block" dir="ltr">
+              {assignmentsSummary.pending_grading || 0}
+            </span>
+            <span className="text-[11px] text-gray-600 font-bold">بانتظار التصحيح</span>
+          </div>
+          <div
+            onClick={() => navigate("/teacher/payments")}
+            className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center cursor-pointer hover:shadow-xs transition"
+          >
+            <TrendingUp size={18} className="text-purple-600 mx-auto mb-1" />
+            <span className="text-lg font-black text-gray-900 block" dir="ltr">
+              {toNumber(paymentsMonth.paid_percentage)}%
+            </span>
+            <span className="text-[11px] text-gray-600 font-bold">نسبة التحصيل</span>
+          </div>
         </div>
       </motion.div>
 
       {/* Payments Summary */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4"
+        className="bg-white rounded-2xl border border-gray-200 p-4 shadow-2xs"
       >
-        <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-          <Wallet size={16} className="text-[#009966]" />
-          ملخص المدفوعات
-        </h3>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-          <div className="bg-emerald-50 rounded-xl p-3 text-center">
-            <span className="text-base sm:text-lg font-bold text-emerald-700 block">
-              {toNumber(paymentsMonth.total_paid)} ج.م
-            </span>
-            <span className="text-[10px] text-emerald-600">المدفوع</span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Wallet size={18} className="text-[#009966]" />
+            <h2 className="text-sm font-bold text-gray-900">ملخص المدفوعات والاشتراكات</h2>
           </div>
-          <div className="bg-green-50 rounded-xl p-3 text-center">
-            <span className="text-base sm:text-lg font-bold text-green-700 block">
+          <button
+            onClick={() => navigate("/teacher/payments")}
+            className="text-xs font-bold text-[#009966] hover:underline"
+          >
+            عرض التفاصيل الكاملة &larr;
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div className="bg-emerald-50 rounded-xl p-3.5 text-center border border-emerald-100">
+            <div className="text-lg sm:text-xl font-black text-emerald-700">
+              <span dir="ltr">{toNumber(paymentsMonth.total_paid).toLocaleString()}</span>
+              <span className="text-xs font-bold mr-1">ج.م</span>
+            </div>
+            <span className="text-xs text-emerald-600 font-bold">المحصل هذا الشهر</span>
+          </div>
+          <div className="bg-green-50 rounded-xl p-3.5 text-center border border-green-100">
+            <div className="text-lg sm:text-xl font-black text-green-700" dir="ltr">
               {toNumber(paymentsMonth.paid_percentage)}%
-            </span>
-            <span className="text-[10px] text-green-600">نسبة الدفع</span>
+            </div>
+            <span className="text-xs text-green-600 font-bold">نسبة الدفع</span>
           </div>
         </div>
 
         {lastPayment && (
-          <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div className="mt-3 bg-gray-50 rounded-xl p-3 flex items-center justify-between gap-2 border border-gray-100">
             <div className="flex items-center gap-2 min-w-0">
-              <CreditCard size={16} className="text-[#009966] shrink-0" />
+              <CreditCard size={18} className="text-[#009966] shrink-0" />
               <div className="min-w-0">
                 <span className="text-xs font-bold text-gray-900 block truncate">
-                  {lastPayment.student_name}
+                  آخر دفعة: {lastPayment.student_name}
                 </span>
                 <span className="text-[10px] text-gray-500">
                   {new Date(lastPayment.payment_date).toLocaleDateString(
@@ -450,8 +536,8 @@ const Dashboard = () => {
                 </span>
               </div>
             </div>
-            <span className="text-sm font-bold text-green-600 shrink-0">
-              {lastPayment.amount} ج.م
+            <span className="text-sm font-black text-emerald-600 shrink-0">
+              <span dir="ltr">{lastPayment.amount}</span> ج.م
             </span>
           </div>
         )}
@@ -460,10 +546,24 @@ const Dashboard = () => {
       {/* Students Table */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+        className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-2xs"
       >
-        <div className="p-3 border-b border-gray-100">
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+        <div className="p-3.5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-[#009966]" />
+            <h2 className="text-sm font-bold text-gray-900">أحدث الطلاب المسجلين</h2>
+            <span className="text-xs text-gray-400">({totalStudents} طالب)</span>
+          </div>
+          <button
+            onClick={() => navigate("/teacher/students")}
+            className="text-xs font-bold text-[#009966] hover:underline"
+          >
+            عرض جميع الطلاب &larr;
+          </button>
+        </div>
+
+        <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
             <Search size={14} className="text-gray-400 shrink-0" />
             <input
               type="text"
@@ -484,41 +584,48 @@ const Dashboard = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-125">
-            <thead className="bg-gray-50">
+          <table className="w-full min-w-125 text-right">
+            <thead className="bg-gray-50 text-xs font-bold text-gray-600 border-b border-gray-100">
               <tr>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
-                  الاسم
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
-                  الباركود
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
-                  الصف
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
-                  الهاتف
-                </th>
+                <th className="py-3 px-4">الاسم</th>
+                <th className="py-3 px-4">الباركود</th>
+                <th className="py-3 px-4">الصف</th>
+                <th className="py-3 px-4">الهاتف</th>
+                <th className="py-3 px-4 text-center">الملف الشخصي</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 text-sm">
               {filteredStudents.slice(0, 5).map((student) => (
                 <tr
                   key={student.id}
                   onClick={() => handleStudentClick(student)}
-                  className="cursor-pointer hover:bg-green-50/50 transition"
+                  className="cursor-pointer hover:bg-emerald-50/40 transition group"
                 >
-                  <td className="py-3 px-4 text-center font-medium text-sm">
+                  <td className="py-3 px-4 font-bold text-gray-900 group-hover:text-[#009966]">
                     {student.full_name}
                   </td>
-                  <td className="py-3 px-4 text-center text-sm font-mono">
-                    {student.barcode}
+                  <td className="py-3 px-4 font-mono text-xs text-gray-600">
+                    <span className="bg-gray-100 px-2 py-0.5 rounded" dir="ltr">
+                      {student.barcode}
+                    </span>
                   </td>
-                  <td className="py-3 px-4 text-center text-sm">
+                  <td className="py-3 px-4 text-gray-600 text-xs">
                     {student.grade_name || "-"}
                   </td>
-                  <td className="py-3 px-4 text-center text-sm" dir="ltr">
+                  <td className="py-3 px-4 text-gray-600 text-xs" dir="ltr">
                     {student.phone || "-"}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/teacher/students/${student.id}`);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-[#009966] hover:bg-emerald-50 rounded-lg transition"
+                      title="عرض الملف الشخصي"
+                    >
+                      <Eye size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -701,28 +808,41 @@ const Dashboard = () => {
                     <div className="w-8 h-8 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : studentStats ? (
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="bg-green-50 rounded-xl p-3 text-center">
-                      <CalendarCheck2
-                        size={16}
-                        className="text-green-600 mx-auto mb-1"
-                      />
-                      <span className="font-bold text-lg text-green-700 block">
-                        {toNumber(studentStats.attendance_percentage)}%
-                      </span>
-                      <span className="text-[10px] text-gray-500">الحضور</span>
+                  <>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="bg-green-50 rounded-xl p-3 text-center">
+                        <CalendarCheck2
+                          size={16}
+                          className="text-green-600 mx-auto mb-1"
+                        />
+                        <span className="font-bold text-lg text-green-700 block">
+                          {toNumber(studentStats.attendance_percentage)}%
+                        </span>
+                        <span className="text-[10px] text-gray-500">الحضور</span>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-3 text-center">
+                        <BarChart3
+                          size={16}
+                          className="text-blue-600 mx-auto mb-1"
+                        />
+                        <span className="font-bold text-lg text-blue-700 block">
+                          {toNumber(studentStats.avg_paper_degree)}
+                        </span>
+                        <span className="text-[10px] text-gray-500">المتوسط</span>
+                      </div>
                     </div>
-                    <div className="bg-blue-50 rounded-xl p-3 text-center">
-                      <BarChart3
-                        size={16}
-                        className="text-blue-600 mx-auto mb-1"
-                      />
-                      <span className="font-bold text-lg text-blue-700 block">
-                        {toNumber(studentStats.avg_paper_degree)}
-                      </span>
-                      <span className="text-[10px] text-gray-500">المتوسط</span>
-                    </div>
-                  </div>
+                    <button
+                      onClick={() => {
+                        const sid = selectedStudent.id;
+                        setSelectedStudent(null);
+                        navigate(`/teacher/students/${sid}`);
+                      }}
+                      className="w-full mt-4 py-2.5 bg-[#009966] text-white rounded-xl text-xs font-bold hover:bg-[#007a52] transition flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <Eye size={15} />
+                      <span>عرض الملف الشخصي الكامل للطالب</span>
+                    </button>
+                  </>
                 ) : (
                   <p className="text-center text-gray-400 text-sm py-6">
                     لا توجد بيانات

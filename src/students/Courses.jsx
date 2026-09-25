@@ -286,7 +286,7 @@ const Courses = () => {
             exit={{ opacity: 0, y: -10 }}
             className={`grid gap-3 sm:gap-4 ${
               viewMode === "grid"
-                ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
+                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
                 : "grid-cols-1"
             }`}
           >
@@ -330,7 +330,7 @@ const Courses = () => {
               <div
                 className={`grid gap-3 sm:gap-4 ${
                   viewMode === "grid"
-                    ? "grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
                     : "grid-cols-1"
                 }`}
               >
@@ -361,7 +361,7 @@ const Courses = () => {
 
                         {/* Preview & Download Overlay */}
                         {video.file_url && (
-                          <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-2 left-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

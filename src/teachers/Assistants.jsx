@@ -14,20 +14,17 @@ import {
   RefreshCw,
   UserCheck,
   UserX,
+  Printer,
+  Download,
 } from "lucide-react";
 import React, { memo, useEffect, useMemo, useState, useCallback } from "react";
 import { fetchAssistants, fetchAssistantById } from "../api/teacher/actions";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
+import getImageUrl from "../utils/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
 const PAGE_SIZE = 10;
-
-// ✅ Build image URL
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith("http")) return imagePath;
-  return `https://backend.benb3n.cloud/${imagePath.replace(/^\//, "")}`;
-};
 
 const getInitial = (name) => (name ? name.trim()[0] || "؟" : "؟");
 
@@ -199,6 +196,41 @@ const Assistants = () => {
     setViewingDetails(null);
   }, []);
 
+  const handleExportPdf = () => {
+    if (filteredAssistants.length === 0) return;
+    const title = `قائمة المساعدين - إجمالي (${filteredAssistants.length})`;
+    const columns = [
+      { header: "#", key: "id", width: 10 },
+      { header: "الاسم", key: "full_name", width: 40 },
+      { header: "الهاتف", key: "phone", width: 25 },
+      { header: "الحالة", key: "status", width: 25 },
+    ];
+    const rows = filteredAssistants.map((a) => ({
+      id: a.id,
+      full_name: a.full_name || "-",
+      phone: a.phone || "-",
+      status: a.is_active === 1 ? "نشط" : "موقوف",
+    }));
+    exportPdfTable("assistants-list", title, columns, rows);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredAssistants.length === 0) return;
+    const aoa = [
+      ["#", "الاسم", "رقم الهاتف", "الحالة"],
+    ];
+    filteredAssistants.forEach((a, idx) => {
+      aoa.push([
+        idx + 1,
+        a.full_name || "-",
+        a.phone || "-",
+        a.is_active === 1 ? "نشط" : "موقوف",
+      ]);
+    });
+    const filename = `قائمة_المساعدين_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    exportAoaExcel(filename, "المساعدون", aoa);
+  };
+
   if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -249,13 +281,29 @@ const Assistants = () => {
               {assistants.length} مساعد في المنصة
             </span>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition self-start sm:self-auto"
-          >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            تحديث
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-emerald-800 transition shadow-xs"
+            >
+              <Download size={14} />
+              تصدير Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-1.5 bg-[#009966] text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-[#007a52] transition shadow-xs"
+            >
+              <Printer size={14} />
+              طباعة القائمة (PDF)
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition"
+            >
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              تحديث
+            </button>
+          </div>
         </div>
 
         {/* Stats Summary */}

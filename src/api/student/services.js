@@ -7,6 +7,7 @@ import {
   httpPutFormData,
 } from "../http";
 import { downloadFile } from "../../utils/fileHandler";
+import config from "../../config";
 
 // Dashboard
 const getDashboard = async () => {
@@ -148,12 +149,6 @@ const getQuestionById = async (questionId) => {
   return response.data;
 };
 
-// Download question file
-const downloadQuestionFile = async (questionId) => {
-  const url = `${import.meta.env.VITE_API_URL}/student/exams/online/question/${questionId}/download`;
-  return await downloadFile(url);
-};
-
 // Get options for question - without is_correct
 const getOptionsByQuestion = async (questionId) => {
   const response = await httpGet(`/student/options/question/${questionId}`);
@@ -196,7 +191,7 @@ const getAssignmentById = async (assignmentId) => {
 };
 
 const downloadAssignment = async (assignmentId) => {
-  const url = `${import.meta.env.VITE_API_URL}/student/assignments/${assignmentId}/download`;
+  const url = `${config.apiUrl}/student/assignments/${assignmentId}/download`;
   return await downloadFile(url);
 };
 
@@ -230,7 +225,7 @@ const getSubmissions = async (month = "", page = 1) => {
 
 // Download own submission file
 const downloadSubmissionFile = async (assignmentId) => {
-  const url = `${import.meta.env.VITE_API_URL}/student/homeWorkSubmission/${assignmentId}/download`;
+  const url = `${config.apiUrl}/student/homeWorkSubmission/${assignmentId}/download`;
   return await downloadFile(url);
 };
 
@@ -291,7 +286,6 @@ export {
   submitExam,
   getExamQuestions,
   getQuestionById,
-  downloadQuestionFile,
   getOptionsByQuestion,
   answerQuestion,
   submitEssayAnswer,

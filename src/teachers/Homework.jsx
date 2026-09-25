@@ -13,14 +13,14 @@ import {
   RefreshCw,
   GraduationCap,
   Eye,
-  Download,
   Users,
-  ArrowRight,
   BarChart3,
-  Layers,
+  Printer,
+  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import {
   fetchAllHomework,
   fetchAssignmentsByGrade,
@@ -161,6 +161,50 @@ const Homeworks = () => {
     [filteredAssignments, getStatusBadge],
   );
 
+  const handleExportPdf = () => {
+    if (filteredAssignments.length === 0) return;
+    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
+    const title = `قائمة الواجبات المنزلية - ${selectedGrade === "all" ? "كل الصفوف" : (gradeObj?.name || "")}`;
+    const columns = [
+      { header: "#", key: "index", width: 8 },
+      { header: "عنوان الواجب", key: "title", width: 35 },
+      { header: "الصف", key: "grade", width: 22 },
+      { header: "تاريخ التسليم", key: "deadline", width: 20 },
+      { header: "الدرجة", key: "mark", width: 15 },
+      { header: "الحالة", key: "status", width: 15 },
+    ];
+    const rows = filteredAssignments.map((a, i) => ({
+      index: i + 1,
+      title: a.title || "-",
+      grade: a.grade_name || "-",
+      deadline: formatDate(a.deadline),
+      mark: `${a.full_mark || 0} درجة`,
+      status: getStatusBadge(a).text,
+    }));
+    exportPdfTable("homework-list", title, columns, rows);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredAssignments.length === 0) return;
+    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
+    const filterDesc = selectedGrade === "all" ? "كل_الصفوف" : (gradeObj?.name || "");
+    const aoa = [
+      ["#", "عنوان الواجب", "الصف", "تاريخ التسليم", "الدرجة الكلية", "الحالة"],
+    ];
+    filteredAssignments.forEach((a, i) => {
+      aoa.push([
+        i + 1,
+        a.title || "-",
+        a.grade_name || "-",
+        formatDate(a.deadline),
+        a.full_mark || 0,
+        getStatusBadge(a).text,
+      ]);
+    });
+    const filename = `كشف_الواجبات_${filterDesc}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    exportAoaExcel(filename, "الواجبات", aoa);
+  };
+
   const handleRetry = () => {
     loadData();
   };
@@ -215,13 +259,29 @@ const Homeworks = () => {
               متابعة وإدارة الواجبات ({assignments.length})
             </span>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition self-start sm:self-auto"
-          >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            تحديث
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-emerald-800 transition shadow-xs"
+            >
+              <Download size={14} />
+              تصدير كشف Excel
+            </button>
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-1.5 bg-[#009966] text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-[#007a52] transition shadow-xs"
+            >
+              <Printer size={14} />
+              طباعة الواجبات (PDF)
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] transition"
+            >
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+              تحديث
+            </button>
+          </div>
         </div>
 
         {/* Search & Filter */}
@@ -349,16 +409,17 @@ const Homeworks = () => {
                   y: -3,
                   boxShadow: "0 10px 20px rgba(0,0,0,0.08)",
                 }}
-                className="bg-white w-full flex flex-col gap-3 rounded-xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-[#009966] transition-all duration-200"
+                onClick={() => handleViewDetails(assignment)}
+                className="bg-white w-full flex flex-col gap-3 rounded-xl p-4 sm:p-5 border border-gray-200 shadow-sm hover:border-[#009966] transition-all duration-200 cursor-pointer group"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 min-w-0">
-                    <div className="bg-blue-50 rounded-lg p-2 shrink-0">
+                    <div className="bg-blue-50 rounded-lg p-2 shrink-0 group-hover:bg-blue-100 transition">
                       <FileText size={18} className="text-blue-600" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate group-hover:text-[#009966] transition">
                         {assignment.title}
                       </h3>
                       <span className="text-[10px] sm:text-xs text-gray-400 flex items-center gap-1 mt-0.5">
@@ -395,22 +456,16 @@ const Homeworks = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="mt-auto pt-3 border-t border-gray-100 flex gap-2">
+                <div className="mt-auto pt-3 border-t border-gray-100">
                   <button
-                    onClick={() => handleViewDetails(assignment)}
-                    className="flex-1 flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold text-gray-600 hover:text-[#009966] transition-colors py-2 rounded-lg hover:bg-green-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDetails(assignment);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs sm:text-sm font-bold text-[#009966] bg-green-50/70 hover:bg-[#009966] hover:text-white transition-all py-2 rounded-lg"
                   >
-                    <Eye size={13} />
-                    التفاصيل
-                  </button>
-                  <button
-                    onClick={() =>
-                      navigate(`/teacher/assignments/${assignment.id}`)
-                    }
-                    className="flex-1 flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold text-gray-600 hover:text-[#009966] transition-colors py-2 rounded-lg hover:bg-green-50"
-                  >
-                    <ArrowRight size={13} />
-                    فتح
+                    <Eye size={14} />
+                    عرض التفاصيل والتسليمات
                   </button>
                 </div>
               </motion.div>

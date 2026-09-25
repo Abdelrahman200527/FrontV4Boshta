@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 import config from "../config";
+import getImageUrl from "../utils/imageUrl";
 import { previewVideoFileAction } from "../api/assistant/actions.js";
 
 const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
@@ -34,9 +35,7 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
   const isDrive = (url) => !!getDriveEmbedUrl(url);
 
   const getThumbnailUrl = (thumbnailPath) => {
-    if (!thumbnailPath) return null;
-    if (thumbnailPath.startsWith("http")) return thumbnailPath;
-    return `https://backend.benb3n.cloud/${thumbnailPath}`;
+    return getImageUrl(thumbnailPath);
   };
 
   const handleDownloadFile = async () => {

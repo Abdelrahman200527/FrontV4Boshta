@@ -22,18 +22,18 @@ const exportStudentsPDF = (students, filters = {}) => {
 
   container.innerHTML = `
     <div style="text-align:center;margin-bottom:20px;">
-      <h2 style="color:#9224EB;">قائمة الطلاب</h2>
+      <h2 style="color:#009966;">قائمة الطلاب</h2>
       ${filters.gradeName ? `<p style="color:#666;">الصف: ${filters.gradeName}</p>` : ""}
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">الباركود</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">الاسم</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">الصف</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">المجموعة</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">الهاتف</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">ولي الأمر</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">الباركود</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">الاسم</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">الصف</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">المجموعة</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">الهاتف</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">ولي الأمر</th>
         </tr>
       </thead>
       <tbody>
@@ -69,16 +69,16 @@ const exportPaymentsPDF = (payments, filters = {}) => {
 
   container.innerHTML = `
     <div style="text-align:center;margin-bottom:20px;">
-      <h2 style="color:#9224EB;">تقرير المدفوعات</h2>
+      <h2 style="color:#009966;">تقرير المدفوعات</h2>
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
         <tr>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">الباركود</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">اسم الطالب</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">المجموعة</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">حالة الدفع</th>
-          <th style="background:#9224EB;color:#fff;padding:8px;text-align:right;">المبلغ المدفوع</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">الباركود</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">اسم الطالب</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">المجموعة</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">حالة الدفع</th>
+          <th style="background:#009966;color:#fff;padding:8px;text-align:right;">المبلغ المدفوع</th>
         </tr>
       </thead>
       <tbody>

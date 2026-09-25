@@ -135,9 +135,11 @@ const getStudents = async (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
 ) => {
   const params = new URLSearchParams();
   params.append("page", page);
+  if (limit) params.append("limit", limit);
   if (search) params.append("search", search);
   if (gradeId) params.append("grade_id", gradeId);
   if (groupId) params.append("group_id", groupId);
@@ -201,11 +203,28 @@ const getStudentPayments = async (studentId) => {
   return response.data;
 };
 
+const safeGet = async (fn, fallback = null) => {
+  try {
+    const res = await fn();
+    return res ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 const getStudentPaymentsBalance = async (studentId) => {
-  const response = await httpGet(
-    `/teacher/students/${studentId}/payments/balance`,
-  );
-  return response.data;
+  try {
+    const stats = await getStudentStats(studentId);
+    const totalPaid = Number(stats?.total_paid || 0);
+    const totalRequired = Number(stats?.total_required || 0);
+    return {
+      total_paid: totalPaid,
+      total_required: totalRequired,
+      remaining_balance: Math.max(0, totalRequired - totalPaid),
+    };
+  } catch {
+    return { total_paid: 0, total_required: 0, remaining_balance: 0 };
+  }
 };
 
 const getStudentPaperExams = async (studentId) => {
@@ -239,48 +258,69 @@ const getStudentSubmissions = async (studentId) => {
 
 const getStudentFullDetails = async (studentId) => {
   const [
-    profile,
-    stats,
-    attendance,
-    monthlyAttendance,
-    payments,
-    balance,
-    paperExams,
-    examResults,
-    onlineExams,
-    assignments,
-    submissions,
+    profileRes,
+    statsRes,
+    attendanceRes,
+    monthlyAttendanceRes,
+    paymentsRes,
+    paperExamsRes,
+    examResultsRes,
+    onlineExamsRes,
+    assignmentsRes,
+    submissionsRes,
   ] = await Promise.all([
-    getStudentProfile(studentId),
-    getStudentStats(studentId),
-    getStudentAttendanceHistory(studentId),
-    getStudentMonthlyAttendance(studentId),
-    getStudentPayments(studentId),
-    getStudentPaymentsBalance(studentId),
-    getStudentPaperExams(studentId),
-    getStudentExamResults(studentId),
-    getStudentOnlineExams(studentId),
-    getStudentAssignments(studentId),
-    getStudentSubmissions(studentId),
+    safeGet(() => getStudentProfile(studentId), null),
+    safeGet(() => getStudentStats(studentId), {}),
+    safeGet(() => getStudentAttendanceHistory(studentId), []),
+    safeGet(() => getStudentMonthlyAttendance(studentId), []),
+    safeGet(() => getStudentPayments(studentId), []),
+    safeGet(() => getStudentPaperExams(studentId), []),
+    safeGet(() => getStudentExamResults(studentId), []),
+    safeGet(() => getStudentOnlineExams(studentId), []),
+    safeGet(() => getStudentAssignments(studentId), []),
+    safeGet(() => getStudentSubmissions(studentId), []),
   ]);
 
+  let profile = profileRes;
+  if (!profile) {
+    profile = await safeGet(() => getStudentById(studentId), null);
+    if (!profile) {
+      throw new Error("الطالب غير موجود");
+    }
+  }
+
+  const stats = statsRes || {};
+  const totalPaid = Number(stats.total_paid || 0);
+  const totalRequired = Number(stats.total_required || 0);
+  const balance = {
+    total_paid: totalPaid,
+    total_required: totalRequired,
+    remaining_balance: Math.max(0, totalRequired - totalPaid),
+  };
+
   return {
-    profile,
-    stats,
-    attendance,
-    monthlyAttendance,
-    payments,
+    profile: profile || {},
+    stats: {
+      ...stats,
+      remaining_balance: balance.remaining_balance,
+    },
+    attendance: Array.isArray(attendanceRes) ? attendanceRes : (attendanceRes?.rows || []),
+    monthlyAttendance: Array.isArray(monthlyAttendanceRes) ? monthlyAttendanceRes : (monthlyAttendanceRes?.rows || []),
+    payments: Array.isArray(paymentsRes) ? paymentsRes : (paymentsRes?.rows || []),
     balance,
-    paperExams,
-    examResults,
-    onlineExams,
-    assignments,
-    submissions,
+    paperExams: Array.isArray(paperExamsRes) ? paperExamsRes : (paperExamsRes?.rows || []),
+    examResults: Array.isArray(examResultsRes) ? examResultsRes : (examResultsRes?.rows || []),
+    onlineExams: Array.isArray(onlineExamsRes) ? onlineExamsRes : (onlineExamsRes?.rows || []),
+    assignments: Array.isArray(assignmentsRes) ? assignmentsRes : (assignmentsRes?.rows || []),
+    submissions: Array.isArray(submissionsRes) ? submissionsRes : (submissionsRes?.rows || []),
   };
 };
 
-const getAttendanceDashboard = async () => {
-  const response = await httpGet("/teacher/attendance/dashboard");
+const getAttendanceDashboard = async (groupId = null) => {
+  const url = groupId
+    ? `/teacher/attendance/dashboard?group_id=${groupId}`
+    : "/teacher/attendance/dashboard";
+  const response = await httpGet(url);
   return response.data;
 };
 

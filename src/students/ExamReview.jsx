@@ -8,6 +8,7 @@ import {
   Download,
 } from "lucide-react";
 import { fetchExamReview } from "../api/student/actions";
+import getImageUrl from "../utils/imageUrl";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -81,38 +82,47 @@ const ExamReview = () => {
               <h1 className="text-xl font-bold text-gray-900">
                 مراجعة الامتحان
               </h1>
-              <span className="text-sm text-gray-500">{review.exam_title}</span>
+              <span className="text-sm text-gray-500">{review?.exam_title}</span>
             </div>
             <div className="text-center">
-              <span
-                className={`text-3xl font-bold block ${
-                  review.percentage >= 50 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {review.score}/{review.full_mark}
-              </span>
-              <span className="text-xs text-gray-500">
-                {review.percentage}%
-              </span>
+              {review?.score == null ? (
+                <span className="text-base font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full inline-block">
+                  قيد التصحيح
+                </span>
+              ) : (
+                <>
+                  <span
+                    className={`text-3xl font-bold block ${
+                      (review?.percentage ?? 0) >= 50 ? "text-green-600" : "text-red-600"
+                    }`}
+                    dir="ltr"
+                  >
+                    {review?.score} / {review?.full_mark}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {review?.percentage}%
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
               <span className="text-xl font-bold text-green-600 block">
-                {review.correct_answers}
+                {review?.correct_answers ?? 0}
               </span>
               <span className="text-xs text-gray-500">صحيحة</span>
             </div>
             <div className="text-center">
               <span className="text-xl font-bold text-red-600 block">
-                {review.wrong_answers}
+                {review?.wrong_answers ?? 0}
               </span>
               <span className="text-xs text-gray-500">خاطئة</span>
             </div>
             <div className="text-center">
               <span className="text-xl font-bold text-gray-400 block">
-                {review.unanswered_questions}
+                {review?.unanswered_questions ?? 0}
               </span>
               <span className="text-xs text-gray-500">بدون إجابة</span>
             </div>
@@ -121,7 +131,7 @@ const ExamReview = () => {
 
         {/* Questions */}
         <div className="flex flex-col gap-3">
-          {review.questions.map((question, index) => (
+          {(review?.questions || []).map((question, index) => (
             <div
               key={question.question_id}
               className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
@@ -159,7 +169,7 @@ const ExamReview = () => {
                   {question.options.map((option) => (
                     <div
                       key={option.option_id}
-                      className={`p-3 rounded-lg text-sm flex items-center justify-between border ${
+                      className={`p-3 rounded-lg text-sm flex items-start sm:items-center justify-between gap-2 border ${
                         option.is_correct
                           ? "bg-green-50 border-green-200"
                           : option.is_selected && !option.is_correct
@@ -167,24 +177,24 @@ const ExamReview = () => {
                             : "border-gray-100"
                       }`}
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-start sm:items-center gap-2 min-w-0 flex-1">
                         {option.is_correct && (
-                          <CheckCircle2 className="text-green-500" size={16} />
+                          <CheckCircle2 className="text-green-500 shrink-0 mt-0.5 sm:mt-0" size={16} />
                         )}
                         {option.is_selected && !option.is_correct && (
-                          <XCircle className="text-red-500" size={16} />
+                          <XCircle className="text-red-500 shrink-0 mt-0.5 sm:mt-0" size={16} />
                         )}
-                        <span className="text-gray-700">
+                        <span className="text-gray-700 break-words">
                           {option.option_text}
                         </span>
                       </span>
                       {option.is_selected && (
-                        <span className="text-xs font-bold text-gray-500">
+                        <span className="text-xs font-bold text-gray-500 shrink-0">
                           إجابتك
                         </span>
                       )}
                       {option.is_correct && (
-                        <span className="text-xs font-bold text-green-600">
+                        <span className="text-xs font-bold text-green-600 shrink-0">
                           الإجابة الصحيحة
                         </span>
                       )}
@@ -201,7 +211,7 @@ const ExamReview = () => {
                   </span>
                   {question.student_answer && (
                     <a
-                      href={`https://backend.benb3n.cloud/${question.student_answer}`}
+                      href={getImageUrl(question.student_answer)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 text-xs font-bold flex items-center gap-1 mt-1"
@@ -218,7 +228,7 @@ const ExamReview = () => {
 
         <button
           onClick={() => navigate("/student/exams")}
-          className="w-full py-3 rounded-xl bg-[#009966] text-white font-bold text-sm hover:bg-[#007a52] transition"
+          className="w-full py-3.5 rounded-xl bg-[#009966] text-white font-bold text-sm hover:bg-[#007a52] transition mb-safe shadow-md min-h-[44px]"
         >
           العودة للامتحانات
         </button>

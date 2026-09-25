@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { previewFile, downloadFile } from "../utils/fileHandler";
+import getImageUrl from "../utils/imageUrl";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   startStudentExam,
@@ -261,20 +262,14 @@ const ExamTaking = () => {
 
   const handlePreviewFile = async (filePath) => {
     if (!filePath) return;
-    const fullUrl = getFileUrl(filePath);
+    const fullUrl = getImageUrl(filePath);
     await previewFile(fullUrl);
   };
 
   const handleDownloadFile = async (filePath) => {
     if (!filePath) return;
-    const fullUrl = getFileUrl(filePath);
+    const fullUrl = getImageUrl(filePath);
     await downloadFile(fullUrl);
-  };
-
-  const getFileUrl = (filePath) => {
-    if (!filePath) return null;
-    const apiUrl = "https://backend.benb3n.cloud";
-    return filePath.startsWith("http") ? filePath : `${apiUrl}/${filePath}`;
   };
 
   if (loading) {
@@ -373,7 +368,7 @@ const ExamTaking = () => {
       {/* Content */}
       <motion.div
         variants={itemVariants}
-        className="max-w-4xl mx-auto w-full px-3 sm:px-4 py-3 sm:py-4 flex-1 pb-20 md:pb-4"
+        className="max-w-4xl mx-auto w-full px-3 sm:px-4 py-3 sm:py-4 flex-1 pb-28 md:pb-4"
       >
         <div className="flex gap-3 sm:gap-4">
           {/* Question Navigator - Desktop */}
@@ -595,8 +590,8 @@ const ExamTaking = () => {
       </motion.div>
 
       {/* Mobile Question Navigator */}
-      <div className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-20 p-2 pb-safe">
-        <div className="flex gap-1 overflow-x-auto custom-scrollbar pb-1">
+      <div className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-20 p-2 pb-safe shadow-lg">
+        <div className="flex gap-1.5 overflow-x-auto touch-scroll pb-1">
           {questions.map((q, index) => {
             const isAnswered =
               answers[q.id]?.selected_option_id || answers[q.id]?.file_path;
@@ -604,7 +599,7 @@ const ExamTaking = () => {
               <button
                 key={q.id}
                 onClick={() => setCurrentIndex(index)}
-                className={`shrink-0 w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
+                className={`shrink-0 w-9 h-9 rounded-lg text-xs font-bold transition-colors ${
                   isAnswered
                     ? "bg-green-100 text-green-700"
                     : "bg-gray-100 text-gray-500"
@@ -624,13 +619,13 @@ const ExamTaking = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3"
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 pb-safe backdrop-blur-xs"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-sm p-4 sm:p-6"
+              className="bg-white rounded-2xl w-full max-w-sm p-4 sm:p-6 shadow-2xl"
             >
               <h3 className="font-bold text-base sm:text-lg mb-2 sm:mb-3">
                 تأكيد التسليم
@@ -638,8 +633,8 @@ const ExamTaking = () => {
               <p className="text-xs sm:text-sm text-gray-600 mb-4">
                 أنت على وشك تسليم الامتحان. تأكد من إجاباتك.
                 {answeredCount < questions.length && (
-                  <span className="block mt-2 text-orange-500 font-bold items-center gap-1">
-                    <AlertCircle size={14} />
+                  <span className="flex items-center gap-1 mt-2 text-orange-500 font-bold">
+                    <AlertCircle size={14} className="shrink-0" />
                     تنبيه: لديك {questions.length - answeredCount} سؤال غير مجاب
                   </span>
                 )}

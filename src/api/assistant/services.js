@@ -75,11 +75,6 @@ const getActivityLog = async (entityType = "", date = "", page = 1) => {
   return response;
 };
 
-const getAssistantProfileImage = async () => {
-  const response = await httpGet("/assistant/profile-image");
-  return response.data;
-};
-
 const updateAssistantProfileImage = async (formData) => {
   const response = await httpPutFormData("/assistant/profile-image", formData);
   return response.data;
@@ -244,9 +239,11 @@ const getStudents = async (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
 ) => {
   const params = new URLSearchParams();
   params.append("page", page);
+  if (limit) params.append("limit", limit);
   if (search) params.append("search", search);
   if (gradeId) params.append("grade_id", gradeId);
   if (groupId) params.append("group_id", groupId);
@@ -508,14 +505,6 @@ const createAttendance = async (attendanceData) => {
   return response.data;
 };
 
-const markRestAbsent = async (groupId, date) => {
-  const response = await httpPost("/assistant/attendance/mark-rest-absent", {
-    groupId,
-    date,
-  });
-  return response.data;
-};
-
 const getAttendanceById = async (attendanceId) => {
   const response = await httpGet(`/assistant/attendance/${attendanceId}`);
   return response.data;
@@ -534,8 +523,11 @@ const deleteAttendance = async (attendanceId) => {
   return response.data;
 };
 
-const getAttendanceDashboard = async () => {
-  const response = await httpGet("/assistant/attendance/dashboard");
+const getAttendanceDashboard = async (groupId = null) => {
+  const url = groupId
+    ? `/assistant/attendance/dashboard?group_id=${groupId}`
+    : `/assistant/attendance/dashboard`;
+  const response = await httpGet(url);
   return response.data;
 };
 
@@ -1325,11 +1317,6 @@ const updateWhatsappTemplate = async (templateId, templateData) => {
 // WHATSAPP - MESSAGES / QUEUE
 // ============================================
 
-const getWhatsappStatus = async () => {
-  const response = await httpGet("/assistant/whatsapp/status");
-  return response.data;
-};
-
 const sendWelcomeWhatsapp = async (studentId, instant = false) => {
   const response = await httpPost(
     `/assistant/whatsapp/send/welcome/${studentId}?instant=${instant ? "true" : "false"}`,
@@ -1494,7 +1481,6 @@ export {
   getAssistantProfile,
   getAssistantDashboard,
   getActivityLog,
-  getAssistantProfileImage,
   updateAssistantProfileImage,
   deleteAssistantProfileImage,
   updateAssistantPassword,
@@ -1569,7 +1555,6 @@ export {
   scanBarcode,
   lockSession,
   createAttendance,
-  markRestAbsent,
   getAttendanceById,
   updateAttendance,
   deleteAttendance,
@@ -1720,7 +1705,6 @@ export {
   getWhatsappTemplates,
   toggleWhatsappTemplate,
   updateWhatsappTemplate,
-  getWhatsappStatus,
   sendWelcomeWhatsapp,
   sendAbsenceWhatsapp,
   sendPaymentWhatsapp,

@@ -10,13 +10,13 @@ export default function MainLayout() {
     <motion.div variants={pageVariants} initial="hidden" animate="show" className="flex h-screen overflow-hidden">
       <Sidebar />
 
-      <motion.div variants={itemVariants} className="flex-1 min-w-0 flex flex-col pt-14 lg:pt-0 mt-7 lg:mt-0" style={{
+      <motion.div variants={itemVariants} className="flex-1 min-w-0 flex flex-col pt-20 lg:pt-0" style={{
         backgroundImage: `url(${background})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
       }}>
-        <main className="p-4 lg:p-6 overflow-auto">
+        <main className="p-2.5 sm:p-4 lg:p-6 overflow-y-auto overflow-x-hidden touch-scroll flex-1">
           <Outlet />
         </main>
       </motion.div>

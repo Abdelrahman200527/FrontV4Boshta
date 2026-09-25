@@ -81,6 +81,7 @@ const fetchAllStudents = async (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
 ) => {
   try {
     const response = await teacherServices.getStudents(
@@ -88,6 +89,7 @@ const fetchAllStudents = async (
       search,
       gradeId,
       groupId,
+      limit,
     );
     return {
       success: true,
@@ -292,9 +294,9 @@ const fetchGradeExamResultsStats = async (gradeId) => {
 // ATTENDANCE ACTIONS
 // ============================================
 
-const fetchAttendanceDashboard = async () => {
+const fetchAttendanceDashboard = async (groupId = null) => {
   try {
-    const data = await teacherServices.getAttendanceDashboard();
+    const data = await teacherServices.getAttendanceDashboard(groupId);
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error.message };
@@ -573,6 +575,79 @@ const previewStudentAnswerAction = async (answerId) => {
   return await previewFile(url);
 };
 
+const fetchPayments = async (
+  page = 1,
+  search = "",
+  gradeId = "",
+  groupId = "",
+) => {
+  try {
+    const res = await teacherServices.getPayments(
+      page,
+      search,
+      gradeId,
+      groupId,
+    );
+    return { success: true, data: res.data, pagination: res.pagination };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchPaymentCollections = async () => {
+  try {
+    const data = await teacherServices.getPaymentCollections();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchUnpaidStudents = async () => {
+  try {
+    const data = await teacherServices.getUnpaidStudents();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchPaymentOverall = async () => {
+  try {
+    const data = await teacherServices.getPaymentOverall();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchStudentsPaymentStatus = async () => {
+  try {
+    const data = await teacherServices.getStudentsPaymentStatus();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchGradePaymentStats = async (gradeId) => {
+  try {
+    const data = await teacherServices.getGradePaymentStats(gradeId);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const fetchGroupPaymentStats = async (groupId) => {
+  try {
+    const data = await teacherServices.getGroupPaymentStats(groupId);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 export {
   fetchTeacherProfile,
   fetchTeacherDashboard,
@@ -595,6 +670,13 @@ export {
   fetchStudentFilters,
   fetchStudentAttendance,
   fetchStudentPayments,
+  fetchPayments,
+  fetchPaymentCollections,
+  fetchUnpaidStudents,
+  fetchPaymentOverall,
+  fetchStudentsPaymentStatus,
+  fetchGradePaymentStats,
+  fetchGroupPaymentStats,
   fetchStudentPaperExams,
   fetchStudentExamResults,
   fetchStudentOnlineExams,

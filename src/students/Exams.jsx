@@ -27,8 +27,9 @@ import {
 } from "../api/student/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
+import { formatDateTime12 } from "../utils/timeFormat";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 const Exams = () => {
   const navigate = useNavigate();
@@ -142,7 +143,10 @@ const Exams = () => {
   const stats = useMemo(() => {
     const totalExams = historyExams.length;
     const passedExams = historyExams.filter(
-      (exam) => exam.result_status === "passed",
+      (exam) =>
+        exam.result_status === "passed" ||
+        exam.result_status === "ناجح" ||
+        (parseFloat(exam.percentage) >= 50),
     ).length;
     const completedExams = historyExams.filter(
       (exam) => exam.score !== null && exam.score !== undefined,
@@ -168,6 +172,14 @@ const Exams = () => {
 
   const handleStartExam = async (exam) => {
     if (startingExam) return;
+
+    if (exam.attempted) {
+      setMessage({
+        type: "error",
+        text: "لقد قمت بحل هذا الامتحان بالفعل",
+      });
+      return;
+    }
 
     const now = Date.now();
     const startTime = new Date(exam.start_at).getTime();
@@ -203,6 +215,7 @@ const Exams = () => {
 
       navigate(`/student/exams/${exam.exam_id}`);
     } catch (err) {
+      console.error("Start exam error:", err);
       setMessage({ type: "error", text: "حدث خطأ، حاول مرة أخرى" });
     } finally {
       setStartingExam(null);
@@ -214,6 +227,15 @@ const Exams = () => {
   };
 
   const getExamStatus = useCallback((exam) => {
+    if (exam.attempted) {
+      return {
+        label: "تم الحل",
+        color: "text-blue-600",
+        bg: "bg-blue-50",
+        isAttempted: true,
+      };
+    }
+
     const now = Date.now();
     const startTime = new Date(exam.start_at).getTime();
     const endTime = new Date(exam.end_at).getTime();
@@ -223,10 +245,10 @@ const Exams = () => {
     if (now < startTime)
       return {
         label: "قادم",
-        color: "text-yellow-500",
+        color: "text-yellow-600",
         bg: "bg-yellow-50",
       };
-    return { label: "متاح الآن", color: "text-green-500", bg: "bg-green-50" };
+    return { label: "متاح الآن", color: "text-green-600", bg: "bg-green-50" };
   }, []);
 
   if (loading && !refreshing) {
@@ -466,6 +488,12 @@ const Exams = () => {
                                   {exam.questions_count} سؤال
                                 </span>
                               )}
+                              {exam.end_at && (
+                                <span className="flex items-center gap-1 text-[#009966] font-medium">
+                                  <CalendarClock size={11} />
+                                  ينتهي: {formatDateTime12(exam.end_at)}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -538,6 +566,12 @@ const Exams = () => {
                                 <BarChart3 size={11} />
                                 {exam.full_mark} درجة
                               </span>
+                              {exam.start_at && (
+                                <span className="flex items-center gap-1">
+                                  <CalendarClock size={11} />
+                                  {formatDateTime12(exam.start_at)}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -570,8 +604,11 @@ const Exams = () => {
                   {historyExams.map((exam) => {
                     const isPending =
                       exam.score === null || exam.score === undefined;
-                    const isPassed = exam.result_status === "passed";
                     const percentage = parseFloat(exam.percentage) || 0;
+                    const isPassed =
+                      exam.result_status === "passed" ||
+                      exam.result_status === "ناجح" ||
+                      percentage >= 50;
 
                     return (
                       <motion.div
@@ -610,8 +647,9 @@ const Exams = () => {
                                 className={`font-bold text-xs sm:text-sm ${
                                   isPassed ? "text-green-600" : "text-red-600"
                                 }`}
+                                dir="ltr"
                               >
-                                {exam.score}/{exam.full_mark}
+                                {exam.score} / {exam.full_mark}
                               </span>
                               <span
                                 className={`text-[10px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 ${
@@ -715,8 +753,8 @@ const Exams = () => {
                       {exam.student_degree !== null &&
                       exam.student_degree !== undefined ? (
                         <>
-                          <span className="font-bold text-xs sm:text-sm text-gray-900">
-                            {exam.student_degree}/{exam.total_degree}
+                          <span className="font-bold text-xs sm:text-sm text-gray-900" dir="ltr">
+                            {exam.student_degree} / {exam.total_degree}
                           </span>
                           <span
                             className={`text-[10px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full ${
@@ -809,8 +847,8 @@ const Exams = () => {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <span className="font-bold text-xs sm:text-sm text-gray-900">
-                        {result.score}/{result.full_mark}
+                      <span className="font-bold text-xs sm:text-sm text-gray-900" dir="ltr">
+                        {result.score} / {result.full_mark}
                       </span>
                       <span className="text-[10px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full bg-blue-50 text-blue-700">
                         {result.percentage}%

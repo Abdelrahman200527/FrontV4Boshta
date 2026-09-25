@@ -583,9 +583,13 @@ const StudentCard = ({
         <StatCard
           label="مجموع الدرجات"
           value={
-            examsTotals.max > 0
-              ? `${examsTotals.degree} / ${examsTotals.max}`
-              : "-"
+            examsTotals.max > 0 ? (
+              <span dir="ltr">
+                {examsTotals.degree} / {examsTotals.max}
+              </span>
+            ) : (
+              "-"
+            )
           }
           subtitle={
             examsTotals.max > 0
@@ -597,8 +601,16 @@ const StudentCard = ({
         />
         <StatCard
           label="إجمالي المدفوع"
-          value={`${totalPaidFromStats} ج`}
-          subtitle={`المطلوب: ${totalRequired} ج`}
+          value={
+            <span>
+              <span dir="ltr">{totalPaidFromStats.toLocaleString()}</span> ج.م
+            </span>
+          }
+          subtitle={
+            <span>
+              المطلوب: <span dir="ltr">{totalRequired.toLocaleString()}</span> ج.م
+            </span>
+          }
           icon={Wallet}
           color="amber"
         />
@@ -612,9 +624,13 @@ const StudentCard = ({
                 : "غير محدد"
           }
           subtitle={
-            remainingBalance > 0
-              ? `المتبقي: ${remainingBalance} ج`
-              : "لا يوجد متأخرات"
+            remainingBalance > 0 ? (
+              <span>
+                المتبقي: <span dir="ltr">{remainingBalance.toLocaleString()}</span> ج.م
+              </span>
+            ) : (
+              "لا يوجد متأخرات"
+            )
           }
           icon={TrendingUp}
           color={paymentStatus === "paid" ? "green" : "red"}
@@ -631,7 +647,7 @@ const StudentCard = ({
           <div className="flex items-center gap-2">
             <Barcode size={13} className="text-gray-400 shrink-0" />
             <span className="text-gray-500">الباركود:</span>
-            <span className="font-mono text-gray-800">{barcode || "-"}</span>
+            <span dir="ltr" className="font-mono text-gray-800">{barcode || "-"}</span>
           </div>
           <div className="flex items-center gap-2">
             <Phone size={13} className="text-gray-400 shrink-0" />
@@ -847,13 +863,13 @@ const StudentCard = ({
           <div className="text-left">
             <p className="text-xs text-blue-600">المطلوب</p>
             <p className="text-sm font-bold text-blue-900">
-              {num(currentSub.required_amount)} ج
+              <span dir="ltr">{num(currentSub.required_amount).toLocaleString()}</span> ج.م
             </p>
           </div>
           <div className="text-left">
             <p className="text-xs text-blue-600">المدفوع</p>
             <p className="text-sm font-bold text-green-600">
-              {num(currentSub.paid_amount)} ج
+              <span dir="ltr">{num(currentSub.paid_amount).toLocaleString()}</span> ج.م
             </p>
           </div>
           <span
@@ -901,7 +917,7 @@ const StudentCard = ({
                     {formatDate(p.date)}
                   </td>
                   <td className="py-2 px-3 text-xs font-bold text-green-600 whitespace-nowrap">
-                    {p.amount} ج
+                    <span dir="ltr">{Number(p.amount).toLocaleString()}</span> ج.م
                   </td>
                   <td className="py-2 px-3">
                     <span
@@ -929,7 +945,9 @@ const StudentCard = ({
         <span className="text-xs font-semibold text-amber-800">
           إجمالي المدفوعات
         </span>
-        <span className="text-lg font-bold text-amber-900">{totalPaid} ج</span>
+        <span className="text-lg font-bold text-amber-900">
+          <span dir="ltr">{totalPaid.toLocaleString()}</span> ج.م
+        </span>
       </div>
     </div>
   );

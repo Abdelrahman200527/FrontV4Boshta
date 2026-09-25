@@ -41,10 +41,18 @@ const Profile = () => {
   const [profileData, setProfileData] = useState(user);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
 
+  const loadProfile = useCallback(async () => {
+    const result = await fetchTeacherProfile();
+    if (result.success && result.data) {
+      setProfileData(result.data);
+      updateUserCookie(result.data);
+    }
+  }, []);
+
   // تحميل البروفايل تلقائياً عند الدخول
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [loadProfile]);
 
   // إصلاح مسار الصورة
   useEffect(() => {
@@ -55,14 +63,6 @@ const Profile = () => {
       setProfileImage(null);
     }
   }, [profileData]);
-
-  const loadProfile = useCallback(async () => {
-    const result = await fetchTeacherProfile();
-    if (result.success && result.data) {
-      setProfileData(result.data);
-      updateUserCookie(result.data);
-    }
-  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);

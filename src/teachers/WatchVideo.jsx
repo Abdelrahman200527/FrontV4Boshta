@@ -12,6 +12,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   GraduationCap,
   Sparkles,
   ExternalLink,

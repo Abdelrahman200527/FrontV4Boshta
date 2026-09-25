@@ -24,7 +24,7 @@ import {
   toast,
 } from "../../../lib/notify";
 import { motion, AnimatePresence } from "framer-motion";
-import { exportPdfTable } from "../../../utils/office.js";
+import { exportPdfTable, exportAoaExcel } from "../../../utils/office.js";
 import { ARABIC_DAYS, formatTime } from "../../../utils/helpers.js";
 import {
   fetchAllGroups,
@@ -292,6 +292,39 @@ const Groups = () => {
     exportPdfTable(fileName, "كشف المجموعات الدراسية", columns, pdfRows);
   };
 
+  const handleExportExcel = () => {
+    if (!groups.length) {
+      toast.error("لا يوجد مجموعات لتصديرها");
+      return;
+    }
+
+    const aoa = [
+      ["#", "المجموعة", "المرحلة الدراسية", "القاعة", "الأيام", "وقت البداية", "وقت النهاية"],
+    ];
+
+    groups.forEach((g, idx) => {
+      const grade = grades.find((grade) => grade.id === g.grade_id);
+      const gradeName = grade ? grade.name : "-";
+
+      aoa.push([
+        idx + 1,
+        g.name || "-",
+        gradeName,
+        g.room || "-",
+        g.days || "-",
+        formatTime(g.start_time),
+        formatTime(g.end_time),
+      ]);
+    });
+
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0];
+    const fileName = `كشف_المجموعات_${dateStr}.xlsx`;
+
+    exportAoaExcel(fileName, "المجموعات الدراسية", aoa);
+    toast.success("تم تصدير كشف المجموعات بنجاح");
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -363,6 +396,14 @@ const Groups = () => {
               className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Upload size={16} /> {importing ? "جاري الرفع..." : "رفع Excel"}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 transition-all shadow-sm"
+            >
+              <Download size={16} /> كشف Excel
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -718,7 +759,7 @@ const Groups = () => {
                           {item.start_time && item.end_time ? (
                             <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium">
                               <Clock size={14} />
-                              {formatTime(item.start_time)} -{" "}
+                              {formatTime(item.start_time)} إلى{" "}
                               {formatTime(item.end_time)}
                             </span>
                           ) : (

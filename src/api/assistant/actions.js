@@ -221,9 +221,10 @@ export const fetchAllStudents = (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
 ) =>
   wrapPaginatedAction(
-    () => assistantServices.getStudents(page, search, gradeId, groupId),
+    () => assistantServices.getStudents(page, search, gradeId, groupId, limit),
     "تحميل الطلاب",
   );
 
@@ -460,12 +461,6 @@ export const createNewAttendance = (attendanceData) =>
     "تسجيل الحضور",
   );
 
-export const markRestAsAbsent = (groupId, date) =>
-  wrapAction(
-    () => assistantServices.markRestAbsent(groupId, date),
-    "تسجيل الغياب الجماعي",
-  );
-
 export const fetchAttendanceById = (attendanceId) =>
   wrapAction(
     () => assistantServices.getAttendanceById(attendanceId),
@@ -488,9 +483,9 @@ export const removeAttendance = (attendanceId) =>
 // ATTENDANCE - STATS
 // ============================================
 
-export const fetchAttendanceDashboard = () =>
+export const fetchAttendanceDashboard = (groupId = null) =>
   wrapAction(
-    () => assistantServices.getAttendanceDashboard(),
+    () => assistantServices.getAttendanceDashboard(groupId),
     "تحميل لوحة الحضور",
   );
 
@@ -1251,12 +1246,6 @@ export const updateWhatsappTemplateAction = (templateId, templateData) =>
 // ============================================
 // WHATSAPP - MESSAGES / QUEUE
 // ============================================
-
-export const fetchWhatsappStatus = () =>
-  wrapAction(
-    () => assistantServices.getWhatsappStatus(),
-    "تحميل حالة الواتساب",
-  );
 
 export const sendWelcomeWhatsappAction = (studentId, instant = false) =>
   wrapAction(

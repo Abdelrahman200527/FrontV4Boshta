@@ -28,6 +28,8 @@ import {
   Wallet,
   Bell,
   Phone,
+  Printer,
+  Download,
 } from "lucide-react";
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useApiList, useInvalidate } from "../../../hooks/useApiQuery";
@@ -37,7 +39,9 @@ import {
   notifySuccess,
   notifyInfo,
   confirmToast,
+  toast,
 } from "../../../lib/notify";
+import { exportPdfTable, exportAoaExcel } from "../../../utils/office";
 import { motion, AnimatePresence } from "framer-motion";
 import Pagination from "../../../components/Pagination";
 import ResponsiveTable from "../../../components/ResponsiveTable";
@@ -51,7 +55,6 @@ import {
   lockAttendanceSession,
   toggleMakeupMode,
   createNewAttendance,
-  markRestAsAbsent,
   fetchAttendanceById,
   updateAttendanceInfo,
   removeAttendance,
@@ -746,7 +749,7 @@ const Attendance = () => {
 
   const loadDashboard = useCallback(async () => {
     const [dash, over] = await Promise.all([
-      fetchAttendanceDashboard(),
+      fetchAttendanceDashboard(selectedGroup || null),
       fetchAttendanceOverview(),
     ]);
 
@@ -759,7 +762,7 @@ const Attendance = () => {
           : [],
       });
     }
-  }, []);
+  }, [selectedGroup]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1397,19 +1400,23 @@ const Attendance = () => {
   /* ============================ Mark Rest Absent ============================ */
 
   async function handleMarkRestAbsent() {
-    if (!selectedGroup) return;
+    if (!sessionId || !selectedGroup) {
+      notifyError("لا توجد جلسة نشطة لتسجيل الغياب");
+      return;
+    }
     confirmToast(
       `سيتم تسجيل كل الطلاب غير المسجلين كغائبين بتاريخ ${selectedDate}`,
       async () => {
         setSaving(true);
         try {
-          const result = await markRestAsAbsent(
+          const result = await lockAttendanceSession(
+            sessionId,
             Number(selectedGroup),
-            selectedDate,
           );
           if (result.success) {
-            const count = Array.isArray(result.data) ? result.data.length : 0;
-            notifySuccess(`تم تسجيل ${count} طالب كغائبين`);
+            setSessionActive(false);
+            setSessionLocked(true);
+            notifySuccess("تم تسجيل الطلاب غير الحاضرين كغائبين");
             await loadGroupStudents(selectedGroup, selectedDate, page);
             await loadDashboard();
             await loadAbsentNotifications(todayDateStr);
@@ -1749,6 +1756,81 @@ const Attendance = () => {
 
   const attendanceRate =
     summary.total > 0 ? Math.round((summary.present / summary.total) * 100) : 0;
+
+  /* ============================ Attendance Exports ============================ */
+
+  const handleExportAttendancePdf = async () => {
+    if (!selectedGroup) {
+      toast.error("يرجى اختيار المجموعة أولاً");
+      return;
+    }
+    const groupName = groups.find((g) => String(g.id) === String(selectedGroup))?.name || "";
+    const gradeName = grades.find((g) => String(g.id) === String(selectedGrade))?.name || "";
+    const title = `كشف حضور: ${groupName} - ${gradeName} (${selectedDate})`;
+
+    const res = await fetchAllStudents(1, search, selectedGrade || "", selectedGroup, 10000);
+    const allStudents = (res.success && Array.isArray(res.data)) ? res.data : filteredStudents;
+
+    const columns = [
+      { header: "#", key: "index", width: 8 },
+      { header: "الاسم", key: "name", width: 40 },
+      { header: "الباركود", key: "barcode", width: 22 },
+      { header: "رقم الهاتف", key: "phone", width: 20 },
+      { header: "الحالة", key: "status", width: 15 },
+      { header: "وقت الحضور", key: "time", width: 15 },
+    ];
+
+    const rows = allStudents.map((s, idx) => {
+      const rec = attendanceRecords[s.id];
+      const statusText = rec?.status === "present" ? "حاضر" : rec?.status === "absent" ? "غائب" : "غير مسجل";
+      return {
+        index: idx + 1,
+        name: s.full_name || "-",
+        barcode: s.barcode || "-",
+        phone: s.phone || "-",
+        status: statusText,
+        time: rec?.attended_at ? formatTimeLabel(rec.attended_at) : "-",
+      };
+    });
+
+    exportPdfTable(`كشف_حضور_${groupName}_${selectedDate}.pdf`, `${title} - إجمالي: ${rows.length}`, columns, rows);
+  };
+
+  const handleExportAttendanceExcel = async () => {
+    if (!selectedGroup) {
+      toast.error("يرجى اختيار المجموعة أولاً");
+      return;
+    }
+    const groupName = groups.find((g) => String(g.id) === String(selectedGroup))?.name || "";
+    const gradeName = grades.find((g) => String(g.id) === String(selectedGrade))?.name || "";
+
+    const res = await fetchAllStudents(1, search, selectedGrade || "", selectedGroup, 10000);
+    const allStudents = (res.success && Array.isArray(res.data)) ? res.data : filteredStudents;
+
+    const aoa = [
+      ["#", "الاسم", "الباركود", "رقم الهاتف", "المجموعة", "المرحلة", "الحالة", "وقت الحضور", "التاريخ"],
+    ];
+
+    allStudents.forEach((s, idx) => {
+      const rec = attendanceRecords[s.id];
+      const statusText = rec?.status === "present" ? "حاضر" : rec?.status === "absent" ? "غائب" : "غير مسجل";
+      aoa.push([
+        idx + 1,
+        s.full_name || "-",
+        s.barcode || "-",
+        s.phone || "-",
+        groupName || "-",
+        gradeName || "-",
+        statusText,
+        rec?.attended_at ? formatTimeLabel(rec.attended_at) : "-",
+        selectedDate || "-",
+      ]);
+    });
+
+    const filename = `كشف_حضور_${groupName}_${selectedDate}.xlsx`;
+    exportAoaExcel(filename, "الحضور", aoa);
+    toast.success("تم تصدير كشف الحضور بنجاح");
+  };
 
   /* ============================ Derived Data ============================ */
 
@@ -2579,19 +2661,42 @@ const Attendance = () => {
                       </span>
                     )}
                   </h3>
-                  <div className="flex flex-wrap gap-3 text-sm">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                      الكل: {summary.total}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      حاضر: {summary.present}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                      غائب: {summary.absent}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap gap-3 text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        الكل: {summary.total}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        حاضر: {summary.present}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                        غائب: {summary.absent}
+                      </span>
+                    </div>
+
+                    {selectedGroup && filteredStudents.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleExportAttendanceExcel}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition shadow-xs"
+                        >
+                          <Download size={13} />
+                          كشف Excel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportAttendancePdf}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-[#009966] text-white rounded-lg text-xs font-bold hover:bg-[#007a52] transition shadow-xs"
+                        >
+                          <Printer size={13} />
+                          كشف PDF
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

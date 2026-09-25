@@ -435,8 +435,8 @@ const Degrees = () => {
                     className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#009966] transition cursor-pointer group"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="bg-purple-50 rounded-xl p-2.5 group-hover:bg-purple-100 transition">
-                        <Monitor size={20} className="text-purple-500" />
+                      <div className="bg-emerald-50 rounded-xl p-2.5 group-hover:bg-emerald-100 transition">
+                        <Monitor size={20} className="text-[#009966]" />
                       </div>
                       <ArrowRight
                         size={18}

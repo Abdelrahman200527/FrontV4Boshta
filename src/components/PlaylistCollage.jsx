@@ -2,20 +2,12 @@ import { PlayCircle, FolderOpen } from "lucide-react";
 import React from "react";
 import { motion } from "framer-motion";
 import { pageVariants } from "../motion";
+import getImageUrl from "../utils/imageUrl";
 
 const PlaylistCollage = ({ videos = [] }) => {
-  // ✅ الصورة المرفوعة فقط
-  const getThumbnailUrl = (video) => {
-    if (video.thumbnail_url) {
-      if (video.thumbnail_url.startsWith("http")) return video.thumbnail_url;
-      return `https://backend.benb3n.cloud/${video.thumbnail_url.replace(/^\//, "")}`;
-    }
-    return null;
-  };
-
   const thumbnails = videos
     .slice(0, 4)
-    .map((video) => getThumbnailUrl(video))
+    .map((video) => (video.thumbnail_url ? getImageUrl(video.thumbnail_url) : null))
     .filter(Boolean);
 
   if (thumbnails.length === 0) {

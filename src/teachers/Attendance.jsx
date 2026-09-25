@@ -19,8 +19,11 @@ import {
   GraduationCap,
   Phone,
   Barcode,
+  Printer,
+  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import {
   PieChart,
   Pie,
@@ -121,13 +124,29 @@ const Attendance = () => {
     setGroupMonthAttendance(null);
     setAttendanceSummary(null);
 
-    if (gradeId) {
-      setLoadingFilters(true);
-      const result = await fetchGradeAttendance(gradeId);
-      if (result.success) {
-        setGradeAttendance(result.data);
-      }
-      setLoadingFilters(false);
+    setLoadingFilters(true);
+    const [gradeRes, dashRes] = await Promise.all([
+      gradeId ? fetchGradeAttendance(gradeId) : Promise.resolve({ success: false }),
+      fetchAttendanceDashboard(null),
+    ]);
+    if (gradeRes.success) {
+      setGradeAttendance(gradeRes.data);
+    }
+    if (dashRes.success) {
+      setDashboardData(dashRes.data);
+    }
+    setLoadingFilters(false);
+  };
+
+  const handleGroupChange = async (groupId) => {
+    setSelectedGroup(groupId);
+    setGroupDateAttendance(null);
+    setGroupMonthAttendance(null);
+    setAttendanceSummary(null);
+
+    const result = await fetchAttendanceDashboard(groupId || null);
+    if (result.success) {
+      setDashboardData(result.data);
     }
   };
 
@@ -183,6 +202,52 @@ const Attendance = () => {
       setSearchError(result.error || "فشل تحميل الملخص");
     }
     setLoadingFilters(false);
+  };
+
+  const handleExportGroupAttendance = () => {
+    if (!groupDateAttendance || groupDateAttendance.length === 0) return;
+    const groupObj = groups.find((g) => String(g.id) === String(selectedGroup));
+    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
+    const groupName = groupObj?.name || "";
+    const gradeName = gradeObj?.name || "";
+    const title = `كشف حضور المجموعة ${groupName ? `(${groupName})` : ""} - ${gradeName} - تاريخ ${selectedDate || ""}`;
+    const columns = [
+      { header: "#", key: "index", width: 8 },
+      { header: "الاسم", key: "full_name", width: 45 },
+      { header: "الباركود", key: "barcode", width: 25 },
+      { header: "الحالة", key: "status", width: 22 },
+    ];
+    const rows = groupDateAttendance.map((item, idx) => ({
+      index: idx + 1,
+      full_name: item.full_name || "-",
+      barcode: item.barcode || "-",
+      status: item.status === "present" ? "حاضر" : "غائب",
+    }));
+    exportPdfTable("attendance-group", title, columns, rows);
+  };
+
+  const handleExportGroupAttendanceExcel = () => {
+    if (!groupDateAttendance || groupDateAttendance.length === 0) return;
+    const groupObj = groups.find((g) => String(g.id) === String(selectedGroup));
+    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
+    const groupName = groupObj?.name || "";
+    const gradeName = gradeObj?.name || "";
+    const aoa = [
+      ["#", "اسم الطالب", "الباركود", "الحالة", "المجموعة", "الصف", "التاريخ"],
+    ];
+    groupDateAttendance.forEach((item, idx) => {
+      aoa.push([
+        idx + 1,
+        item.full_name || "-",
+        item.barcode || "-",
+        item.status === "present" ? "حاضر" : "غائب",
+        groupName || "-",
+        gradeName || "-",
+        selectedDate || "-",
+      ]);
+    });
+    const filename = `كشف_حضور_${groupName ? groupName.replace(/\s+/g, "_") + "_" : ""}${selectedDate || ""}.xlsx`;
+    exportAoaExcel(filename, "الحضور", aoa);
   };
 
   const handleSearch = async () => {
@@ -579,7 +644,7 @@ const Attendance = () => {
                     </label>
                     <select
                       value={selectedGroup}
-                      onChange={(e) => setSelectedGroup(e.target.value)}
+                      onChange={(e) => handleGroupChange(e.target.value)}
                       disabled={!selectedGrade}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#009966] bg-white disabled:bg-gray-50 disabled:text-gray-400"
                     >
@@ -616,7 +681,7 @@ const Attendance = () => {
                   </button>
                   <button
                     onClick={handleSummarySearch}
-                    className="px-4 py-2.5 bg-purple-500 text-white rounded-lg text-xs sm:text-sm font-bold hover:bg-purple-600 transition"
+                    className="px-4 py-2.5 bg-[#003322] text-white rounded-lg text-xs sm:text-sm font-bold hover:bg-[#002216] transition"
                   >
                     عرض الملخص
                   </button>
@@ -687,12 +752,30 @@ const Attendance = () => {
                 {/* Group Date Attendance Table */}
                 {groupDateAttendance && groupDateAttendance.length > 0 && (
                   <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                    <h4 className="font-bold text-xs sm:text-sm text-gray-800 mb-2">
-                      حضور المجموعة - {selectedDate}
-                    </h4>
-                    <div className="overflow-x-auto max-h-60 overflow-y-auto rounded-lg border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                      <h4 className="font-bold text-xs sm:text-sm text-gray-800">
+                        حضور المجموعة - {selectedDate} ({groupDateAttendance.length} طالب)
+                      </h4>
+                      <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                        <button
+                          onClick={handleExportGroupAttendanceExcel}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition shadow-xs"
+                        >
+                          <Download size={13} />
+                          تصدير كشف (Excel)
+                        </button>
+                        <button
+                          onClick={handleExportGroupAttendance}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#009966] text-white rounded-lg text-xs font-bold hover:bg-[#007a52] transition shadow-xs"
+                        >
+                          <Printer size={13} />
+                          طباعة الكشف (PDF)
+                        </button>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto max-h-72 overflow-y-auto rounded-lg border border-gray-200">
                       <table className="w-full text-xs sm:text-sm">
-                        <thead className="bg-white sticky top-0 z-10">
+                        <thead className="bg-white sticky top-0 z-10 shadow-xs">
                           <tr className="text-gray-600">
                             <th className="py-2.5 px-3 text-right font-semibold">
                               #
@@ -720,7 +803,7 @@ const Attendance = () => {
                               <td className="py-2.5 px-3 font-medium">
                                 {item.full_name}
                               </td>
-                              <td className="py-2.5 px-3 text-gray-500">
+                              <td className="py-2.5 px-3 text-gray-600 font-mono text-xs" dir="ltr">
                                 {item.barcode || "-"}
                               </td>
                               <td className="py-2.5 px-3">
@@ -897,7 +980,7 @@ const Attendance = () => {
                       <span className="text-[9px] text-gray-500 block">
                         الباركود
                       </span>
-                      <span className="font-bold text-xs truncate">
+                      <span className="font-bold text-xs truncate" dir="ltr">
                         {searchResult.barcode}
                       </span>
                     </div>

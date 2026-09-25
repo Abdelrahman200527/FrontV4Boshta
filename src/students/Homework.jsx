@@ -20,7 +20,7 @@ import {
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
-import { formatDate } from "../utils/dateUtils";
+import { formatDateTime12 } from "../utils/timeFormat";
 import {
   fetchAssignments,
   fetchAssignmentById,
@@ -59,13 +59,23 @@ const Homework = () => {
       ]);
 
       if (assignmentsRes.success) {
-        setAssignments(assignmentsRes.data || []);
+        const sorted = (assignmentsRes.data || []).sort(
+          (a, b) =>
+            new Date(b.deadline || b.created_at) -
+            new Date(a.deadline || a.created_at),
+        );
+        setAssignments(sorted);
       } else {
         setError(assignmentsRes.error || "فشل تحميل الواجبات");
       }
 
       if (submissionsRes.success) {
-        setSubmissions(submissionsRes.data || []);
+        const sortedSubs = (submissionsRes.data || []).sort(
+          (a, b) =>
+            new Date(b.submitted_at || b.created_at) -
+            new Date(a.submitted_at || a.created_at),
+        );
+        setSubmissions(sortedSubs);
       }
     } catch (err) {
       console.error("Error loading homework:", err);
@@ -562,7 +572,7 @@ const Homework = () => {
                       <div className="flex items-center gap-2 flex-wrap mt-1">
                         <span className="text-xs text-gray-500 flex items-center gap-1">
                           <Calendar size={11} />
-                          {formatDate(assignment.deadline)}
+                          {formatDateTime12(assignment.deadline)}
                         </span>
                         <span className="text-xs text-gray-500">
                           {assignment.full_mark} درجة
@@ -654,7 +664,7 @@ const Homework = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   {submission.score !== null &&
                   submission.score !== undefined ? (
-                    <span className="text-xs text-blue-600 font-bold">
+                    <span className="text-xs text-blue-600 font-bold" dir="ltr">
                       {submission.score} / {submission.full_mark}
                     </span>
                   ) : (
@@ -681,17 +691,17 @@ const Homework = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4 pb-safe backdrop-blur-xs"
             onClick={closeAllModals}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+              className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 className="font-bold text-sm text-gray-900">
                   تفاصيل الواجب
                 </h3>
@@ -729,14 +739,14 @@ const Homework = () => {
                           آخر موعد
                         </span>
                         <span className="font-bold text-sm">
-                          {formatDate(assignmentDetails.deadline)}
+                          {formatDateTime12(assignmentDetails.deadline)}
                         </span>
                       </div>
                     </div>
                     {assignmentDetails.file_path && (
                       <button
                         onClick={() => handleDownload(assignmentDetails)}
-                        className="flex items-center gap-2 text-blue-600 text-sm font-bold"
+                        className="flex items-center gap-2 text-blue-600 text-sm font-bold min-h-[36px]"
                       >
                         <Download size={14} />
                         تحميل ملف الواجب
@@ -761,17 +771,17 @@ const Homework = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4 pb-safe backdrop-blur-xs"
             onClick={closeAllModals}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-md"
+              className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 className="font-bold text-sm text-gray-900">
                   نتيجة الواجب
                 </h3>
@@ -803,7 +813,7 @@ const Homework = () => {
                         }}
                       />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" dir="ltr">
                       <span className="text-xl font-bold text-gray-900">
                         {assignmentDetails.score || 0}
                       </span>
@@ -849,17 +859,17 @@ const Homework = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3"
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3 sm:p-4 pb-safe backdrop-blur-xs"
             onClick={closeAllModals}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-md"
+              className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+              <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 className="font-bold text-sm text-gray-900">
                   {selectedAssignment.assignment_status === "submitted"
                     ? "تحديث التسليم"
@@ -905,7 +915,7 @@ const Homework = () => {
                         : handleSubmitAssignment
                     }
                     disabled={uploadLoading}
-                    className="py-2.5 rounded-lg text-sm font-bold bg-[#009966] text-white hover:bg-[#007a52] transition disabled:opacity-50"
+                    className="py-3 sm:py-2.5 rounded-lg text-sm font-bold bg-[#009966] text-white hover:bg-[#007a52] transition disabled:opacity-50 min-h-[44px]"
                   >
                     {uploadLoading
                       ? "جاري الرفع..."

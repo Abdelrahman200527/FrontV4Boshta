@@ -27,9 +27,12 @@ import {
   Star,
   Target,
   Percent,
+  Printer,
+  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import {
   fetchPaperExamResults,
   fetchOnlineExamStats,
@@ -301,6 +304,62 @@ const ExamResults = () => {
     return <span className="text-xs font-bold text-gray-400">{rank}</span>;
   };
 
+  const handleExportPdf = () => {
+    if (filteredResults.length === 0) return;
+    const title = `كشف درجات ${examInfo?.title || "الامتحان"} (${type === "paper" ? "ورقي" : "إلكتروني"}) - الدرجة الكلية: ${totalMark}`;
+    const columns = [
+      { header: "الترتيب", key: "rank", width: 10 },
+      { header: "الباركود", key: "barcode", width: 20 },
+      { header: "اسم الطالب", key: "name", width: 35 },
+      { header: "الدرجة", key: "score", width: 15 },
+      { header: "النسبة", key: "percentage", width: 10 },
+      { header: "الحالة", key: "status", width: 10 },
+    ];
+    const rows = filteredResults.map((student, index) => {
+      const score = getStudentScore(student);
+      const percentage = getStudentPercentage(student);
+      const isPassed = percentage >= 50;
+      return {
+        rank: index + 1,
+        barcode: student.barcode || "-",
+        name: student.full_name || "-",
+        score: `${score} / ${totalMark}`,
+        percentage: `${percentage}%`,
+        status: isPassed ? "ناجح" : "راسب",
+      };
+    });
+    exportPdfTable(`exam-results-${examId}`, title, columns, rows);
+  };
+
+  const handleExportExcel = () => {
+    if (filteredResults.length === 0) return;
+    const headers = [
+      "الترتيب",
+      "الباركود",
+      "اسم الطالب",
+      "الدرجة",
+      "الدرجة الكلية",
+      "النسبة المئوية",
+      "الحالة",
+    ];
+    const rows = filteredResults.map((student, index) => {
+      const score = getStudentScore(student);
+      const percentage = getStudentPercentage(student);
+      const isPassed = percentage >= 50;
+      return [
+        index + 1,
+        student.barcode || "-",
+        student.full_name || "-",
+        score,
+        totalMark,
+        `${percentage}%`,
+        isPassed ? "ناجح" : "راسب",
+      ];
+    });
+    const filename = `كشف_درجات_${String(examInfo?.title || "الامتحان").replace(/[\\/:*?"<>|]/g, "")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    exportAoaExcel(filename, "الدرجات", [headers, ...rows]);
+  };
+
   if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -349,13 +408,33 @@ const ExamResults = () => {
           <ArrowRight size={15} />
           رجوع للامتحانات
         </button>
-        <button
-          onClick={handleRefresh}
-          className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] transition"
-        >
-          <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
-          تحديث
-        </button>
+        <div className="flex items-center gap-2">
+          {examStatus === "finished" && examResults.length > 0 && (
+            <>
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-1.5 bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-emerald-800 transition shadow-xs"
+              >
+                <Download size={14} />
+                تصدير كشف Excel
+              </button>
+              <button
+                onClick={handleExportPdf}
+                className="flex items-center gap-1.5 bg-[#009966] text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-[#007a52] transition shadow-xs"
+              >
+                <Printer size={14} />
+                طباعة كشف الدرجات (PDF)
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] transition"
+          >
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+            تحديث
+          </button>
+        </div>
       </motion.div>
 
       {/* Exam Info Card */}
@@ -618,7 +697,7 @@ const ExamResults = () => {
                           <span className="font-bold text-sm text-gray-900 block truncate">
                             {student.full_name}
                           </span>
-                          <span className="text-[11px] text-gray-500">
+                          <span className="text-[11px] text-gray-500" dir="ltr">
                             باركود: {student.barcode}
                           </span>
                         </div>
@@ -630,8 +709,8 @@ const ExamResults = () => {
                       </span>
                     </div>
                     <div className="mt-2 flex justify-between items-center">
-                      <span className="text-xs text-gray-500">
-                        الدرجة: {score}/{totalMark}
+                      <span className="text-xs text-gray-500" dir="ltr">
+                        الدرجة: {score} / {totalMark}
                       </span>
                       <span
                         className={`text-xs font-bold px-2 py-1 rounded-full ${isPassed ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
@@ -702,16 +781,16 @@ const ExamResults = () => {
                               {getRankIcon(rank)}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-xs font-mono">
+                          <td className="py-3 px-4 text-xs font-mono" dir="ltr">
                             {student.barcode}
                           </td>
                           <td className="py-3 px-4 font-medium text-sm">
                             {student.full_name}
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-3 px-4" dir="ltr">
                             <span className="font-bold text-sm">{score}</span>
                             <span className="text-gray-400 text-xs">
-                              /{totalMark}
+                              {" "}/ {totalMark}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -950,15 +1029,15 @@ const ExamResults = () => {
                           أدنى درجة
                         </span>
                       </div>
-                      <div className="bg-purple-50 rounded-xl p-3 text-center">
+                      <div className="bg-emerald-50 rounded-xl p-3 text-center">
                         <FileText
                           size={16}
-                          className="text-purple-600 mx-auto mb-1"
+                          className="text-[#009966] mx-auto mb-1"
                         />
-                        <span className="text-base sm:text-xl font-bold text-purple-700 block">
+                        <span className="text-base sm:text-xl font-bold text-[#003322] block">
                           {toNumber(gradeResultStats.total_exams)}
                         </span>
-                        <span className="text-[10px] sm:text-xs text-purple-600">
+                        <span className="text-[10px] sm:text-xs text-[#009966]">
                           إجمالي الامتحانات
                         </span>
                       </div>

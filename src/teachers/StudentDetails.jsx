@@ -17,19 +17,16 @@ import {
   Search,
   BookOpen,
   Award,
+  Printer,
+  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchStudentFullDetails } from "../api/teacher/actions";
+import getImageUrl from "../utils/imageUrl";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
-
-// ✅ Image helpers
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  if (imagePath.startsWith("http")) return imagePath;
-  return `https://backend.benb3n.cloud/${imagePath.replace(/^\//, "")}`;
-};
 
 const StudentAvatar = ({ profile }) => {
   const [imgError, setImgError] = useState(false);
@@ -157,13 +154,78 @@ const StudentDetails = () => {
   const profile = studentDetails.profile || {};
   const stats = studentDetails.stats || {};
   const monthlyAttendance = studentDetails.monthlyAttendance || [];
-  const payments = studentDetails.payments || [];
   const balance = studentDetails.balance || {};
   const paperExams = studentDetails.paperExams || [];
   const examResults = studentDetails.examResults || [];
   const onlineExams = studentDetails.onlineExams || [];
   const assignments = studentDetails.assignments || [];
   const submissions = studentDetails.submissions || [];
+
+  const handleExportPDF = () => {
+    const studentTitle = `تقرير الطالب: ${profile.full_name || ""} (${profile.grade_name || ""} - ${profile.group_name || ""})`;
+    const rows = [
+      ...examResults.map((r) => ({
+        type: "امتحان ورقي",
+        name: r.exam_title || r.title || "-",
+        degree: `${r.degree ?? "-"} / ${r.total_degree || "-"}`,
+        percentage: `${toNumber(r.percentage)}%`,
+        status: toNumber(r.percentage) >= 50 ? "ناجح" : "راسب",
+      })),
+      ...onlineExams.map((e) => ({
+        type: "امتحان إلكتروني",
+        name: e.exam_title || e.title || "-",
+        degree: `${e.score ?? "-"} / ${e.full_mark || "-"}`,
+        percentage: `${toNumber(e.percentage)}%`,
+        status: toNumber(e.percentage) >= 50 ? "ناجح" : "راسب",
+      })),
+    ];
+
+    exportPdfTable(
+      `تقرير_${profile.full_name || "طالب"}_${profile.barcode || ""}.pdf`,
+      studentTitle,
+      [
+        { header: "نوع الامتحان", key: "type" },
+        { header: "اسم الامتحان", key: "name" },
+        { header: "الدرجة", key: "degree" },
+        { header: "النسبة", key: "percentage" },
+        { header: "الحالة", key: "status" },
+      ],
+      rows
+    );
+  };
+
+  const handleExportExcel = () => {
+    if (!profile) return;
+    const aoa = [
+      ["#", "نوع الامتحان", "اسم الامتحان", "الدرجة", "الدرجة الكلية", "النسبة المئوية", "الحالة"],
+    ];
+    let idx = 1;
+    (examResults?.paperExams || []).forEach((r) => {
+      aoa.push([
+        idx++,
+        "امتحان ورقي",
+        r.exam_title || r.title || "-",
+        r.score ?? "-",
+        r.full_mark || "-",
+        `${toNumber(r.percentage)}%`,
+        toNumber(r.percentage) >= 50 ? "ناجح" : "راسب",
+      ]);
+    });
+    (examResults?.onlineExams || []).forEach((e) => {
+      aoa.push([
+        idx++,
+        "امتحان إلكتروني",
+        e.exam_title || e.title || "-",
+        e.score ?? "-",
+        e.full_mark || "-",
+        `${toNumber(e.percentage)}%`,
+        toNumber(e.percentage) >= 50 ? "ناجح" : "راسب",
+      ]);
+    });
+
+    const filename = `تقرير_${profile.full_name || "طالب"}_${profile.barcode || ""}.xlsx`;
+    exportAoaExcel(filename, "درجات الطالب", aoa);
+  };
 
   return (
     <motion.section
@@ -185,13 +247,32 @@ const StudentDetails = () => {
           <ArrowRight size={16} />
           رجوع للطلاب
         </button>
-        <button
-          onClick={handleRefresh}
-          className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition"
-        >
-          <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
-          تحديث
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 bg-white border border-gray-200 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-700 hover:border-[#009966] hover:text-[#009966] transition shadow-xs"
+            title="تصدير تقرير الطالب Excel"
+          >
+            <Download size={15} />
+            <span>تصدير Excel</span>
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-1.5 bg-[#009966] text-white px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-[#007a52] transition shadow-xs"
+            title="طباعة تقرير الطالب"
+          >
+            <Printer size={15} />
+            <span>طباعة التقرير</span>
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] transition disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+            تحديث
+          </button>
+        </div>
       </motion.div>
 
       {/* Student Header Card */}
@@ -543,7 +624,7 @@ const StudentDetails = () => {
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {exam.exam_title || exam.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center">
+                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
                             {exam.student_degree ?? exam.degree ?? "-"} / {exam.total_degree || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -590,7 +671,7 @@ const StudentDetails = () => {
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {result.exam_title || result.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center">
+                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
                             {result.degree ?? "-"} / {result.total_degree || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -636,7 +717,7 @@ const StudentDetails = () => {
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {exam.exam_title || exam.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center">
+                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
                             {exam.score ?? "-"} / {exam.full_mark || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">

@@ -68,7 +68,10 @@ const DegreeRow = memo(function DegreeRow({
         </div>
       </td>
       <td className="text-right py-4">
-        <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+        <span
+          dir="ltr"
+          className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded-full"
+        >
           {student.barcode || "-"}
         </span>
       </td>
@@ -92,7 +95,7 @@ const DegreeRow = memo(function DegreeRow({
                   : "border-gray-200 bg-gray-50 text-gray-700"
             } disabled:opacity-60`}
           />
-          <span className="text-xs text-gray-400">/ {maxScore}</span>
+          <span dir="ltr" className="text-xs text-gray-400">/ {maxScore}</span>
         </div>
       </td>
       <td className="text-right pr-6 py-4">
@@ -144,7 +147,7 @@ const AddDegree = () => {
       setLoading(true);
       try {
         const [studentsResult, resultsResult, statsResult] = await Promise.all([
-          fetchAllStudents(1, "", exam.grade_id, exam.group_id || ""),
+          fetchAllStudents(1, "", exam.grade_id, exam.group_id || "", 10000),
           fetchExamResults(exam.id),
           fetchExamResultStats(exam.id),
         ]);
@@ -311,10 +314,32 @@ const AddDegree = () => {
   };
 
   const handleDownloadTemplate = () => {
+    const listToExport = filteredStudents.length > 0 ? filteredStudents : students;
     const headers = ["الدرجة", "الباركود", "اسم الطالب"];
-    const rows = students.map((s) => [results[s.id], s.barcode, s.full_name]);
-    const filename = `درجات_${String(exam?.title || "الامتحان").replace(/[\\/:*?"<>|]/g, "")}.xlsx`;
+    const rows = listToExport.map((s) => [results[s.id] ?? "", s.barcode || "-", s.full_name || "-"]);
+    const filename = `قالب_درجات_${String(exam?.title || "الامتحان").replace(/[\\/:*?"<>|]/g, "")}.xlsx`;
+    exportAoaExcel(filename, "DegreesTemplate", [headers, ...rows]);
+    toast.success("تم تحميل قالب الدرجات بنجاح");
+  };
+
+  const handleExportExcel = () => {
+    const listToExport = filteredStudents.length > 0 ? filteredStudents : students;
+    if (!listToExport.length) {
+      toast.error("لا يوجد طلاب لتصديرهم");
+      return;
+    }
+    const headers = ["#", "اسم الطالب", "الباركود", "الدرجة", "الدرجة الكلية", "الحالة"];
+    const rows = listToExport.map((s, idx) => [
+      idx + 1,
+      s.full_name || "-",
+      s.barcode || "-",
+      results[s.id] !== undefined && results[s.id] !== null && results[s.id] !== "" ? results[s.id] : "-",
+      maxScore,
+      getStudentStatus(s.id) === "pass" ? "ناجح" : getStudentStatus(s.id) === "fail" ? "راسب" : "غير مدخل",
+    ]);
+    const filename = `كشف_درجات_${String(exam?.title || "الامتحان").replace(/[\\/:*?"<>|]/g, "")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     exportAoaExcel(filename, "Degrees", [headers, ...rows]);
+    toast.success(`تم تصدير كشف ${rows.length} طالب إلى Excel بنجاح`);
   };
 
   const handleImportExcel = async () => {
@@ -381,25 +406,36 @@ const AddDegree = () => {
   };
 
   const handleExportPdf = () => {
+    const listToExport = filteredStudents.length > 0 ? filteredStudents : students;
+    if (!listToExport.length) {
+      toast.error("لا يوجد طلاب لتصديرهم");
+      return;
+    }
+
     const columns = [
+      { header: "#", key: "index" },
       { header: "اسم الطالب", key: "full_name" },
       { header: "الباركود", key: "barcode" },
       { header: "الدرجة", key: "degree" },
       { header: "الدرجة الكلية", key: "total_degree" },
+      { header: "الحالة", key: "status" },
     ];
 
-    const pdfRows = students.map((s) => ({
-      full_name: s.full_name,
-      barcode: s.barcode,
-      degree: results[s.id] == null ? "-" : results[s.id],
+    const pdfRows = listToExport.map((s, idx) => ({
+      index: idx + 1,
+      full_name: s.full_name || "-",
+      barcode: s.barcode || "-",
+      degree: results[s.id] !== undefined && results[s.id] !== null && results[s.id] !== "" ? results[s.id] : "-",
       total_degree: maxScore,
+      status: getStudentStatus(s.id) === "pass" ? "ناجح" : getStudentStatus(s.id) === "fail" ? "راسب" : "غير مدخل",
     }));
 
     const today = new Date();
     const dateStr = today.toISOString().split("T")[0];
-    const fileName = `كشف_درجات_${String(exam?.title)}_${dateStr}.pdf`;
+    const fileName = `كشف_درجات_${String(exam?.title || "الامتحان")}_${dateStr}.pdf`;
 
-    exportPdfTable(fileName, "كشف الدرجات", columns, pdfRows);
+    exportPdfTable(fileName, `كشف درجات: ${exam?.title || "الامتحان"} (${pdfRows.length} طالب)`, columns, pdfRows);
+    toast.success(`تم تصدير كشف ${pdfRows.length} طالب بنجاح`);
   };
 
   if (loading) {
@@ -598,23 +634,33 @@ const AddDegree = () => {
         </div>
 
         <button
-          onClick={handleDownloadTemplate}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
+          onClick={handleExportExcel}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+          title="تصدير كشف الدرجات للطلاب المحددين بصيغة Excel"
         >
-          <Download size={16} /> قالب Excel
+          <Download size={16} /> كشف Excel
+        </button>
+        <button
+          onClick={handleExportPdf}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+          title="تصدير كشف الدرجات للطلاب المحددين بصيغة PDF"
+        >
+          <FileText size={16} /> كشف PDF
+        </button>
+        <button
+          onClick={handleDownloadTemplate}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+          title="تحميل قالب رصد الدرجات لإدخالها وإعادة رفعها"
+        >
+          <Download size={16} /> قالب إدخال
         </button>
         <button
           onClick={handleImportExcel}
           disabled={importing}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-60"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-60 shadow-sm"
+          title="رفع ملف Excel يحتوي على درجات الطلاب"
         >
           <Upload size={16} /> {importing ? "جاري الرفع..." : "رفع Excel"}
-        </button>
-        <button
-          onClick={handleExportPdf}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
-        >
-          <FileText size={16} /> كشف Pdf
         </button>
       </motion.div>
 

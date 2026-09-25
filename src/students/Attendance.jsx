@@ -19,6 +19,7 @@ import {
   fetchMonthlyAttendance,
   fetchConsecutiveAbsences,
 } from "../api/student/actions";
+import { formatTime12 } from "../utils/timeFormat";
 
 const Attendance = () => {
   const [stats, setStats] = useState(null);
@@ -69,12 +70,10 @@ const Attendance = () => {
     setRefreshing(false);
   };
 
-  // Format time - remove milliseconds
+  // Format time - 12-hour format
   const formatTime = (timeString) => {
     if (!timeString) return "-";
-    const match = timeString.match(/^(\d{2}):(\d{2})/);
-    if (match) return `${match[1]}:${match[2]}`;
-    return timeString;
+    return formatTime12(timeString);
   };
 
   // Format date
@@ -368,8 +367,8 @@ const Attendance = () => {
         variants={itemVariants}
         className="bg-white rounded-xl border border-gray-200 overflow-hidden"
       >
-        <div className="overflow-x-auto overflow-y-auto max-h-100">
-          <table className="w-full min-w-125">
+        <div className="overflow-x-auto overflow-y-auto max-h-100 touch-scroll">
+          <table className="w-full min-w-[480px]">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600 whitespace-nowrap">
@@ -406,13 +405,21 @@ const Attendance = () => {
                       {formatDate(record.attendance_date)}
                     </td>
                     <td className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap">
-                      {record.day_name || "-"}
+                      <span>{record.day_name || "-"}</span>
+                      {Boolean(record.is_makeup) && (
+                        <span className="inline-block mr-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                          تعويض
+                        </span>
+                      )}
                     </td>
                     <td
                       className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap"
-                      dir="ltr"
                     >
-                      {formatTime(record.attendance_time)}
+                      {record.status === "absent" ? (
+                        <span className="text-gray-400">-</span>
+                      ) : (
+                        <span dir="ltr">{formatTime(record.attendance_time)}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-center text-gray-600 whitespace-nowrap">
                       {record.method === "barcode"

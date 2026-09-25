@@ -51,8 +51,10 @@ const teacherNavItems = [
     icon: CalendarCheck2,
     path: "/teacher/attendance",
   },
+  { title: "المدفوعات", icon: BadgeDollarSign, path: "/teacher/payments" },
   { title: "المحاضرات", icon: BookOpen, path: "/teacher/courses" },
   { title: "الإمتحانات", icon: BarChart3, path: "/teacher/degrees" },
+  { title: "الواجبات", icon: ClipboardList, path: "/teacher/homework" },
   { title: "الإحصائيات", icon: FileText, path: "/teacher/reports" },
   { title: "المساعدين", icon: UserRoundPen, path: "/teacher/assistants" },
   { title: "الملف الشخصي", icon: User, path: "/teacher/profile" },
@@ -269,10 +271,10 @@ const Sidebar = () => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 right-0 left-0 z-40 flex items-center justify-between bg-linear-to-l from-[#003322] to-[#009966] px-4 py-1 shadow-sm">
+      <div className="lg:hidden fixed top-0 right-0 left-0 z-40 flex items-center justify-between bg-linear-to-l from-[#003322] to-[#009966] px-4 py-1.5 shadow-sm pt-safe">
         <div className="flex items-center justify-center gap-2 text-white">
           <span className="text-lg font-bold font-mekalbaz">أ / محمد بشتة</span>
-          <img className="w-20 h-20" src={MrBoshta} alt="Mr Boshta" />
+          <img className="w-16 h-16 sm:w-20 sm:h-20 object-contain" src={MrBoshta} alt="Mr Boshta" />
         </div>
         <button
           type="button"
@@ -294,7 +296,7 @@ const Sidebar = () => {
       )}
 
       <aside
-        className={`fixed lg:sticky top-0 right-0 z-50 h-screen w-60 shrink-0 flex flex-col border-l border-sidebar-border bg-[#0f3d0f] p-6 transition-transform duration-300 ${
+        className={`fixed lg:sticky top-0 right-0 z-50 h-screen w-64 shrink-0 flex flex-col border-l border-sidebar-border bg-[#0f3d0f] p-5 sm:p-6 pb-safe transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         }`}
       >

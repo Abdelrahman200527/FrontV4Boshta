@@ -447,9 +447,13 @@ const Homeworks = () => {
                                   : "text-gray-400"
                               }`}
                             >
-                              {submission.score != null
-                                ? `${submission.score}/${selectedAssignment.full_mark}`
-                                : "غير مصحح"}
+                              {submission.score != null ? (
+                                <span dir="ltr">
+                                  {submission.score} / {selectedAssignment.full_mark}
+                                </span>
+                              ) : (
+                                "غير مصحح"
+                              )}
                             </span>
                             {submission.feedback && (
                               <span className="text-xs text-gray-500 truncate block max-w-40">

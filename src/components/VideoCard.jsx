@@ -9,6 +9,7 @@ import {
 import React from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
+import getImageUrl from "../utils/imageUrl";
 
 const VideoCard = ({
   video,
@@ -29,14 +30,8 @@ const VideoCard = ({
   const isYouTube = (url) => !!getYouTubeId(url);
   const isDrive = (url) => url?.includes("drive.google.com");
 
-  const getThumbnailUrl = (thumbnailPath) => {
-    if (!thumbnailPath) return null;
-    if (thumbnailPath.startsWith("http")) return thumbnailPath;
-    return `https://backend.benb3n.cloud/${thumbnailPath}`;
-  };
-
   const thumbnailUrl = video.thumbnail_url
-    ? getThumbnailUrl(video.thumbnail_url)
+    ? getImageUrl(video.thumbnail_url)
     : null;
 
   return (

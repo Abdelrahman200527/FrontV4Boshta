@@ -44,7 +44,7 @@ import {
 import { useDebounce } from "../../../hooks/useDebounce";
 import { SkeletonRows } from "../components/Spinner";
 import { printBarcodeWindow } from "../../../utils/barcode.js";
-import { exportPdfTable } from "../../../utils/office.js";
+import { exportPdfTable, exportAoaExcel } from "../../../utils/office.js";
 import {
   fetchAllStudents,
   fetchDeletedStudents,
@@ -127,7 +127,10 @@ const StudentRow = memo(function StudentRow({
 
       {/* Barcode */}
       <td className="text-right py-3">
-        <span className="inline-flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg text-xs font-mono text-gray-600 group-hover:bg-blue-100 transition-colors">
+        <span
+          dir="ltr"
+          className="inline-flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg text-xs font-mono text-gray-600 group-hover:bg-blue-100 transition-colors"
+        >
           <Barcode size={11} className="text-gray-400" />
           {student.barcode || "-"}
         </span>
@@ -161,14 +164,20 @@ const StudentRow = memo(function StudentRow({
 
       {/* Phone - hidden on tablet */}
       <td className="text-right py-3 hidden lg:table-cell">
-        <span className="inline-flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap">
+        <span
+          dir="ltr"
+          className="inline-flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap"
+        >
           <Phone size={11} className="text-gray-400" />
           {student.phone || "-"}
         </span>
       </td>
 
       {/* Parent Phone - hidden on tablet */}
-      <td className="text-right py-3 hidden lg:table-cell text-xs text-gray-600 whitespace-nowrap">
+      <td
+        dir="ltr"
+        className="text-right py-3 hidden lg:table-cell text-xs text-gray-600 whitespace-nowrap"
+      >
         {student.parent_phone || "-"}
       </td>
 
@@ -761,32 +770,98 @@ const Students = () => {
     }
   };
 
-  const handleExportPdf = () => {
+  const getFullStudentListForExport = async () => {
+    if (debouncedBarcode) {
+      return students;
+    }
+    const res = showDeleted
+      ? await fetchDeletedStudents(1)
+      : await fetchAllStudents(1, debouncedSearch, selectedGrade, selectedGroup, 10000);
+    if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+      return res.data;
+    }
+    return students;
+  };
+
+  const handleExportPdf = async () => {
     if (!students.length) {
       toast.error("لا يوجد طلاب لتصديرهم");
       return;
     }
 
-    const columns = [
-      { header: "الاسم الكامل", key: "full_name" },
-      { header: "الباركود", key: "barcode" },
-      { header: "رقم الجوال", key: "phone" },
-      { header: "رقم ولي الامر", key: "parent_phone" },
-      { header: "المرحلة", key: "grade_name" },
-      { header: "المجموعة", key: "group_name" },
-    ];
+    const toastId = toast.loading("جاري إعداد كشف الطلاب للتصدير...");
+    try {
+      const exportList = await getFullStudentListForExport();
 
-    const pdfRows = students.map((s) => ({
-      full_name: s.full_name,
-      barcode: s.barcode,
-      phone: s.phone || "-",
-      parent_phone: s.parent_phone || "-",
-      grade_name: s.grade_name,
-      group_name: s.group_name,
-    }));
+      const columns = [
+        { header: "الاسم الكامل", key: "full_name" },
+        { header: "الباركود", key: "barcode" },
+        { header: "رقم الجوال", key: "phone" },
+        { header: "رقم ولي الأمر", key: "parent_phone" },
+        { header: "المرحلة الدراسية", key: "grade_name" },
+        { header: "المجموعة", key: "group_name" },
+      ];
 
-    const dateStr = new Date().toISOString().split("T")[0];
-    exportPdfTable(`كشف_الطلاب_${dateStr}.pdf`, "كشف الطلاب", columns, pdfRows);
+      const pdfRows = exportList.map((s) => ({
+        full_name: s.full_name || "-",
+        barcode: s.barcode || "-",
+        phone: s.phone || "-",
+        parent_phone: s.parent_phone || "-",
+        grade_name: s.grade_name || "-",
+        group_name: s.group_name || "-",
+      }));
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      const gradeName = selectedGrade ? grades.find((g) => String(g.id) === String(selectedGrade))?.name : "";
+      const groupName = selectedGroup ? groups.find((g) => String(g.id) === String(selectedGroup))?.name : "";
+      const filterTitle = [gradeName, groupName].filter(Boolean).join(" - ");
+      const title = filterTitle ? `كشف الطلاب (${filterTitle}) - العدد: ${pdfRows.length}` : `كشف الطلاب العام - العدد: ${pdfRows.length}`;
+
+      exportPdfTable(`كشف_الطلاب_${dateStr}.pdf`, title, columns, pdfRows);
+      toast.dismiss(toastId);
+      toast.success(`تم تصدير كشف ${pdfRows.length} طالب بنجاح`);
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast.dismiss(toastId);
+      toast.error("حدث خطأ أثناء تصدير كشف الطلاب");
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!students.length) {
+      toast.error("لا يوجد طلاب لتصديرهم");
+      return;
+    }
+
+    const toastId = toast.loading("جاري إعداد ملف Excel للتصدير...");
+    try {
+      const exportList = await getFullStudentListForExport();
+
+      const headers = ["#", "الاسم الكامل", "الباركود", "رقم الجوال", "رقم ولي الأمر", "المرحلة الدراسية", "المجموعة"];
+      const rows = exportList.map((s, idx) => [
+        idx + 1,
+        s.full_name || "-",
+        s.barcode || "-",
+        s.phone || "-",
+        s.parent_phone || "-",
+        s.grade_name || "-",
+        s.group_name || "-",
+      ]);
+
+      const dateStr = new Date().toISOString().split("T")[0];
+      const gradeName = selectedGrade ? grades.find((g) => String(g.id) === String(selectedGrade))?.name : "";
+      const groupName = selectedGroup ? groups.find((g) => String(g.id) === String(selectedGroup))?.name : "";
+      const filterTitle = [gradeName, groupName].filter(Boolean).join("_");
+      const filename = `كشف_الطلاب_${filterTitle ? `${filterTitle}_` : ""}${dateStr}.xlsx`;
+
+      exportAoaExcel(filename, "الطلاب", [headers, ...rows]);
+      toast.dismiss(toastId);
+      toast.success(`تم تصدير ${rows.length} طالب إلى ملف Excel بنجاح`);
+    } catch (err) {
+      console.error("Excel export error:", err);
+      toast.dismiss(toastId);
+      toast.error("حدث خطأ أثناء تصدير ملف الإكسيل");
+    }
   };
 
   // ============================================
@@ -800,11 +875,11 @@ const Students = () => {
 
   const stats = useMemo(
     () => ({
-      total: students.length,
+      total: pagination?.total ?? students.length,
       grades: grades.length,
       groups: groups.length,
     }),
-    [students, grades, groups],
+    [students, grades, groups, pagination],
   );
 
   const allSelected =
@@ -902,6 +977,16 @@ const Students = () => {
                   >
                     <FileText size={14} />
                     <span className="hidden lg:inline">كشف PDF</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+                  >
+                    <Download size={14} />
+                    <span className="hidden lg:inline">كشف Excel</span>
                   </motion.button>
 
                   <motion.button

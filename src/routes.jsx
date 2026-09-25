@@ -53,6 +53,7 @@ import TeacherExamResults from "./teachers/ExamResults.jsx";
 import TeacherStudentDetails from "./teachers/StudentDetails.jsx";
 import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
 import TeacherHomeworks from "./teachers/Homework.jsx";
+import TeacherPayments from "./teachers/Payments.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 import LoginSystem from "./pages/LoginSystem.jsx";
@@ -88,6 +89,10 @@ export const router = createBrowserRouter([
   // Parent Route - Public
   {
     path: "/parent",
+    Component: ParentDashboard,
+  },
+  {
+    path: "/parent/:token",
     Component: ParentDashboard,
   },
 
@@ -182,6 +187,7 @@ export const router = createBrowserRouter([
       { path: "assistants", Component: TeacherAssistants },
       { path: "exams/:type/:examId", Component: TeacherExamResults },
       { path: "homework", Component: TeacherHomeworks },
+      { path: "payments", Component: TeacherPayments },
     ],
   },
 

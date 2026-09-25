@@ -24,7 +24,7 @@ import {
   confirmToast,
   toast,
 } from "../../../lib/notify";
-import { exportPdfTable } from "../../../utils/office";
+import { exportPdfTable, exportAoaExcel } from "../../../utils/office";
 import {
   fetchAllGrades,
   createNewGrade,
@@ -123,12 +123,12 @@ const Grades = () => {
 
     const columns = [
       { header: "الصف", key: "name" },
-      { header: "المصاريف الشهرية (ج)", key: "monthly_price" },
+      { header: "المصاريف الشهرية (ج.م)", key: "monthly_price" },
     ];
 
     const pdfRows = grades.map((g) => ({
       name: g.name,
-      monthly_price: `${g.monthly_price} ج`,
+      monthly_price: `${(Number(g.monthly_price) || 0).toLocaleString()} ج.م`,
     }));
 
     const today = new Date();
@@ -136,6 +136,32 @@ const Grades = () => {
     const fileName = `كشف_الصفوف_${dateStr}.pdf`;
 
     exportPdfTable(fileName, "كشف الصفوف الدراسية والمصاريف", columns, pdfRows);
+  };
+
+  const handleExportExcel = () => {
+    if (!grades || grades.length === 0) {
+      toast.error("لا يوجد صفوف لتصديرها");
+      return;
+    }
+
+    const aoa = [
+      ["#", "الصف الدراسي", "المصاريف الشهرية (ج.م)"]
+    ];
+
+    grades.forEach((g, idx) => {
+      aoa.push([
+        idx + 1,
+        g.name || "-",
+        Number(g.monthly_price) || 0
+      ]);
+    });
+
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0];
+    const fileName = `كشف_الصفوف_${dateStr}.xlsx`;
+
+    exportAoaExcel(fileName, "الصفوف الدراسية", aoa);
+    toast.success("تم تصدير كشف الصفوف بنجاح");
   };
 
   const calculateStats = (gradesData) => {
@@ -300,6 +326,14 @@ const Grades = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 transition-all shadow-sm"
+            >
+              <Download size={16} /> كشف Excel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleExportPdf}
               className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
             >
@@ -334,19 +368,31 @@ const Grades = () => {
             },
             {
               label: "متوسط المصاريف",
-              value: `${stats.avgPrice} ج`,
+              value: (
+                <span>
+                  <span dir="ltr">{(stats.avgPrice || 0).toLocaleString()}</span> ج.م
+                </span>
+              ),
               icon: DollarSign,
               color: "green",
             },
             {
               label: "أعلى مصاريف",
-              value: `${stats.maxPrice} ج`,
+              value: (
+                <span>
+                  <span dir="ltr">{(stats.maxPrice || 0).toLocaleString()}</span> ج.م
+                </span>
+              ),
               icon: TrendingUp,
               color: "amber",
             },
             {
               label: "أقل مصاريف",
-              value: `${stats.minPrice} ج`,
+              value: (
+                <span>
+                  <span dir="ltr">{(stats.minPrice || 0).toLocaleString()}</span> ج.م
+                </span>
+              ),
               icon: Award,
               color: "amber",
             },
@@ -520,7 +566,7 @@ const Grades = () => {
                       <td className="text-right py-4">
                         <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium">
                           <DollarSign size={14} />
-                          {Number(item.monthly_price) || 0} ج
+                          <span dir="ltr">{(Number(item.monthly_price) || 0).toLocaleString()}</span> ج.م
                         </span>
                       </td>
                       <td className="text-left pl-0 py-4">
