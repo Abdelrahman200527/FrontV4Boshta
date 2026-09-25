@@ -79,17 +79,24 @@ const Login = () => {
       "ولي الأمر": "parent",
     };
 
+    const cleanPhone = (parentPhone || "").trim();
+    if (!cleanPhone) {
+      setError("برجاء إدخال رقم الهاتف");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const Presult = await fetchParentDashboard(parentPhone);
+      const Presult = await fetchParentDashboard(cleanPhone);
 
       if (Presult.success) {
-        localStorage.setItem("phone", parentPhone);
+        localStorage.setItem("phone", cleanPhone);
         const selectedRole = roleMap[role];
         if (selectedRole === "parent") {
           navigate("/parent");
         }
       } else {
-        setError(Presult.error || "حدث خطأ في تسجيل الدخول");
+        setError(Presult.error || "رقم الهاتف غير مسجل في السنتر");
       }
     } catch (err) {
       setError("حدث خطأ غير متوقع");
@@ -162,6 +169,7 @@ const Login = () => {
                     key={label}
                     onClick={() => {
                       setRole(label);
+                      setError(null);
                       navigate(`/login?role=${label}`);
                     }}
                     className={`flex flex-col items-center gap-1 w-16 sm:w-20 p-2 rounded-lg transition ${

@@ -6,7 +6,6 @@ import {
   httpPostFormData,
   httpPutFormData,
 } from "../http";
-import { downloadFile } from "../../utils/fileHandler";
 
 // Dashboard
 const getDashboard = async () => {
@@ -148,12 +147,6 @@ const getQuestionById = async (questionId) => {
   return response.data;
 };
 
-// Download question file
-const downloadQuestionFile = async (questionId) => {
-  const url = `${import.meta.env.VITE_API_URL}/student/exams/online/question/${questionId}/download`;
-  return await downloadFile(url);
-};
-
 // Get options for question - without is_correct
 const getOptionsByQuestion = async (questionId) => {
   const response = await httpGet(`/student/options/question/${questionId}`);
@@ -291,7 +284,6 @@ export {
   submitExam,
   getExamQuestions,
   getQuestionById,
-  downloadQuestionFile,
   getOptionsByQuestion,
   answerQuestion,
   submitEssayAnswer,

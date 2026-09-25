@@ -51,7 +51,6 @@ import {
   lockAttendanceSession,
   toggleMakeupMode,
   createNewAttendance,
-  markRestAsAbsent,
   fetchAttendanceById,
   updateAttendanceInfo,
   removeAttendance,
@@ -1397,19 +1396,23 @@ const Attendance = () => {
   /* ============================ Mark Rest Absent ============================ */
 
   async function handleMarkRestAbsent() {
-    if (!selectedGroup) return;
+    if (!sessionId || !selectedGroup) {
+      notifyError("لا توجد جلسة نشطة لتسجيل الغياب");
+      return;
+    }
     confirmToast(
       `سيتم تسجيل كل الطلاب غير المسجلين كغائبين بتاريخ ${selectedDate}`,
       async () => {
         setSaving(true);
         try {
-          const result = await markRestAsAbsent(
+          const result = await lockAttendanceSession(
+            sessionId,
             Number(selectedGroup),
-            selectedDate,
           );
           if (result.success) {
-            const count = Array.isArray(result.data) ? result.data.length : 0;
-            notifySuccess(`تم تسجيل ${count} طالب كغائبين`);
+            setSessionActive(false);
+            setSessionLocked(true);
+            notifySuccess("تم تسجيل الطلاب غير الحاضرين كغائبين");
             await loadGroupStudents(selectedGroup, selectedDate, page);
             await loadDashboard();
             await loadAbsentNotifications(todayDateStr);

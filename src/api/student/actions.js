@@ -1,5 +1,9 @@
 import * as studentServices from "./services";
 
+// The HTTP client returns the full API envelope ({ success, message, data }),
+// while exam screens consume the payload directly. Normalize it once here.
+const unwrapApiData = (response) => response?.data ?? response;
+
 // Dashboard
 const fetchStudentDashboard = async () => {
   try {
@@ -135,8 +139,8 @@ const fetchExamResults = async (month = "", page = 1) => {
 // Online Exams
 const fetchAvailableExams = async (page = 1) => {
   try {
-    const data = await studentServices.getAvailableExams(page);
-    return { success: true, data };
+    const response = await studentServices.getAvailableExams(page);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -157,8 +161,8 @@ const fetchExamHistory = async (month = "", page = 1) => {
 
 const fetchOnlineExamById = async (attemptId) => {
   try {
-    const data = await studentServices.getOnlineExamById(attemptId);
-    return { success: true, data };
+    const response = await studentServices.getOnlineExamById(attemptId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -167,8 +171,8 @@ const fetchOnlineExamById = async (attemptId) => {
 // Check active attempt
 const checkExamAttempt = async (examId) => {
   try {
-    const data = await studentServices.checkExamAttempt(examId);
-    return { success: true, data };
+    const response = await studentServices.checkExamAttempt(examId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -177,8 +181,8 @@ const checkExamAttempt = async (examId) => {
 // Resume exam
 const resumeStudentExam = async (examId) => {
   try {
-    const data = await studentServices.resumeExam(examId);
-    return { success: true, data };
+    const response = await studentServices.resumeExam(examId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -187,8 +191,8 @@ const resumeStudentExam = async (examId) => {
 // Start exam
 const startStudentExam = async (examId) => {
   try {
-    const data = await studentServices.startExam(examId);
-    return { success: true, data };
+    const response = await studentServices.startExam(examId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -198,7 +202,7 @@ const startStudentExam = async (examId) => {
 const submitStudentExam = async (attemptId) => {
   try {
     const result = await studentServices.submitExam(attemptId);
-    return { success: true, data: result };
+    return { success: true, data: unwrapApiData(result) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -207,8 +211,8 @@ const submitStudentExam = async (attemptId) => {
 // Get exam questions with options
 const fetchExamQuestions = async (examId) => {
   try {
-    const data = await studentServices.getExamQuestions(examId);
-    return { success: true, data };
+    const response = await studentServices.getExamQuestions(examId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -217,18 +221,8 @@ const fetchExamQuestions = async (examId) => {
 // Get single question with options
 const fetchQuestionById = async (questionId) => {
   try {
-    const data = await studentServices.getQuestionById(questionId);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-// Download question file
-const downloadQuestionFile = async (questionId) => {
-  try {
-    const data = await studentServices.downloadQuestionFile(questionId);
-    return { success: true, data };
+    const response = await studentServices.getQuestionById(questionId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -237,8 +231,8 @@ const downloadQuestionFile = async (questionId) => {
 // Get options for question
 const fetchOptionsByQuestion = async (questionId) => {
   try {
-    const data = await studentServices.getOptionsByQuestion(questionId);
-    return { success: true, data };
+    const response = await studentServices.getOptionsByQuestion(questionId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -247,12 +241,12 @@ const fetchOptionsByQuestion = async (questionId) => {
 // Answer MCQ/True-False question
 const submitStudentAnswer = async (examId, questionId, selectedOptionId) => {
   try {
-    const data = await studentServices.answerQuestion(
+    const response = await studentServices.answerQuestion(
       examId,
       questionId,
       selectedOptionId,
     );
-    return { success: true, data };
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -261,12 +255,12 @@ const submitStudentAnswer = async (examId, questionId, selectedOptionId) => {
 // Submit essay answer
 const submitStudentEssayAnswer = async (examId, questionId, file) => {
   try {
-    const data = await studentServices.submitEssayAnswer(
+    const response = await studentServices.submitEssayAnswer(
       examId,
       questionId,
       file,
     );
-    return { success: true, data };
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -401,8 +395,8 @@ const fetchCurrentSubscription = async () => {
 // Get exam review
 const fetchExamReview = async (attemptId) => {
   try {
-    const data = await studentServices.getExamReview(attemptId);
-    return { success: true, data };
+    const response = await studentServices.getExamReview(attemptId);
+    return { success: true, data: unwrapApiData(response) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -430,7 +424,6 @@ export {
   submitStudentExam,
   fetchExamQuestions,
   fetchQuestionById,
-  downloadQuestionFile,
   fetchOptionsByQuestion,
   submitStudentAnswer,
   submitStudentEssayAnswer,

@@ -90,6 +90,10 @@ export const router = createBrowserRouter([
     path: "/parent",
     Component: ParentDashboard,
   },
+  {
+    path: "/parent/:token",
+    Component: ParentDashboard,
+  },
 
   // ============================================
   // STUDENT ROUTES

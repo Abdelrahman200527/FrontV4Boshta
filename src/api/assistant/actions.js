@@ -460,12 +460,6 @@ export const createNewAttendance = (attendanceData) =>
     "تسجيل الحضور",
   );
 
-export const markRestAsAbsent = (groupId, date) =>
-  wrapAction(
-    () => assistantServices.markRestAbsent(groupId, date),
-    "تسجيل الغياب الجماعي",
-  );
-
 export const fetchAttendanceById = (attendanceId) =>
   wrapAction(
     () => assistantServices.getAttendanceById(attendanceId),
@@ -1251,12 +1245,6 @@ export const updateWhatsappTemplateAction = (templateId, templateData) =>
 // ============================================
 // WHATSAPP - MESSAGES / QUEUE
 // ============================================
-
-export const fetchWhatsappStatus = () =>
-  wrapAction(
-    () => assistantServices.getWhatsappStatus(),
-    "تحميل حالة الواتساب",
-  );
 
 export const sendWelcomeWhatsappAction = (studentId, instant = false) =>
   wrapAction(
