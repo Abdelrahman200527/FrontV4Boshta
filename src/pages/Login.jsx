@@ -1,486 +1,366 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  User,
-  UserRoundPen,
-  Phone,
-  Lock,
-  Loader2,
-  ArrowRight,
-  Shield,
-  Sparkles,
-  AlertCircle,
-  Home,
-} from "lucide-react";
+import { CiLocationOn } from "react-icons/ci";
+import { SiPerforce } from "react-icons/si";
+import { CiStar } from "react-icons/ci";
+import { TbMath } from "react-icons/tb";
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, User, UserRoundPen, UsersRound } from "lucide-react";
 
 // Assets
 import theMister from "../assets/the-mister.png";
 import MrBoshta from "../assets/Mr-Boshta-removebg.png";
 import Background from "../assets/background.png";
 
-// Auth Context & API
+// Auth Context
 import { authenticate } from "../api/auth/actions";
 import { fetchParentDashboard } from "../api/parent/actions";
 
 const Badge = ({ title, subtitle, style, rotate = "0" }) => (
-  <div className="absolute z-20 pointer-events-none select-none" style={style}>
+  <div className="absolute z-20" style={style}>
     <div
-      className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 px-3.5 py-2"
-      style={{ minWidth: "160px", transform: `rotate(${rotate}deg)` }}
+      className={`flex items-center justify-center bg-gray-50 rounded-xl shadow-md px-3 py-2.5`}
+      style={{ minWidth: "170px", rotate: `${rotate}deg` }}
     >
       <div className="text-center">
-        <p className="text-[13px] font-bold text-gray-800 leading-tight">
+        <p className="text-[14px] font-bold text-gray-800 leading-tight">
           {title}
         </p>
-        <p className="text-[10px] text-[#009966] font-semibold leading-tight mt-0.5">
-          {subtitle}
-        </p>
+        <p className="text-[11px] text-gray-500 leading-tight">{subtitle}</p>
       </div>
     </div>
   </div>
 );
 
-const normalizeRole = (raw) => {
-  if (!raw) return "student";
-  const str = String(raw).trim().toLowerCase();
-  if (str === "student" || str === "طالب" || str === "الطالب") return "student";
-  if (
-    str === "parent" ||
-    str === "ولي أمر" ||
-    str === "ولي_أمر" ||
-    str === "ولي امر" ||
-    str === "الولي"
-  )
-    return "parent";
-  return "student";
-};
-
 const Login = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
-  const [role, setRole] = useState(() =>
-    normalizeRole(searchParams.get("role"))
-  );
+  const [role, setRole] = useState(searchParams.get("role") || "الطالب");
   const [phone, setPhone] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
 
-  // Sync role with query param changes
-  useEffect(() => {
-    const paramRole = searchParams.get("role");
-    if (paramRole) {
-      setRole(normalizeRole(paramRole));
-    }
-  }, [searchParams]);
-
-  const handleRoleChange = (newRole) => {
-    setRole(newRole);
-    setError(null);
-    setSearchParams({ role: newRole });
-  };
-
-  const handleStudentSubmit = async (e) => {
+  const handleSubmit_s = async (e) => {
     e.preventDefault();
-    const cleanPhone = (phone || "").trim();
-    if (!cleanPhone) {
-      setError("برجاء إدخال رقم الهاتف");
-      return;
-    }
-    if (!password) {
-      setError("برجاء إدخال كلمة السر");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
-    try {
-      const result = await authenticate("student", cleanPhone, password);
+    const roleMap = {
+      الطالب: "student",
+    };
 
-      if (result.success) {
-        navigate("/student", { replace: true });
+    try {
+      const Sresult = await authenticate(roleMap[role], phone, password);
+
+      if (Sresult.success) {
+        const selectedRole = roleMap[role];
+        if (selectedRole === "student") {
+          navigate("/student");
+        }
       } else {
-        setError(result.error || "بيانات الدخول غير صحيحة، يرجى التأكد والمحاولة مجدداً");
+        setError(Sresult.error || "حدث خطأ في تسجيل الدخول");
       }
-    } catch {
-      setError("حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً");
+    } catch (err) {
+      setError("حدث خطأ غير متوقع");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleParentSubmit = async (e) => {
+  const handleSubmit_p = async (e) => {
     e.preventDefault();
-    const cleanPhone = (parentPhone || "").trim();
-    if (!cleanPhone) {
-      setError("برجاء إدخال رقم الهاتف المسجل لدى السنتر");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
-    try {
-      const result = await fetchParentDashboard(cleanPhone);
+    const roleMap = {
+      "ولي الأمر": "parent",
+    };
 
-      if (result.success) {
+    const cleanPhone = (parentPhone || "").trim();
+    if (!cleanPhone) {
+      setError("برجاء إدخال رقم الهاتف");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const Presult = await fetchParentDashboard(cleanPhone);
+
+      if (Presult.success) {
         localStorage.setItem("phone", cleanPhone);
-        navigate("/parent", { replace: true });
+        const selectedRole = roleMap[role];
+        if (selectedRole === "parent") {
+          navigate("/parent");
+        }
       } else {
-        setError(result.error || "رقم الهاتف غير مسجل في السنتر أو لا توجد بيانات مرتبطة به");
+        setError(Presult.error || "رقم الهاتف غير مسجل في السنتر");
       }
-    } catch {
-      setError("حدث خطأ في الاتصال بالخادم، يرجى المحاولة لاحقاً");
+    } catch (err) {
+      setError("حدث خطأ غير متوقع");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen min-h-[100dvh] w-full flex flex-col justify-between relative bg-cover bg-center bg-no-repeat overflow-x-hidden selection:bg-[#009966]/20 selection:text-[#009966]"
-      style={{
-        backgroundImage: `url(${Background})`,
-      }}
-      dir="rtl"
-    >
-      {/* Background Soft Overlay */}
-      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] pointer-events-none" />
+    <>
+      <section
+        className="h-screen overflow-hidden flex flex-col"
+        style={{
+          backgroundImage: `url(${Background})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        {/* Header Desktop */}
+        <header className="hidden lg:block shrink-0">
+          <div className="mr-10 mt-6 flex flex-row items-center">
+            <h2 className="font-mekalbaz text-[30px] text-[#1a5d1a]">
+              أ / محمد بشته
+            </h2>
+            <img className="w-20 h-20" src={MrBoshta} alt="Mr Boshta" />
+          </div>
+        </header>
 
-      {/* Top Navbar */}
-      <header className="relative z-20 w-full px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-white/40 bg-white/40 backdrop-blur-md">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-[#009966] hover:opacity-90 transition-opacity"
-        >
-          <img
-            className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-sm"
-            src={MrBoshta}
-            alt="Mr Boshta Logo"
-          />
-          <span className="font-mekalbaz text-xl sm:text-2xl text-[#009966]">
-            أ / محمد بشتة
+        {/* Header Mobile */}
+        <div className="flex lg:hidden items-center justify-center gap-2 bg-[#1a5d1a] text-white py-2 px-4 shadow-lg">
+          <span className="text-xl sm:text-2xl font-mekalbaz">
+            أ / محمد بشته
           </span>
-        </Link>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            to="/user/login"
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-gray-700 hover:text-[#009966] bg-white/80 hover:bg-white rounded-xl border border-gray-200 transition-all shadow-xs"
-            title="بوابة دخول المعلم والمساعدين"
-          >
-            <Shield size={14} className="text-[#009966]" />
-            <span className="hidden xs:inline">بوابة الكادر</span>
-            <span>(معلم / مساعد)</span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 bg-white/60 hover:bg-white rounded-xl border border-gray-200 transition-all"
-            title="الرجوع للرئيسية"
-          >
-            <Home size={15} />
-            <span className="hidden sm:inline">الرئيسية</span>
-          </Link>
+          <img className="w-20 h-20" src={MrBoshta} alt="Mr Boshta" />
         </div>
-      </header>
 
-      {/* Main Content Area */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-3 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="w-full max-w-6xl flex flex-col xl:flex-row-reverse items-center justify-center gap-8 lg:gap-14">
-          {/* Form Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 lg:p-9 shadow-2xl border border-gray-100 flex flex-col gap-5 sm:gap-6"
-          >
-            {/* Header / Titles */}
-            <div className="text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-[#009966] rounded-full text-xs font-bold mb-2 border border-emerald-100">
-                <Sparkles size={13} />
-                <span>منصة التعلم الذكي المتكاملة</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-lalezar">
-                مرحباً بعودتك
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                {role === "student"
-                  ? "سجل الدخول للوصول إلى حصصك، واجباتك، واختباراتك"
-                  : "سجل برقم هاتفك لمتابعة حضور وابنك ودرجاته الشهرية"}
-              </p>
-            </div>
-
-            {/* Role Switcher Tabs */}
-            <div className="grid grid-cols-2 p-1.5 bg-gray-100 rounded-2xl gap-1.5 border border-gray-200/70">
-              <button
-                type="button"
-                onClick={() => handleRoleChange("student")}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                  role === "student"
-                    ? "bg-[#009966] text-white shadow-md shadow-[#009966]/20"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
-                }`}
-              >
-                <User size={16} />
-                <span>بوابة الطالب</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleChange("parent")}
-                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                  role === "parent"
-                    ? "bg-[#009966] text-white shadow-md shadow-[#009966]/20"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
-                }`}
-              >
-                <UserRoundPen size={16} />
-                <span>بوابة ولي الأمر</span>
-              </button>
-            </div>
-
-            {/* Error Message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-red-50 border border-red-200 text-red-700 rounded-2xl p-3.5 text-xs sm:text-sm flex items-start gap-2.5"
-                >
-                  <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-                  <span className="flex-1 leading-relaxed">{error}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
+        {/* Main */}
+        <main className="flex-1 flex items-center justify-center px-4 sm:px-8 lg:px-12 xl:px-20">
+          <div className="w-full max-w-7xl flex flex-row-reverse items-center justify-center gap-8 lg:gap-12 xl:gap-16">
             {/* Form */}
-            <form
-              onSubmit={role === "student" ? handleStudentSubmit : handleParentSubmit}
-              className="flex flex-col gap-4"
-              noValidate
+            <motion.form
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              onSubmit={role === "الطالب" ? handleSubmit_s : handleSubmit_p}
+              className="bg-white/95 backdrop-blur-sm border-2 border-[#1a5d1a]/30 rounded-2xl px-6 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14 w-full max-w-sm lg:max-w-md shrink-0 flex flex-col items-center gap-5 lg:gap-8 shadow-xl"
             >
-              {role === "student" ? (
+              <div className="text-center">
+                <h1 className="text-2xl sm:text-[30px] font-bold font-lalezar">
+                  مرحبا بعودتك
+                </h1>
+                <span className="text-xs sm:text-[10px] text-gray-500 jomhuria-regular">
+                  سجل الدخول للوصول الي لوحة التحكم
+                </span>
+              </div>
+
+              {/* Role Selector */}
+              <div className="flex items-center justify-center gap-4 sm:gap-10">
+                {[
+                  { label: "الطالب", Icon: User, color: "text-green-700" },
+                  {
+                    label: "ولي الأمر",
+                    Icon: UserRoundPen,
+                    color: "text-blue-600",
+                  },
+                ].map(({ label, Icon, color }) => (
+                  <button
+                    type="button"
+                    key={label}
+                    onClick={() => {
+                      setRole(label);
+                      setError(null);
+                      navigate(`/login?role=${label}`);
+                    }}
+                    className={`flex flex-col items-center gap-1 w-16 sm:w-20 p-2 rounded-lg transition ${
+                      role === label
+                        ? "bg-blue-50 ring-2 ring-[#4871C6]"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon className={color} />
+                    <span className="text-sm sm:text-base jomhuria-regular">
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl p-3 text-sm w-full">
+                  {error}
+                </div>
+              )}
+
+              {role === "الطالب" && (
                 <>
-                  {/* Student Phone */}
-                  <div className="flex flex-col gap-1.5">
+                  {/* Phone */}
+                  <div className="flex flex-col items-start gap-2 w-full">
                     <label
-                      htmlFor="student-phone"
-                      className="text-xs sm:text-sm font-bold text-gray-700"
+                      htmlFor="phone"
+                      className="text-sm font-medium jomhuria-regular"
                     >
                       رقم الهاتف
                     </label>
-                    <div className="relative">
-                      <input
-                        id="student-phone"
-                        type="tel"
-                        inputMode="numeric"
-                        autoComplete="username"
-                        placeholder="01xxxxxxxxx"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-3 pr-10 pl-4 text-sm font-semibold text-gray-900 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#009966] focus:border-transparent"
-                        dir="ltr"
-                        required
-                      />
-                      <Phone
-                        size={17}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                      />
-                    </div>
+                    <input
+                      id="phone"
+                      placeholder="ادخل رقم هاتفك"
+                      className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
                   </div>
 
-                  {/* Student Password */}
-                  <div className="flex flex-col gap-1.5">
+                  {/* Password */}
+                  <div className="flex flex-col items-start gap-2 w-full">
                     <label
-                      htmlFor="student-password"
-                      className="text-xs sm:text-sm font-bold text-gray-700"
+                      htmlFor="password"
+                      className="text-sm font-medium jomhuria-regular"
                     >
                       كلمة السر
                     </label>
-                    <div className="relative">
+                    <div className="w-full relative">
                       <input
-                        id="student-password"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        placeholder="••••••••"
+                        id="password"
+                        placeholder="ادخل كلمة السر"
+                        className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
+                        type={showPasswords ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-3 pr-10 pl-10 text-sm font-semibold text-gray-900 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#009966] focus:border-transparent"
-                        dir="ltr"
                         required
-                      />
-                      <Lock
-                        size={17}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 p-1 rounded-lg transition-colors"
-                        title={showPassword ? "إخفاء كلمة السر" : "إظهار كلمة السر"}
+                        onClick={() => setShowPasswords(!showPasswords)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPasswords ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                   </div>
                 </>
-              ) : (
+              )}
+
+              {role === "ولي الأمر" && (
                 <>
-                  {/* Parent Phone */}
-                  <div className="flex flex-col gap-1.5">
+                  {/* Phone */}
+                  <div className="flex flex-col items-start gap-2 w-full">
                     <label
-                      htmlFor="parent-phone"
-                      className="text-xs sm:text-sm font-bold text-gray-700"
+                      htmlFor="phone"
+                      className="text-sm font-medium jomhuria-regular"
                     >
-                      رقم الهاتف المسجل لدى السنتر
+                      رقم الهاتف
                     </label>
-                    <div className="relative">
-                      <input
-                        id="parent-phone"
-                        type="tel"
-                        inputMode="numeric"
-                        autoComplete="tel"
-                        placeholder="01xxxxxxxxx"
-                        value={parentPhone}
-                        onChange={(e) => setParentPhone(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-3 pr-10 pl-4 text-sm font-semibold text-gray-900 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#009966] focus:border-transparent"
-                        dir="ltr"
-                        required
-                      />
-                      <Phone
-                        size={17}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-                      />
-                    </div>
-                    <span className="text-[11px] text-gray-500 leading-normal mt-0.5">
-                      * يرجى إدخال رقم هاتف ولي الأمر أو الطالب المعتمد لدى السنتر
-                    </span>
+                    <input
+                      id="phone"
+                      placeholder="ادخل رقم هاتفك"
+                      className="w-full rounded-xl border px-4 py-3 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1a5d1a] focus:border-transparent"
+                      type="tel"
+                      value={parentPhone}
+                      onChange={(e) => setParentPhone(e.target.value)}
+                      required
+                    />
                   </div>
                 </>
               )}
 
-              {/* Submit Button */}
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-2 w-full rounded-xl bg-[#009966] hover:bg-[#007a52] text-white py-3 sm:py-3.5 text-sm sm:text-base font-bold shadow-lg shadow-[#009966]/25 hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full rounded-xl bg-[#1a5d1a] hover:bg-green-800 text-white py-3 font-semibold hover:opacity-90 transition disabled:opacity-50"
               >
-                {loading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>جاري التحقق والدخول...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>تسجيل الدخول</span>
-                    <ArrowRight size={17} />
-                  </>
-                )}
+                {loading ? "جاري الدخول..." : "تسجيل الدخول"}
               </button>
-            </form>
 
-            {/* Support Note */}
-            <div className="border-t border-gray-100 pt-4 text-center">
-              <p className="text-xs text-gray-500 leading-relaxed">
-                هل تواجه مشكلة في تسجيل الدخول أو نسيت كلمة السر؟
-                <br />
-                <span className="text-[#009966] font-bold">
-                  تواصل مع إدارة السنتر للمساعدة والدعم الفني
+              <div>
+                <span className="text-sm text-gray-500">
+                  لانشاء حساب جديد يرجي التواصل مع مدير النظام
                 </span>
-              </p>
-            </div>
-          </motion.div>
+              </div>
+            </motion.form>
 
-          {/* Left Hero Graphic (Large Screens) */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="hidden xl:flex flex-col items-center flex-1 max-w-xl"
-            dir="rtl"
-          >
-            <div
-              className="relative w-full"
-              style={{ maxWidth: "560px", height: "420px" }}
+            {/* Hero Section */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="hidden xl:flex flex-col items-center flex-1 max-w-2xl"
+              dir="rtl"
             >
-              {/* Graphic Backdrop Box */}
               <div
-                className="absolute bg-linear-to-b from-[#009966] to-[#004d33] rounded-3xl shadow-2xl"
-                style={{
-                  width: "82%",
-                  height: "290px",
-                  bottom: "6%",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                }}
-              />
+                className="relative w-full"
+                style={{ maxWidth: "600px", height: "400px" }}
+              >
+                <div
+                  className="absolute bg-[#1a5d1a] rounded-3xl"
+                  style={{
+                    width: "80%",
+                    height: "290px",
+                    bottom: "6%",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                  }}
+                />
 
-              {/* Character Image */}
-              <motion.img
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                src={theMister}
-                alt="الأستاذ محمد بشتة"
-                className="absolute object-contain object-bottom z-10 drop-shadow-2xl"
-                style={{
-                  width: "65%",
-                  height: "96%",
-                  bottom: "6%",
-                  right: "20%",
-                  transform: "translateX(-50%)",
-                }}
-              />
+                <motion.img
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
+                  src={theMister}
+                  alt="المعلم"
+                  className="absolute object-contain object-bottom z-10"
+                  style={{
+                    width: "63%",
+                    height: "95%",
+                    bottom: "6%",
+                    right: "20%",
+                    transform: "translateX(-50%)",
+                  }}
+                />
 
-              {/* Floating Badges */}
-              <Badge
-                title="اللغة العربية"
-                subtitle="لغة الضاد والفصاحة"
-                rotate="-2"
-                style={{ top: "60px", left: "0px" }}
-              />
-              <Badge
-                title="لغة القرآن الكريم"
-                subtitle="عربيةٌ أصيلة"
-                rotate="2"
-                style={{ top: "50px", right: "0px" }}
-              />
-              <Badge
-                title="لغتي هويتي"
-                subtitle="وفخري واعتزازي"
-                rotate="1"
-                style={{ bottom: "25px", left: "0px" }}
-              />
-              <Badge
-                title="الأدب أولاً"
-                subtitle="ثم العلم والتفوق"
-                rotate="-1"
-                style={{ bottom: "25px", right: "0px" }}
-              />
-            </div>
+                <Badge
+                  title="اللغة العربية"
+                  subtitle="لغة الضاد"
+                  rotate="-2"
+                  style={{ top: "70px", left: "0px" }}
+                />
+                <Badge
+                  title="لغة القرآن"
+                  subtitle="عربيةٌ أصيلة"
+                  rotate="2"
+                  style={{ top: "60px", right: "0px" }}
+                />
+                <Badge
+                  title="لغتي هويتي"
+                  subtitle="وفخري"
+                  rotate="1"
+                  style={{ bottom: "30px", left: "0px" }}
+                />
+                <Badge
+                  title="الأدب أولًا"
+                  subtitle="ثم العلم"
+                  rotate="-1"
+                  style={{ bottom: "30px", right: "0px" }}
+                />
+              </div>
 
-            {/* Classical Arabic Quote */}
-            <div className="bg-white/90 backdrop-blur-md border border-gray-100 rounded-2xl px-6 py-3.5 shadow-md mt-4 text-center max-w-lg">
-              <span className="text-[#009966] font-mekalbaz text-xl sm:text-2xl leading-relaxed block">
-                « وَالخَيْلُ تَعْلَمُ وَالفَوَارِسُ أَنَّنِي .. شَيْخُ الحُرُوبِ وَكَهْلُهَا وَفَتَاهَا »
+              <span className="text-[#1a5d1a] font-mekalbaz text-[30px] text-center px-4 mt-4">
+                وَالخَيْلُ تُعْلَمُ وَالفَوَارِسِ انْنِي شَيْخَ الحُرُوبِ
+                وَكَهَّلَهَا وَفَتَاهَا
               </span>
-            </div>
-          </motion.div>
-        </div>
-      </main>
-
-      {/* Subtle Bottom Footer */}
-      <footer className="relative z-10 w-full text-center py-3 text-xs text-gray-500 border-t border-white/30 bg-white/30 backdrop-blur-xs">
-        جميع الحقوق محفوظة © {new Date().getFullYear()} — منصة الأستاذ محمد بشتة للغة العربية
-      </footer>
-    </div>
+            </motion.div>
+          </div>
+        </main>
+      </section>
+    </>
   );
 };
 
