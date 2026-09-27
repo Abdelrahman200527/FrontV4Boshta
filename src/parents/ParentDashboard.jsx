@@ -1,8 +1,6 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable react-hooks/set-state-in-effect */
-import React, { useEffect, useState, useCallback } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 import {
   fetchParentDashboard,
@@ -41,16 +39,20 @@ import {
   ShieldCheck,
   CreditCard,
   FileText,
+  UserCheck,
+  HelpCircle,
+  Check,
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const PIE_COLORS = ["#16a34a", "#dc2626"];
 
 const ParentDashboard = () => {
+  const { token: tokenParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const tokenFromUrl = searchParams.get("token");
+  const tokenFromUrl = searchParams.get("token") || tokenParam;
   const phoneFromStorage = localStorage.getItem("phone");
 
   const [data, setData] = useState(null);
@@ -59,26 +61,38 @@ const ParentDashboard = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [imgError, setImgError] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState(() => {
+    return sessionStorage.getItem("parent_selected_student") || null;
+  });
 
   // Filters for sub-lists
   const [attendanceFilter, setAttendanceFilter] = useState("all");
   const [examFilter, setExamFilter] = useState("all");
 
   const loadData = useCallback(
-    async (isRefresh = false) => {
+    async (
+      isRefresh = false,
+      studentIdOverride = null,
+      tokenOverride = null,
+    ) => {
       if (isRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
       setError(null);
+      setImgError(false);
+
+      const targetStudentId =
+        studentIdOverride !== null ? studentIdOverride : selectedStudentId;
 
       try {
         let res;
-        if (tokenFromUrl) {
-          res = await fetchParentDashboardByToken(tokenFromUrl);
+        const currentToken = tokenOverride || tokenFromUrl;
+        if (currentToken) {
+          res = await fetchParentDashboardByToken(currentToken);
         } else if (phoneFromStorage) {
-          res = await fetchParentDashboard(phoneFromStorage);
+          res = await fetchParentDashboard(phoneFromStorage, targetStudentId);
         } else {
           setError(
             "لم يتم العثور على بيانات تسجيل الدخول. يرجى تسجيل الدخول برقم الهاتف.",
@@ -90,6 +104,13 @@ const ParentDashboard = () => {
 
         if (res && res.success && res.data) {
           setData(res.data);
+          if (res.data.student?.id) {
+            setSelectedStudentId(res.data.student.id);
+            sessionStorage.setItem(
+              "parent_selected_student",
+              String(res.data.student.id),
+            );
+          }
           if (isRefresh) {
             notifySuccess("تم تحديث البيانات بنجاح");
           }
@@ -106,15 +127,27 @@ const ParentDashboard = () => {
         setRefreshing(false);
       }
     },
-    [tokenFromUrl, phoneFromStorage],
+    [tokenFromUrl, phoneFromStorage, selectedStudentId],
   );
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  const handleSelectStudent = (studentItem) => {
+    if (!studentItem || studentItem.id === data?.student?.id) return;
+    setSelectedStudentId(studentItem.id);
+    sessionStorage.setItem("parent_selected_student", String(studentItem.id));
+    if (studentItem.parent_token) {
+      loadData(false, studentItem.id, studentItem.parent_token);
+    } else {
+      loadData(false, studentItem.id, null);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("phone");
+    sessionStorage.removeItem("parent_selected_student");
     navigate("/login?role=ولي الأمر");
   };
 
@@ -135,6 +168,31 @@ const ParentDashboard = () => {
       month: "long",
       day: "numeric",
     });
+  };
+
+  // Format month (YYYY-MM) to Arabic text
+  const formatMonthArabic = (monthStr) => {
+    if (!monthStr) return "-";
+    const parts = monthStr.split("-");
+    if (parts.length !== 2) return monthStr;
+    const year = parts[0];
+    const monthNum = parseInt(parts[1], 10);
+    const months = [
+      "يناير",
+      "فبراير",
+      "مارس",
+      "أبريل",
+      "مايو",
+      "يونيو",
+      "يوليو",
+      "أغسطس",
+      "سبتمبر",
+      "أكتوبر",
+      "نوفمبر",
+      "ديسمبر",
+    ];
+    const monthName = months[monthNum - 1] || monthStr;
+    return `${monthName} ${year}`;
   };
 
   // Format deadline helper with 12-hour time if available
@@ -163,8 +221,9 @@ const ParentDashboard = () => {
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
+        dir="rtl"
       >
-        <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-xl flex flex-col items-center gap-4 border border-emerald-900/10">
+        <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-xl flex flex-col items-center gap-4 border border-emerald-900/10 max-w-sm w-full text-center">
           <img
             src={MrBoshta}
             alt="Mr Boshta"
@@ -189,6 +248,7 @@ const ParentDashboard = () => {
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
+        dir="rtl"
       >
         <div className="bg-white/95 backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-xl flex flex-col items-center text-center max-w-md w-full gap-5 border border-red-100">
           <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center text-red-500">
@@ -223,6 +283,7 @@ const ParentDashboard = () => {
 
   const {
     student,
+    students = [],
     attendance = {},
     attendanceHistory = [],
     payments = {},
@@ -233,11 +294,11 @@ const ParentDashboard = () => {
     overallStats = {},
   } = data;
 
-  // Payments calculations
-  const isPaidThisMonth = payments?.current_month_status === "paid";
-  const requiredAmount = Number(payments?.required_amount || 0);
-  const paidAmount = Number(payments?.paid_amount || 0);
-  const remainingAmount = Math.max(0, requiredAmount - paidAmount);
+  // Calculate total paid amount from recorded payments
+  const totalPaid = paymentHistory.reduce(
+    (sum, p) => sum + (Number(p.amount) || 0),
+    0,
+  );
 
   // Pie chart data
   const presentDays = parseInt(attendance?.present_days) || 0;
@@ -251,7 +312,7 @@ const ParentDashboard = () => {
   const filteredAttendance = attendanceHistory.filter((rec) => {
     if (attendanceFilter === "present") return rec.status === "present";
     if (attendanceFilter === "absent") return rec.status === "absent";
-    if (attendanceFilter === "makeup") return rec.is_makeup;
+    if (attendanceFilter === "makeup") return Boolean(rec.is_makeup);
     return true;
   });
 
@@ -259,6 +320,7 @@ const ParentDashboard = () => {
   const filteredExams = allExams.filter((exam) => {
     if (examFilter === "online") return exam.exam_type === "online";
     if (examFilter === "paper") return exam.exam_type === "paper";
+    if (examFilter === "absent") return exam.status === "غائب";
     return true;
   });
 
@@ -297,7 +359,7 @@ const ParentDashboard = () => {
       dir="rtl"
     >
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
@@ -340,6 +402,50 @@ const ParentDashboard = () => {
 
       {/* Main Container */}
       <main className="max-w-5xl mx-auto px-3 sm:px-6 pt-5 flex flex-col gap-5">
+        {/* Multi-Student Switcher Bar (if parent has multiple students) */}
+        {students && students.length > 1 && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-2xl p-3 sm:p-4 shadow-xs border border-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
+              <Users size={16} className="text-[#1a5d1a]" />
+              <span>أبناؤك المسجلون في المنصة ({students.length}):</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {students.map((st) => {
+                const isSelected = st.id === student?.id;
+                return (
+                  <button
+                    key={st.id}
+                    onClick={() => handleSelectStudent(st)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-[#1a5d1a] text-white shadow-xs"
+                        : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-800"
+                    }`}
+                  >
+                    <UserCheck
+                      size={14}
+                      className={
+                        isSelected ? "text-amber-300" : "text-gray-400"
+                      }
+                    />
+                    <span>{st.full_name}</span>
+                    {st.grade_name && (
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-md ${isSelected ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"}`}
+                      >
+                        {st.grade_name}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
         {/* Student Hero Header Card */}
         <motion.div
           variants={itemVariants}
@@ -370,11 +476,12 @@ const ParentDashboard = () => {
               <div className="flex-1 text-center sm:text-right">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
                   <span className="bg-amber-400/20 text-amber-200 border border-amber-400/30 text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                    <Sparkles size={12} className="text-amber-300" />
                     طالب مسجل
                   </span>
-                  <span className="bg-white/15 text-white/90 text-2xl px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="bg-white/15 text-white/90 text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <Barcode size={12} />
-                    {student?.barcode}
+                    {student?.barcode || "—"}
                   </span>
                 </div>
 
@@ -392,13 +499,15 @@ const ParentDashboard = () => {
                     <Users size={14} className="text-amber-300" />
                     {student?.group_name || "المجموعة"}
                   </span>
-                  <span
-                    className="bg-white/15 backdrop-blur-sm text-white px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5"
-                    dir="ltr"
-                  >
-                    <Phone size={14} className="text-amber-300" />
-                    {student?.phone}
-                  </span>
+                  {student?.phone && (
+                    <span
+                      className="bg-white/15 backdrop-blur-sm text-white px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5"
+                      dir="ltr"
+                    >
+                      <Phone size={14} className="text-amber-300" />
+                      {student.phone}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -414,13 +523,11 @@ const ParentDashboard = () => {
                 </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
-                <span
-                  className={`text-xl sm:text-2xl font-black block ${isPaidThisMonth ? "text-emerald-300" : "text-amber-300"}`}
-                >
-                  {isPaidThisMonth ? "مسدد" : "مستحق"}
+                <span className="text-xl sm:text-2xl font-black text-emerald-300 block">
+                  {totalPaid} ج.م
                 </span>
                 <span className="text-xs text-white/80 mt-0.5 block">
-                  اشتراك الشهر
+                  إجمالي المسدد
                 </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
@@ -449,39 +556,39 @@ const ParentDashboard = () => {
               بيانات التواصل والتسجيل
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
-                <span className="text-gray-400 block text-[11px]">
+              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
+                <span className="text-gray-400 block text-[11px] font-medium">
                   كود الباركود
                 </span>
-                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
-                  {student?.barcode}
+                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">
+                  {student?.barcode || "—"}
                 </span>
               </div>
-              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
-                <span className="text-gray-400 block text-center text-[11px]">
+              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
+                <span className="text-gray-400 block text-[11px] font-medium">
                   رقم ولي الأمر المسجل
                 </span>
                 <span
-                  className="font-bold text-gray-800 text-sm mt-0.5 block"
+                  className="font-bold text-gray-800 text-sm sm:text-base mt-1 block tracking-wide"
                   dir="ltr"
                 >
-                  {student?.parent_phone || phoneFromStorage}
+                  {student?.parent_phone || phoneFromStorage || "—"}
                 </span>
               </div>
-              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
-                <span className="text-gray-400 block text-[11px]">
+              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
+                <span className="text-gray-400 block text-[11px] font-medium">
                   الصف الدراسي
                 </span>
-                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
-                  {student?.grade_name}
+                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">
+                  {student?.grade_name || "—"}
                 </span>
               </div>
-              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
-                <span className="text-gray-400 block text-[11px]">
+              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
+                <span className="text-gray-400 block text-[11px] font-medium">
                   المجموعة المحددة
                 </span>
-                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
-                  {student?.group_name}
+                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">
+                  {student?.group_name || "—"}
                 </span>
               </div>
             </div>
@@ -498,21 +605,21 @@ const ParentDashboard = () => {
               <Users size={16} className="text-emerald-700" />
               مواعيد مجموعة الطالب
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
-                <span className="text-[11px] text-gray-500 block">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+                <span className="text-[11px] text-gray-500 block mb-1">
                   أيام الحضور
                 </span>
-                <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
+                <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
                   <CalendarDays size={14} className="text-emerald-600" />
                   {groupInfo.days || "حسب الجدول"}
                 </span>
               </div>
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
-                <span className="text-[11px] text-gray-500 block">
-                  توقيت الحصة (نظام 12 ساعة)
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+                <span className="text-[11px] text-gray-500 block mb-1">
+                  توقيت الحصة
                 </span>
-                <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
+                <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
                   <Clock size={14} className="text-emerald-600" />
                   {groupInfo.start_time
                     ? `من ${formatTime12(groupInfo.start_time)} ${groupInfo.end_time ? `إلى ${formatTime12(groupInfo.end_time)}` : ""}`
@@ -520,21 +627,21 @@ const ParentDashboard = () => {
                 </span>
               </div>
               {groupInfo.room && (
-                <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
-                  <span className="text-[11px] text-gray-500 block">
+                <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+                  <span className="text-[11px] text-gray-500 block mb-1">
                     القاعة
                   </span>
-                  <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
+                  <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
                     <MapPin size={14} className="text-emerald-600" />
                     {groupInfo.room}
                   </span>
                 </div>
               )}
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
-                <span className="text-[11px] text-gray-500 block">
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
+                <span className="text-[11px] text-gray-500 block mb-1">
                   عدد طلاب المجموعة
                 </span>
-                <span className="font-bold text-emerald-900 text-sm mt-0.5 block">
+                <span className="font-bold text-emerald-900 text-sm block">
                   {groupInfo.students_count || 0} طالب
                 </span>
               </div>
@@ -559,29 +666,27 @@ const ParentDashboard = () => {
                 حصة
               </span>
               <span className="text-[11px] text-emerald-600 font-medium">
-                غياب: {attendance?.absent_days || 0} حصة
+                نسبة الحضور: {attendance?.attendance_percentage || 0}%
               </span>
             </div>
           </div>
 
-          {/* Payment Status KPI */}
+          {/* Paid Amounts KPI */}
           <div className="bg-white rounded-2xl p-4 shadow-xs border border-gray-200/80 flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isPaidThisMonth ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
-            >
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
               <Wallet size={24} />
             </div>
             <div className="min-w-0">
               <span className="text-xs text-gray-500 block">
-                اشتراك الشهر الحالي
+                المدفوعات المسددة
               </span>
-              <span
-                className={`text-base font-bold block ${isPaidThisMonth ? "text-emerald-700" : "text-amber-700"}`}
-              >
-                {isPaidThisMonth ? "تم السداد" : `متبقي ${remainingAmount} ج.م`}
+              <span className="text-base font-bold text-emerald-700 block">
+                {totalPaid} ج.م
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
-                المطلوب: {requiredAmount} ج.م
+                {payments?.is_fully_paid
+                  ? "الشهر الحالي: مسدد بالكامل"
+                  : "إجمالي الإيصالات: " + paymentHistory.length}
               </span>
             </div>
           </div>
@@ -613,9 +718,11 @@ const ParentDashboard = () => {
             <div className="min-w-0">
               <span className="text-xs text-gray-500 block">متوسط الدرجات</span>
               <span className="text-base font-bold text-gray-800 block">
-                {overallStats?.avg_paper_score
+                {overallStats?.avg_paper_score != null
                   ? `${overallStats.avg_paper_score}%`
-                  : "-"}
+                  : overallStats?.avg_online_score != null
+                    ? `${overallStats.avg_online_score}%`
+                    : "—"}
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
                 ورقي: {overallStats?.avg_paper_score || 0}% | أونلاين:{" "}
@@ -634,7 +741,7 @@ const ParentDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-27.5 px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                className={`flex-1 min-w-[110px] px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-[#1a5d1a] text-white shadow-xs"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/70"
@@ -709,62 +816,77 @@ const ParentDashboard = () => {
               {/* Financial Status Summary Card */}
               <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80 flex flex-col justify-between">
                 <div>
-                  <span className="text-sm font-bold text-gray-800 block mb-3 items-center gap-2">
-                    <Wallet size={16} className="text-emerald-700" />
-                    الموقف المالي للشهر الحالي
-                  </span>
-
-                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">
-                        حالة الاشتراك:
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                      <Wallet size={16} className="text-emerald-700" />
+                      الموقف المالي والاشتراكات
+                    </span>
+                    {payments?.is_fully_paid ? (
+                      <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <Check size={12} />
+                        اشتراك الشهر مسدد
                       </span>
-                      <span
-                        className={`text-xs font-extrabold px-3 py-1 rounded-full ${
-                          isPaidThisMonth
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {isPaidThisMonth ? "مسدد بالكامل" : "غير مسدد"}
+                    ) : (
+                      <span className="text-[11px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
+                        اشتراك الشهر غير مسدد
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600">
+                        إجمالي المبالغ المسددة:
+                      </span>
+                      <span className="text-lg font-black text-emerald-700">
+                        {totalPaid} جنيه مصري
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">
-                        قيمة الاشتراك المطلوب:
+                        عدد الإيصالات المستلمة:
                       </span>
                       <span className="font-bold text-gray-800">
-                        {requiredAmount} ج.م
+                        {paymentHistory.length} إيصال
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">المبلغ المدفوع:</span>
-                      <span className="font-bold text-emerald-600">
-                        {paidAmount} ج.م
-                      </span>
-                    </div>
+                    {payments?.current_month && (
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-emerald-100/70">
+                        <span className="text-gray-500">
+                          الشهر الحالي (
+                          {formatMonthArabic(payments.current_month)}):
+                        </span>
+                        <span
+                          className={`font-bold ${payments.is_fully_paid ? "text-emerald-700" : "text-amber-700"}`}
+                        >
+                          {payments.is_fully_paid
+                            ? "مسدد بالكامل"
+                            : "في انتظار السداد"}
+                        </span>
+                      </div>
+                    )}
 
-                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-sm font-extrabold">
-                      <span className="text-gray-700">المبلغ المتبقي:</span>
-                      <span
-                        className={
-                          remainingAmount > 0
-                            ? "text-red-600"
-                            : "text-emerald-600"
-                        }
-                      >
-                        {remainingAmount} ج.م
-                      </span>
-                    </div>
+                    {paymentHistory.length > 0 && (
+                      <div className="flex items-center justify-between text-xs pt-2 border-t border-emerald-100/70">
+                        <span className="text-gray-500">آخر دفعة مسددة:</span>
+                        <span className="font-bold text-emerald-800">
+                          {paymentHistory[0].amount} ج.م (
+                          {formatDateArabic(paymentHistory[0].payment_date)})
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400 flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-emerald-600" />
+                <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-1.5">
+                  <ShieldCheck
+                    size={14}
+                    className="text-emerald-600 shrink-0"
+                  />
                   <span>
-                    يتم تحصيل الاشتراكات وإصدار الإيصالات مباشرة في السنتر.
+                    جميع المبالغ المسجلة موثقة بإيصالات رسمية من إدارة السنتر.
                   </span>
                 </div>
               </div>
@@ -843,7 +965,8 @@ const ParentDashboard = () => {
                   سجل الحضور والغياب التفصيلي
                 </h3>
                 <span className="text-xs text-gray-500">
-                  إجمالي الحصص المسجلة: {attendance?.total_days || 0}
+                  إجمالي الحصص المسجلة: {attendance?.total_days || 0} | نسبة
+                  الحضور: {attendance?.attendance_percentage || 0}%
                 </span>
               </div>
 
@@ -853,25 +976,25 @@ const ParentDashboard = () => {
                   onClick={() => setAttendanceFilter("all")}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${attendanceFilter === "all" ? "bg-white text-gray-800 shadow-2xs" : "text-gray-500"}`}
                 >
-                  الكل
+                  الكل ({attendanceHistory.length})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("present")}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${attendanceFilter === "present" ? "bg-white text-emerald-700 shadow-2xs" : "text-gray-500"}`}
                 >
-                  حاضر
+                  حاضر ({attendance?.present_days || 0})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("absent")}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${attendanceFilter === "absent" ? "bg-white text-red-700 shadow-2xs" : "text-gray-500"}`}
                 >
-                  غائب
+                  غائب ({attendance?.absent_days || 0})
                 </button>
                 <button
                   onClick={() => setAttendanceFilter("makeup")}
                   className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${attendanceFilter === "makeup" ? "bg-white text-amber-700 shadow-2xs" : "text-gray-500"}`}
                 >
-                  تعويض
+                  تعويض ({attendance?.makeup_days || 0})
                 </button>
               </div>
             </div>
@@ -881,7 +1004,7 @@ const ParentDashboard = () => {
                 لا توجد حصص مسجلة مطابقة للاختيار
               </div>
             ) : (
-              <div className="flex flex-col gap-2 max-h-120 overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex flex-col gap-2 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
                 {filteredAttendance.map((record, idx) => (
                   <div
                     key={idx}
@@ -902,7 +1025,7 @@ const ParentDashboard = () => {
                           <span className="font-bold text-sm text-gray-800">
                             {record.day_name}
                           </span>
-                          {record.is_makeup && (
+                          {Boolean(record.is_makeup) && (
                             <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md">
                               حضور تعويضي
                             </span>
@@ -941,38 +1064,30 @@ const ParentDashboard = () => {
         {/* Tab 3: Payments */}
         {activeTab === "payments" && (
           <motion.div variants={itemVariants} className="flex flex-col gap-4">
-            {/* Current Month Overview Card */}
+            {/* Payments Overview Card */}
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80">
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <CreditCard size={16} className="text-emerald-700" />
-                حالة اشتراك الشهر الجاري
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                  <span className="text-xs text-gray-500 block">
-                    المبلغ المطلوب
-                  </span>
-                  <span className="text-lg font-extrabold text-gray-800 mt-1 block">
-                    {requiredAmount} ج.م
-                  </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                    <Wallet size={24} />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500 block">
+                      إجمالي المبالغ المسددة
+                    </span>
+                    <span className="text-2xl font-black text-emerald-800 block mt-0.5">
+                      {totalPaid} جنيه مصري
+                    </span>
+                  </div>
                 </div>
-                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3.5">
-                  <span className="text-xs text-emerald-700 block">
-                    المدفوع
-                  </span>
-                  <span className="text-lg font-extrabold text-emerald-800 mt-1 block">
-                    {paidAmount} ج.م
-                  </span>
-                </div>
-                <div
-                  className={`rounded-xl p-3.5 border ${remainingAmount > 0 ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100"}`}
-                >
-                  <span className="text-xs text-gray-500 block">المتبقي</span>
-                  <span
-                    className={`text-lg font-extrabold mt-1 block ${remainingAmount > 0 ? "text-red-700" : "text-emerald-700"}`}
-                  >
-                    {remainingAmount} ج.م
-                  </span>
+
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2">
+                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
+                      <ShieldCheck size={16} />
+                      <span>{paymentHistory.length} إيصال سداد مسجل</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1005,6 +1120,8 @@ const ParentDashboard = () => {
                           </span>
                           <span className="text-xs text-gray-500">
                             {formatDateArabic(pmt.payment_date)}
+                            {pmt.subscription_month &&
+                              ` • اشتراك ${formatMonthArabic(pmt.subscription_month)}`}
                           </span>
                         </div>
                       </div>
@@ -1064,6 +1181,12 @@ const ParentDashboard = () => {
                 >
                   إلكتروني ({overallStats?.total_online_exams || 0})
                 </button>
+                <button
+                  onClick={() => setExamFilter("absent")}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${examFilter === "absent" ? "bg-white text-red-700 shadow-2xs" : "text-gray-500"}`}
+                >
+                  غياب
+                </button>
               </div>
             </div>
 
@@ -1075,13 +1198,29 @@ const ParentDashboard = () => {
               <div className="flex flex-col gap-2.5">
                 {filteredExams.map((exam, i) => {
                   const isOnline = exam.exam_type === "online";
-                  const isPassed = exam.status === "passed";
-                  const isPending = exam.status === "pending";
-                  const score = Number(exam.score || 0);
+                  const isAbsent =
+                    exam.status === "غائب" ||
+                    (exam.score === null && exam.exam_type === "paper");
+                  const score = exam.score != null ? Number(exam.score) : null;
                   const fullMark = Number(exam.full_mark || 0);
                   const percentage =
                     parseFloat(exam.percentage) ||
-                    (fullMark > 0 ? Math.round((score / fullMark) * 100) : 0);
+                    (score !== null && fullMark > 0
+                      ? Math.round((score / fullMark) * 100)
+                      : 0);
+
+                  const isPending =
+                    !isAbsent &&
+                    (exam.status === "pending" ||
+                      exam.status === "قيد التصحيح" ||
+                      (isOnline && exam.score === null));
+
+                  const isPassed =
+                    !isAbsent &&
+                    !isPending &&
+                    (exam.status === "passed" ||
+                      exam.status === "ناجح" ||
+                      percentage >= 50);
 
                   return (
                     <div
@@ -1090,9 +1229,19 @@ const ParentDashboard = () => {
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isOnline ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            isAbsent
+                              ? "bg-red-100 text-red-700"
+                              : isOnline
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-blue-100 text-blue-700"
+                          }`}
                         >
-                          <Award size={20} />
+                          {isAbsent ? (
+                            <XCircle size={20} />
+                          ) : (
+                            <Award size={20} />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -1117,27 +1266,40 @@ const ParentDashboard = () => {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0">
-                        <div className="text-right sm:text-left">
-                          <span className="text-base font-black text-gray-800 block">
-                            {score} / {fullMark}
-                          </span>
-                          <span className="text-xs text-gray-400 block font-medium">
-                            الدرجة المحققة
-                          </span>
-                        </div>
+                        {score !== null && (
+                          <div className="text-right sm:text-left">
+                            <div
+                              className="text-base font-black text-gray-800 flex items-center gap-1 justify-end"
+                              dir="ltr"
+                            >
+                              <span>{score}</span>
+                              <span className="text-gray-400 font-normal">
+                                /
+                              </span>
+                              <span>{fullMark}</span>
+                            </div>
+                            <span className="text-xs text-gray-400 block font-medium">
+                              الدرجة المحققة
+                            </span>
+                          </div>
+                        )}
 
                         <span
                           className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
-                            isPending
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : isPassed
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-red-50 text-red-700 border-red-200"
+                            isAbsent
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : isPending
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : isPassed
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-red-50 text-red-700 border-red-200"
                           }`}
                         >
-                          {isPending
-                            ? "قيد التصحيح"
-                            : `${percentage}% (${isPassed ? "ناجح" : "راسب"})`}
+                          {isAbsent
+                            ? "غائب عن الاختبار"
+                            : isPending
+                              ? "قيد التصحيح"
+                              : `${percentage}% (${isPassed ? "ناجح" : "راسب"})`}
                         </span>
                       </div>
                     </div>
@@ -1201,20 +1363,23 @@ const ParentDashboard = () => {
                       )}
                       <span
                         className={`text-xs font-bold px-3 py-1 rounded-full ${
-                          asg.status === "graded"
+                          asg.status === "graded" || asg.status === "تم التصحيح"
                             ? "bg-green-100 text-green-700"
-                            : asg.status === "submitted"
+                            : asg.status === "submitted" ||
+                                asg.status === "تم التسليم"
                               ? "bg-blue-100 text-blue-700"
-                              : asg.status === "overdue"
+                              : asg.status === "overdue" ||
+                                  asg.status === "متأخر"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-amber-100 text-amber-700"
                         }`}
                       >
-                        {asg.status === "graded"
+                        {asg.status === "graded" || asg.status === "تم التصحيح"
                           ? "تم التصحيح"
-                          : asg.status === "submitted"
+                          : asg.status === "submitted" ||
+                              asg.status === "تم التسليم"
                             ? "تم التسليم"
-                            : asg.status === "overdue"
+                            : asg.status === "overdue" || asg.status === "متأخر"
                               ? "متأخر"
                               : "قيد الانتظار"}
                       </span>

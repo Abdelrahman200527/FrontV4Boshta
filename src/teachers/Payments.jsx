@@ -29,7 +29,7 @@ import {
   fetchPayments,
   fetchStudentFilters,
 } from "../api/teacher/actions";
-import { exportPdfTable } from "../utils/office";
+import { exportPdfTable, exportAoaExcel } from "../utils/office";
 
 const Payments = () => {
   const navigate = useNavigate();
@@ -56,6 +56,7 @@ const Payments = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
   const [statusPage, setStatusPage] = useState(1);
@@ -267,6 +268,58 @@ const Payments = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      setExportingExcel(true);
+      const gradeLabel = selectedGrade
+        ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
+        : "";
+      const groupLabel = selectedGroup
+        ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
+        : "";
+      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join("_");
+      const filename = `تقرير_المدفوعات_${filterDesc ? `${filterDesc}_` : ""}${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+      const headers = [
+        "#",
+        "اسم الطالب",
+        "الباركود",
+        "الصف",
+        "المجموعة",
+        "المطلوب",
+        "المدفوع",
+        "المتبقي",
+        "الحالة",
+      ];
+      const rows = filteredStudents.map((s, index) => {
+        const req = Number(s.required_amount || 0);
+        const paid = Number(s.paid_amount || 0);
+        const rem = Math.max(0, req - paid);
+        let statusText = "غير مسدد";
+        if (s.payment_status === "paid") statusText = "مسدد بالكامل";
+        else if (s.payment_status === "no_subscription") statusText = "بدون اشتراك";
+
+        return [
+          index + 1,
+          s.full_name || "-",
+          s.barcode || "-",
+          s.grade_name || "-",
+          s.group_name || "-",
+          req,
+          paid,
+          rem,
+          statusText,
+        ];
+      });
+
+      exportAoaExcel(filename, "المدفوعات", [headers, ...rows]);
+    } catch (err) {
+      console.error("Excel export error:", err);
+    } finally {
+      setExportingExcel(false);
+    }
+  };
+
   if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -298,19 +351,36 @@ const Payments = () => {
           </p>
         </div>
         <div className="flex items-center gap-2 self-stretch sm:self-auto">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleExportPDF}
             disabled={exporting || filteredStudents.length === 0}
-            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs disabled:opacity-50"
             title="تصدير كشف PDF للمدفوعات"
           >
             {exporting ? (
               <Loader2 size={15} className="animate-spin text-gray-400" />
             ) : (
-              <FileText size={15} className="text-gray-500" />
+              <FileText size={15} className="text-gray-600" />
             )}
             <span>{exporting ? "جاري التجهيز..." : "كشف PDF"}</span>
-          </button>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleExportExcel}
+            disabled={exportingExcel || filteredStudents.length === 0}
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs disabled:opacity-50"
+            title="تصدير كشف Excel للمدفوعات"
+          >
+            {exportingExcel ? (
+              <Loader2 size={15} className="animate-spin text-gray-400" />
+            ) : (
+              <FileText size={15} className="text-gray-600" />
+            )}
+            <span>{exportingExcel ? "جاري التجهيز..." : "كشف Excel"}</span>
+          </motion.button>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -335,7 +405,7 @@ const Payments = () => {
           </div>
           <div className="min-w-0">
             <span className="text-xs text-gray-500 font-medium block">إجمالي المحصل</span>
-            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5">
               <span dir="ltr">{metrics.totalCollected.toLocaleString()}</span>
               <span className="text-xs font-bold text-emerald-600 mr-1.5">ج.م</span>
             </div>
@@ -349,7 +419,7 @@ const Payments = () => {
           </div>
           <div className="min-w-0">
             <span className="text-xs text-gray-500 font-medium block">إجمالي المطلوب</span>
-            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5">
               <span dir="ltr">{metrics.totalRequired.toLocaleString()}</span>
               <span className="text-xs font-bold text-blue-600 mr-1.5">ج.م</span>
             </div>
@@ -363,7 +433,7 @@ const Payments = () => {
           </div>
           <div className="min-w-0">
             <span className="text-xs text-gray-500 font-medium block">المتبقي للتحصيل</span>
-            <div className="text-xl sm:text-2xl font-black text-gray-900 mt-0.5">
+            <div className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5">
               <span dir="ltr">{metrics.totalRemaining.toLocaleString()}</span>
               <span className="text-xs font-bold text-amber-600 mr-1.5">ج.م</span>
             </div>
@@ -378,7 +448,7 @@ const Payments = () => {
           <div className="min-w-0 flex-1">
             <span className="text-xs text-gray-500 font-medium block">نسبة التحصيل العامة</span>
             <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-xl sm:text-2xl font-black text-gray-900" dir="ltr">
+              <span className="text-xl sm:text-2xl font-bold text-gray-800" dir="ltr">
                 {metrics.collectionRate}%
               </span>
               <span className="text-[11px] text-gray-400">
@@ -738,7 +808,7 @@ const Payments = () => {
                             {item.barcode || "-"}
                           </span>
                         </td>
-                        <td className="p-3.5 font-black text-emerald-600">
+                        <td className="p-3.5 font-bold text-emerald-600">
                           <span dir="ltr">{Number(item.amount || 0).toLocaleString()}</span> ج.م
                         </td>
                         <td className="p-3.5 font-bold text-gray-600">
@@ -817,7 +887,7 @@ const Payments = () => {
 
                   <div className="mt-4 pt-4 border-t border-gray-100 flex items-baseline justify-between">
                     <span className="text-xs text-gray-500 font-medium">إجمالي المحصل:</span>
-                    <div className="text-xl font-black text-emerald-600">
+                    <div className="text-xl font-bold text-emerald-600">
                       <span dir="ltr">{Number(col.total_collected || 0).toLocaleString()}</span>
                       <span className="text-xs font-bold text-gray-500 mr-1">ج.م</span>
                     </div>

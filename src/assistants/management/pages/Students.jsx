@@ -973,20 +973,22 @@ const Students = () => {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={handleExportPdf}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                    title="تصدير كشف PDF للطلاب"
                   >
-                    <FileText size={14} />
-                    <span className="hidden lg:inline">كشف PDF</span>
+                    <FileText size={15} className="text-gray-600" />
+                    <span className="hidden sm:inline">كشف PDF</span>
                   </motion.button>
 
                   <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={handleExportExcel}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                    title="تصدير كشف Excel للطلاب"
                   >
-                    <Download size={14} />
-                    <span className="hidden lg:inline">كشف Excel</span>
+                    <FileText size={15} className="text-gray-600" />
+                    <span className="hidden sm:inline">كشف Excel</span>
                   </motion.button>
 
                   <motion.button

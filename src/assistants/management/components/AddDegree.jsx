@@ -634,18 +634,20 @@ const AddDegree = () => {
         </div>
 
         <button
-          onClick={handleExportExcel}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
-          title="تصدير كشف الدرجات للطلاب المحددين بصيغة Excel"
-        >
-          <Download size={16} /> كشف Excel
-        </button>
-        <button
           onClick={handleExportPdf}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 rounded-full text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-xs"
           title="تصدير كشف الدرجات للطلاب المحددين بصيغة PDF"
         >
-          <FileText size={16} /> كشف PDF
+          <FileText size={15} className="text-gray-600" />
+          <span>كشف PDF</span>
+        </button>
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 rounded-full text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-xs"
+          title="تصدير كشف الدرجات للطلاب المحددين بصيغة Excel"
+        >
+          <FileText size={15} className="text-gray-600" />
+          <span>كشف Excel</span>
         </button>
         <button
           onClick={handleDownloadTemplate}

@@ -30,6 +30,7 @@ import {
   Phone,
   Printer,
   Download,
+  FileText,
 } from "lucide-react";
 import { memo, useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useApiList, useInvalidate } from "../../../hooks/useApiQuery";
@@ -2678,23 +2679,29 @@ const Attendance = () => {
                     </div>
 
                     {selectedGroup && filteredStudents.length > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleExportAttendanceExcel}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition shadow-xs"
-                        >
-                          <Download size={13} />
-                          كشف Excel
-                        </button>
-                        <button
+                      <div className="flex items-center gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
                           type="button"
                           onClick={handleExportAttendancePdf}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-[#009966] text-white rounded-lg text-xs font-bold hover:bg-[#007a52] transition shadow-xs"
+                          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                          title="تصدير كشف الحضور بصيغة PDF"
                         >
-                          <Printer size={13} />
-                          كشف PDF
-                        </button>
+                          <FileText size={15} className="text-gray-600" />
+                          <span>كشف PDF</span>
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                          type="button"
+                          onClick={handleExportAttendanceExcel}
+                          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                          title="تصدير كشف الحضور بصيغة Excel"
+                        >
+                          <FileText size={15} className="text-gray-600" />
+                          <span>كشف Excel</span>
+                        </motion.button>
                       </div>
                     )}
                   </div>

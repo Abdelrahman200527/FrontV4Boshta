@@ -1,8 +1,8 @@
 import { getParentData, getParentDataByToken } from "./services";
 
-const fetchParentDashboard = async (parent_phone) => {
+const fetchParentDashboard = async (parent_phone, student_id = null) => {
   try {
-    const data = await getParentData(parent_phone);
+    const data = await getParentData(parent_phone, student_id);
     return {
       success: true,
       data,
@@ -10,7 +10,10 @@ const fetchParentDashboard = async (parent_phone) => {
   } catch (error) {
     return {
       success: false,
-      error: error.message || "حدث خطأ في تحميل البيانات",
+      error:
+        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ في تحميل البيانات",
     };
   }
 };
@@ -25,7 +28,10 @@ const fetchParentDashboardByToken = async (token) => {
   } catch (error) {
     return {
       success: false,
-      error: error.message || "حدث خطأ في تحميل البيانات",
+      error:
+        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ في تحميل البيانات",
     };
   }
 };

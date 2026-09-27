@@ -324,20 +324,24 @@ const Grades = () => {
               <Upload size={16} /> {importing ? "جاري الرفع..." : "رفع Excel"}
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 transition-all shadow-sm"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleExportPdf}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+              title="تصدير كشف الصفوف بصيغة PDF"
             >
-              <Download size={16} /> كشف Excel
+              <FileText size={15} className="text-gray-600" />
+              <span>كشف PDF</span>
             </motion.button>
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleExportPdf}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+              title="تصدير كشف الصفوف بصيغة Excel"
             >
-              <FileText size={16} /> كشف Pdf
+              <FileText size={15} className="text-gray-600" />
+              <span>كشف Excel</span>
             </motion.button>
           </div>
         </div>
