@@ -1,5 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/set-state-in-effect */
+import React, { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 import {
@@ -40,22 +42,15 @@ import {
   CreditCard,
   FileText,
 } from "lucide-react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const PIE_COLORS = ["#16a34a", "#dc2626"];
 
 const ParentDashboard = () => {
-  const { token: tokenParam } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const tokenFromUrl = searchParams.get("token") || tokenParam;
+  const tokenFromUrl = searchParams.get("token");
   const phoneFromStorage = localStorage.getItem("phone");
 
   const [data, setData] = useState(null);
@@ -69,42 +64,50 @@ const ParentDashboard = () => {
   const [attendanceFilter, setAttendanceFilter] = useState("all");
   const [examFilter, setExamFilter] = useState("all");
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      let res;
-      if (tokenFromUrl) {
-        res = await fetchParentDashboardByToken(tokenFromUrl);
-      } else if (phoneFromStorage) {
-        res = await fetchParentDashboard(phoneFromStorage);
+  const loadData = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
       } else {
-        setError("لم يتم العثور على بيانات تسجيل الدخول. يرجى تسجيل الدخول برقم الهاتف.");
+        setLoading(true);
+      }
+      setError(null);
+
+      try {
+        let res;
+        if (tokenFromUrl) {
+          res = await fetchParentDashboardByToken(tokenFromUrl);
+        } else if (phoneFromStorage) {
+          res = await fetchParentDashboard(phoneFromStorage);
+        } else {
+          setError(
+            "لم يتم العثور على بيانات تسجيل الدخول. يرجى تسجيل الدخول برقم الهاتف.",
+          );
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+
+        if (res && res.success && res.data) {
+          setData(res.data);
+          if (isRefresh) {
+            notifySuccess("تم تحديث البيانات بنجاح");
+          }
+        } else {
+          setError(
+            res?.error ||
+              "تعذر تحميل بيانات الطالب، يرجى التأكد من الرقم والتواصل مع إدارة السنتر.",
+          );
+        }
+      } catch (err) {
+        setError(err?.message || "حدث خطأ غير متوقع أثناء تحميل البيانات.");
+      } finally {
         setLoading(false);
         setRefreshing(false);
-        return;
       }
-
-      if (res && res.success && res.data) {
-        setData(res.data);
-        if (isRefresh) {
-          notifySuccess("تم تحديث البيانات بنجاح");
-        }
-      } else {
-        setError(res?.error || "تعذر تحميل بيانات الطالب، يرجى التأكد من الرقم والتواصل مع إدارة السنتر.");
-      }
-    } catch (err) {
-      setError(err?.message || "حدث خطأ غير متوقع أثناء تحميل البيانات.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [tokenFromUrl, phoneFromStorage]);
+    },
+    [tokenFromUrl, phoneFromStorage],
+  );
 
   useEffect(() => {
     loadData();
@@ -145,7 +148,9 @@ const ParentDashboard = () => {
       day: "numeric",
     });
     const hasSpecificTime = d.getHours() !== 0 || d.getMinutes() !== 0;
-    return hasSpecificTime ? `${dateText} (الساعة ${formatTime12(d)})` : dateText;
+    return hasSpecificTime
+      ? `${dateText} (الساعة ${formatTime12(d)})`
+      : dateText;
   };
 
   // Loading Screen
@@ -160,9 +165,15 @@ const ParentDashboard = () => {
         }}
       >
         <div className="bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-xl flex flex-col items-center gap-4 border border-emerald-900/10">
-          <img src={MrBoshta} alt="Mr Boshta" className="w-24 h-24 object-contain animate-pulse" />
+          <img
+            src={MrBoshta}
+            alt="Mr Boshta"
+            className="w-24 h-24 object-contain animate-pulse"
+          />
           <Loader2 className="animate-spin text-[#1a5d1a]" size={36} />
-          <p className="text-gray-700 font-bold text-sm">جاري تحميل بيانات الطالب...</p>
+          <p className="text-gray-700 font-bold text-sm">
+            جاري تحميل بيانات الطالب...
+          </p>
         </div>
       </div>
     );
@@ -185,7 +196,9 @@ const ParentDashboard = () => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-800 mb-2">تنبيه</h2>
-            <p className="text-gray-600 text-sm leading-relaxed">{error || "لم يتم العثور على بيانات"}</p>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              {error || "لم يتم العثور على بيانات"}
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full mt-2">
             <button
@@ -212,6 +225,7 @@ const ParentDashboard = () => {
     student,
     attendance = {},
     attendanceHistory = [],
+    payments = {},
     paymentHistory = [],
     allExams = [],
     assignments = [],
@@ -219,8 +233,11 @@ const ParentDashboard = () => {
     overallStats = {},
   } = data;
 
-  // Calculate total paid amount from recorded payments
-  const totalPaid = paymentHistory.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  // Payments calculations
+  const isPaidThisMonth = payments?.current_month_status === "paid";
+  const requiredAmount = Number(payments?.required_amount || 0);
+  const paidAmount = Number(payments?.paid_amount || 0);
+  const remainingAmount = Math.max(0, requiredAmount - paidAmount);
 
   // Pie chart data
   const presentDays = parseInt(attendance?.present_days) || 0;
@@ -247,10 +264,22 @@ const ParentDashboard = () => {
 
   const tabs = [
     { id: "overview", label: "نظرة عامة", icon: TrendingUp },
-    { id: "attendance", label: `الحضور (${attendance?.total_days || 0})`, icon: CalendarCheck2 },
-    { id: "payments", label: `المدفوعات (${paymentHistory.length})`, icon: Wallet },
+    {
+      id: "attendance",
+      label: `الحضور (${attendance?.total_days || 0})`,
+      icon: CalendarCheck2,
+    },
+    {
+      id: "payments",
+      label: `المدفوعات (${paymentHistory.length})`,
+      icon: Wallet,
+    },
     { id: "exams", label: `الامتحانات (${allExams.length})`, icon: FileCheck2 },
-    { id: "assignments", label: `الواجبات (${assignments.length})`, icon: ClipboardList },
+    {
+      id: "assignments",
+      label: `الواجبات (${assignments.length})`,
+      icon: ClipboardList,
+    },
   ];
 
   return (
@@ -271,7 +300,11 @@ const ParentDashboard = () => {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={MrBoshta} alt="Mr Boshta" className="w-12 h-12 object-contain" />
+            <img
+              src={MrBoshta}
+              alt="Mr Boshta"
+              className="w-12 h-12 object-contain"
+            />
             <div>
               <span className="font-mekalbaz text-lg text-[#1a5d1a] block leading-tight">
                 أ / محمد بشتة
@@ -289,7 +322,10 @@ const ParentDashboard = () => {
               title="تحديث البيانات"
               className="p-2 text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw size={18} className={refreshing ? "animate-spin text-emerald-700" : ""} />
+              <RefreshCw
+                size={18}
+                className={refreshing ? "animate-spin text-emerald-700" : ""}
+              />
             </button>
             <button
               onClick={handleLogout}
@@ -334,10 +370,9 @@ const ParentDashboard = () => {
               <div className="flex-1 text-center sm:text-right">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
                   <span className="bg-amber-400/20 text-amber-200 border border-amber-400/30 text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1 font-bold">
-                    <Sparkles size={12} className="text-amber-300" />
                     طالب مسجل
                   </span>
-                  <span className="bg-white/15 text-white/90 text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="bg-white/15 text-white/90 text-2xl px-2.5 py-0.5 rounded-full flex items-center gap-1">
                     <Barcode size={12} />
                     {student?.barcode}
                   </span>
@@ -357,7 +392,10 @@ const ParentDashboard = () => {
                     <Users size={14} className="text-amber-300" />
                     {student?.group_name || "المجموعة"}
                   </span>
-                  <span className="bg-white/15 backdrop-blur-sm text-white px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5" dir="ltr">
+                  <span
+                    className="bg-white/15 backdrop-blur-sm text-white px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5"
+                    dir="ltr"
+                  >
                     <Phone size={14} className="text-amber-300" />
                     {student?.phone}
                   </span>
@@ -371,59 +409,86 @@ const ParentDashboard = () => {
                 <span className="text-xl sm:text-2xl font-black text-amber-300 block">
                   {attendance?.attendance_percentage || 0}%
                 </span>
-                <span className="text-xs text-white/80 mt-0.5 block">نسبة الحضور</span>
+                <span className="text-xs text-white/80 mt-0.5 block">
+                  نسبة الحضور
+                </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
-                <span className="text-xl sm:text-2xl font-black text-emerald-300 block">
-                  {totalPaid} ج.م
+                <span
+                  className={`text-xl sm:text-2xl font-black block ${isPaidThisMonth ? "text-emerald-300" : "text-amber-300"}`}
+                >
+                  {isPaidThisMonth ? "مسدد" : "مستحق"}
                 </span>
-                <span className="text-xs text-white/80 mt-0.5 block">إجمالي المسدد</span>
+                <span className="text-xs text-white/80 mt-0.5 block">
+                  اشتراك الشهر
+                </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
                 <span className="text-xl sm:text-2xl font-black text-white block">
                   {allExams.length}
                 </span>
-                <span className="text-xs text-white/80 mt-0.5 block">إجمالي الامتحانات</span>
+                <span className="text-xs text-white/80 mt-0.5 block">
+                  إجمالي الامتحانات
+                </span>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 text-center">
                 <span className="text-xl sm:text-2xl font-black text-white block">
                   {assignments.length}
                 </span>
-                <span className="text-xs text-white/80 mt-0.5 block">إجمالي الواجبات</span>
+                <span className="text-xs text-white/80 mt-0.5 block">
+                  إجمالي الواجبات
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Student Detailed Attributes Grid - Centered & Aligned */}
+          {/* Student Detailed Attributes Grid */}
           <div className="p-4 sm:p-5 bg-gray-50/50">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <User size={14} className="text-emerald-700" />
               بيانات التواصل والتسجيل
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
-                <span className="text-gray-400 block text-[11px] font-medium">كود الباركود</span>
-                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">{student?.barcode || "—"}</span>
-              </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
-                <span className="text-gray-400 block text-[11px] font-medium">رقم ولي الأمر المسجل</span>
-                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block tracking-wide" dir="ltr">
-                  {student?.parent_phone || phoneFromStorage || "—"}
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
+                <span className="text-gray-400 block text-[11px]">
+                  كود الباركود
+                </span>
+                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
+                  {student?.barcode}
                 </span>
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
-                <span className="text-gray-400 block text-[11px] font-medium">الصف الدراسي</span>
-                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">{student?.grade_name || "—"}</span>
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
+                <span className="text-gray-400 block text-center text-[11px]">
+                  رقم ولي الأمر المسجل
+                </span>
+                <span
+                  className="font-bold text-gray-800 text-sm mt-0.5 block"
+                  dir="ltr"
+                >
+                  {student?.parent_phone || phoneFromStorage}
+                </span>
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
-                <span className="text-gray-400 block text-[11px] font-medium">المجموعة المحددة</span>
-                <span className="font-bold text-gray-800 text-sm sm:text-base mt-1 block">{student?.group_name || "—"}</span>
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
+                <span className="text-gray-400 block text-[11px]">
+                  الصف الدراسي
+                </span>
+                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
+                  {student?.grade_name}
+                </span>
+              </div>
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-2xs">
+                <span className="text-gray-400 block text-[11px]">
+                  المجموعة المحددة
+                </span>
+                <span className="font-bold text-gray-800 text-sm mt-0.5 block">
+                  {student?.group_name}
+                </span>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Group / Class Schedule Card - Centered & Cleaned */}
+        {/* Group / Class Schedule Card */}
         {groupInfo && (
           <motion.div
             variants={itemVariants}
@@ -433,17 +498,21 @@ const ParentDashboard = () => {
               <Users size={16} className="text-emerald-700" />
               مواعيد مجموعة الطالب
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-                <span className="text-[11px] text-gray-500 block mb-1">أيام الحضور</span>
-                <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
+                <span className="text-[11px] text-gray-500 block">
+                  أيام الحضور
+                </span>
+                <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
                   <CalendarDays size={14} className="text-emerald-600" />
                   {groupInfo.days || "حسب الجدول"}
                 </span>
               </div>
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-                <span className="text-[11px] text-gray-500 block mb-1">توقيت الحصة</span>
-                <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
+                <span className="text-[11px] text-gray-500 block">
+                  توقيت الحصة (نظام 12 ساعة)
+                </span>
+                <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
                   <Clock size={14} className="text-emerald-600" />
                   {groupInfo.start_time
                     ? `من ${formatTime12(groupInfo.start_time)} ${groupInfo.end_time ? `إلى ${formatTime12(groupInfo.end_time)}` : ""}`
@@ -451,17 +520,21 @@ const ParentDashboard = () => {
                 </span>
               </div>
               {groupInfo.room && (
-                <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-                  <span className="text-[11px] text-gray-500 block mb-1">القاعة</span>
-                  <span className="font-bold text-emerald-900 text-sm flex items-center justify-center gap-1.5">
+                <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
+                  <span className="text-[11px] text-gray-500 block">
+                    القاعة
+                  </span>
+                  <span className="font-bold text-emerald-900 text-sm flex items-center gap-1.5 mt-0.5">
                     <MapPin size={14} className="text-emerald-600" />
                     {groupInfo.room}
                   </span>
                 </div>
               )}
-              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3 text-center flex flex-col items-center justify-center">
-                <span className="text-[11px] text-gray-500 block mb-1">عدد طلاب المجموعة</span>
-                <span className="font-bold text-emerald-900 text-sm block">
+              <div className="bg-emerald-50/50 border border-emerald-100/60 rounded-xl p-3">
+                <span className="text-[11px] text-gray-500 block">
+                  عدد طلاب المجموعة
+                </span>
+                <span className="font-bold text-emerald-900 text-sm mt-0.5 block">
                   {groupInfo.students_count || 0} طالب
                 </span>
               </div>
@@ -470,7 +543,10 @@ const ParentDashboard = () => {
         )}
 
         {/* 4 Performance KPI Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <motion.div
+          variants={itemVariants}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+        >
           {/* Attendance KPI */}
           <div className="bg-white rounded-2xl p-4 shadow-xs border border-gray-200/80 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
@@ -479,7 +555,8 @@ const ParentDashboard = () => {
             <div className="min-w-0">
               <span className="text-xs text-gray-500 block">حضور الحصص</span>
               <span className="text-base font-bold text-gray-800 block">
-                {attendance?.present_days || 0} من {attendance?.total_days || 0} حصة
+                {attendance?.present_days || 0} من {attendance?.total_days || 0}{" "}
+                حصة
               </span>
               <span className="text-[11px] text-emerald-600 font-medium">
                 غياب: {attendance?.absent_days || 0} حصة
@@ -487,18 +564,24 @@ const ParentDashboard = () => {
             </div>
           </div>
 
-          {/* Paid Amounts KPI - ONLY PAID */}
+          {/* Payment Status KPI */}
           <div className="bg-white rounded-2xl p-4 shadow-xs border border-gray-200/80 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isPaidThisMonth ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
+            >
               <Wallet size={24} />
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-gray-500 block">المدفوعات المسددة</span>
-              <span className="text-base font-bold text-emerald-700 block">
-                {totalPaid} ج.م
+              <span className="text-xs text-gray-500 block">
+                اشتراك الشهر الحالي
+              </span>
+              <span
+                className={`text-base font-bold block ${isPaidThisMonth ? "text-emerald-700" : "text-amber-700"}`}
+              >
+                {isPaidThisMonth ? "تم السداد" : `متبقي ${remainingAmount} ج.م`}
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
-                إجمالي المسجل ({paymentHistory.length} إيصال)
+                المطلوب: {requiredAmount} ج.م
               </span>
             </div>
           </div>
@@ -509,12 +592,15 @@ const ParentDashboard = () => {
               <FileCheck2 size={24} />
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-gray-500 block">سجل الاختبارات</span>
+              <span className="text-xs text-gray-500 block">
+                سجل الاختبارات
+              </span>
               <span className="text-base font-bold text-gray-800 block">
                 {allExams.length} اختبار
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
-                ورقي: {overallStats?.total_paper_exams || 0} | أونلاين: {overallStats?.total_online_exams || 0}
+                ورقي: {overallStats?.total_paper_exams || 0} | أونلاين:{" "}
+                {overallStats?.total_online_exams || 0}
               </span>
             </div>
           </div>
@@ -527,10 +613,13 @@ const ParentDashboard = () => {
             <div className="min-w-0">
               <span className="text-xs text-gray-500 block">متوسط الدرجات</span>
               <span className="text-base font-bold text-gray-800 block">
-                {overallStats?.avg_paper_score ? `${overallStats.avg_paper_score}%` : "-"}
+                {overallStats?.avg_paper_score
+                  ? `${overallStats.avg_paper_score}%`
+                  : "-"}
               </span>
               <span className="text-[11px] text-gray-500 font-medium">
-                ورقي: {overallStats?.avg_paper_score || 0}% | أونلاين: {overallStats?.avg_online_score || 0}%
+                ورقي: {overallStats?.avg_paper_score || 0}% | أونلاين:{" "}
+                {overallStats?.avg_online_score || 0}%
               </span>
             </div>
           </div>
@@ -545,7 +634,7 @@ const ParentDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-[110px] px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                className={`flex-1 min-w-27.5 px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-[#1a5d1a] text-white shadow-xs"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/70"
@@ -583,10 +672,19 @@ const ParentDashboard = () => {
                             dataKey="value"
                           >
                             {pieData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={PIE_COLORS[index % PIE_COLORS.length]}
+                              />
                             ))}
                           </Pie>
-                          <Tooltip contentStyle={{ fontSize: "12px", borderRadius: "8px", direction: "rtl" }} />
+                          <Tooltip
+                            contentStyle={{
+                              fontSize: "12px",
+                              borderRadius: "8px",
+                              direction: "rtl",
+                            }}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -602,45 +700,72 @@ const ParentDashboard = () => {
                     </div>
                   </>
                 ) : (
-                  <p className="text-gray-400 text-xs py-14">لا توجد بيانات حضور مسجلة بعد</p>
+                  <p className="text-gray-400 text-xs py-14">
+                    لا توجد بيانات حضور مسجلة بعد
+                  </p>
                 )}
               </div>
 
-              {/* Financial Status Summary Card - ONLY PAID INFO */}
+              {/* Financial Status Summary Card */}
               <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80 flex flex-col justify-between">
                 <div>
-                  <span className="text-sm font-bold text-gray-800 block mb-3 flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-800 block mb-3 items-center gap-2">
                     <Wallet size={16} className="text-emerald-700" />
-                    المبالغ المسددة
+                    الموقف المالي للشهر الحالي
                   </span>
 
-                  <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex flex-col gap-3">
+                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">إجمالي المبالغ المسددة:</span>
-                      <span className="text-lg font-black text-emerald-700">
-                        {totalPaid} جنيه مصري
+                      <span className="text-xs text-gray-500">
+                        حالة الاشتراك:
+                      </span>
+                      <span
+                        className={`text-xs font-extrabold px-3 py-1 rounded-full ${
+                          isPaidThisMonth
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {isPaidThisMonth ? "مسدد بالكامل" : "غير مسدد"}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">عدد الإيصالات المستلمة:</span>
-                      <span className="font-bold text-gray-800">{paymentHistory.length} إيصال</span>
+                      <span className="text-gray-500">
+                        قيمة الاشتراك المطلوب:
+                      </span>
+                      <span className="font-bold text-gray-800">
+                        {requiredAmount} ج.م
+                      </span>
                     </div>
 
-                    {paymentHistory.length > 0 && (
-                      <div className="flex items-center justify-between text-xs pt-2 border-t border-emerald-100">
-                        <span className="text-gray-500">آخر دفعة مسددة:</span>
-                        <span className="font-bold text-emerald-800">
-                          {paymentHistory[0].amount} ج.م ({formatDateArabic(paymentHistory[0].payment_date)})
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">المبلغ المدفوع:</span>
+                      <span className="font-bold text-emerald-600">
+                        {paidAmount} ج.م
+                      </span>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-sm font-extrabold">
+                      <span className="text-gray-700">المبلغ المتبقي:</span>
+                      <span
+                        className={
+                          remainingAmount > 0
+                            ? "text-red-600"
+                            : "text-emerald-600"
+                        }
+                      >
+                        {remainingAmount} ج.م
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                  <span>جميع المبالغ المسجلة تم سدادها وموثقة بإيصالات رسمية من إدارة السنتر.</span>
+                <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400 flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  <span>
+                    يتم تحصيل الاشتراكات وإصدار الإيصالات مباشرة في السنتر.
+                  </span>
                 </div>
               </div>
             </div>
@@ -662,7 +787,9 @@ const ParentDashboard = () => {
               </div>
 
               {attendanceHistory.length === 0 ? (
-                <p className="text-gray-400 text-xs text-center py-6">لا توجد سجلات حضور حتى الآن</p>
+                <p className="text-gray-400 text-xs text-center py-6">
+                  لا توجد سجلات حضور حتى الآن
+                </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {attendanceHistory.slice(0, 6).map((rec, i) => (
@@ -671,7 +798,9 @@ const ParentDashboard = () => {
                       className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex items-center justify-between"
                     >
                       <div>
-                        <span className="font-bold text-xs text-gray-800 block">{rec.day_name}</span>
+                        <span className="font-bold text-xs text-gray-800 block">
+                          {rec.day_name}
+                        </span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[11px] text-gray-400">
                             {formatDateArabic(rec.attendance_date)}
@@ -703,14 +832,19 @@ const ParentDashboard = () => {
 
         {/* Tab 2: Attendance */}
         {activeTab === "attendance" && (
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80">
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <CalendarCheck2 size={16} className="text-emerald-700" />
                   سجل الحضور والغياب التفصيلي
                 </h3>
-                <span className="text-xs text-gray-500">إجمالي الحصص المسجلة: {attendance?.total_days || 0}</span>
+                <span className="text-xs text-gray-500">
+                  إجمالي الحصص المسجلة: {attendance?.total_days || 0}
+                </span>
               </div>
 
               {/* Attendance Sub-filter */}
@@ -747,20 +881,28 @@ const ParentDashboard = () => {
                 لا توجد حصص مسجلة مطابقة للاختيار
               </div>
             ) : (
-              <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto custom-scrollbar pr-1">
+              <div className="flex flex-col gap-2 max-h-120 overflow-y-auto custom-scrollbar pr-1">
                 {filteredAttendance.map((record, idx) => (
                   <div
                     key={idx}
                     className="flex items-center justify-between bg-gray-50/80 hover:bg-gray-100/60 transition-all border border-gray-100 rounded-xl p-3.5"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${record.status === "present" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-                        {record.status === "present" ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center ${record.status === "present" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
+                      >
+                        {record.status === "present" ? (
+                          <CheckCircle2 size={18} />
+                        ) : (
+                          <XCircle size={18} />
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-gray-800">{record.day_name}</span>
-                          {Boolean(record.is_makeup) && (
+                          <span className="font-bold text-sm text-gray-800">
+                            {record.day_name}
+                          </span>
+                          {record.is_makeup && (
                             <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md">
                               حضور تعويضي
                             </span>
@@ -796,28 +938,40 @@ const ParentDashboard = () => {
           </motion.div>
         )}
 
-        {/* Tab 3: Payments - ONLY PAID AMOUNTS */}
+        {/* Tab 3: Payments */}
         {activeTab === "payments" && (
           <motion.div variants={itemVariants} className="flex flex-col gap-4">
-            {/* Payments Overview Card */}
+            {/* Current Month Overview Card */}
             <div className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
-                    <Wallet size={24} />
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500 block">إجمالي المبالغ المدفوعة</span>
-                    <span className="text-2xl font-black text-emerald-800 block mt-0.5">
-                      {totalPaid} جنيه مصري
-                    </span>
-                  </div>
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <CreditCard size={16} className="text-emerald-700" />
+                حالة اشتراك الشهر الجاري
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
+                  <span className="text-xs text-gray-500 block">
+                    المبلغ المطلوب
+                  </span>
+                  <span className="text-lg font-extrabold text-gray-800 mt-1 block">
+                    {requiredAmount} ج.م
+                  </span>
                 </div>
-
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2 self-start sm:self-auto">
-                  <span className="text-xs font-bold text-emerald-700 flex items-center gap-1.5">
-                    <ShieldCheck size={16} />
-                    <span>تم توثيق {paymentHistory.length} إيصال سداد</span>
+                <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3.5">
+                  <span className="text-xs text-emerald-700 block">
+                    المدفوع
+                  </span>
+                  <span className="text-lg font-extrabold text-emerald-800 mt-1 block">
+                    {paidAmount} ج.م
+                  </span>
+                </div>
+                <div
+                  className={`rounded-xl p-3.5 border ${remainingAmount > 0 ? "bg-red-50/60 border-red-100" : "bg-gray-50 border-gray-100"}`}
+                >
+                  <span className="text-xs text-gray-500 block">المتبقي</span>
+                  <span
+                    className={`text-lg font-extrabold mt-1 block ${remainingAmount > 0 ? "text-red-700" : "text-emerald-700"}`}
+                  >
+                    {remainingAmount} ج.م
                   </span>
                 </div>
               </div>
@@ -831,7 +985,9 @@ const ParentDashboard = () => {
               </h3>
 
               {paymentHistory.length === 0 ? (
-                <p className="text-gray-400 text-xs text-center py-10">لا توجد إيصالات مدفوعات مسجلة</p>
+                <p className="text-gray-400 text-xs text-center py-10">
+                  لا توجد إيصالات مدفوعات مسجلة
+                </p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {paymentHistory.map((pmt, i) => (
@@ -844,7 +1000,9 @@ const ParentDashboard = () => {
                           ج.م
                         </div>
                         <div>
-                          <span className="font-extrabold text-sm text-gray-900 block">{pmt.amount} جنيه مصري</span>
+                          <span className="font-extrabold text-sm text-gray-900 block">
+                            {pmt.amount} جنيه مصري
+                          </span>
                           <span className="text-xs text-gray-500">
                             {formatDateArabic(pmt.payment_date)}
                           </span>
@@ -871,14 +1029,19 @@ const ParentDashboard = () => {
 
         {/* Tab 4: Exams */}
         {activeTab === "exams" && (
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80">
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <FileCheck2 size={16} className="text-emerald-700" />
                   سجل الاختبارات والنتائج
                 </h3>
-                <span className="text-xs text-gray-500">إجمالي الاختبارات: {allExams.length}</span>
+                <span className="text-xs text-gray-500">
+                  إجمالي الاختبارات: {allExams.length}
+                </span>
               </div>
 
               {/* Exam Sub-filter */}
@@ -912,20 +1075,13 @@ const ParentDashboard = () => {
               <div className="flex flex-col gap-2.5">
                 {filteredExams.map((exam, i) => {
                   const isOnline = exam.exam_type === "online";
+                  const isPassed = exam.status === "passed";
+                  const isPending = exam.status === "pending";
                   const score = Number(exam.score || 0);
                   const fullMark = Number(exam.full_mark || 0);
-                  const percentage = parseFloat(exam.percentage) || (fullMark > 0 ? Math.round((score / fullMark) * 100) : 0);
-                  
-                  const isPending =
-                    exam.status === "pending" ||
-                    exam.status === "قيد التصحيح" ||
-                    exam.score === null;
-
-                  const isPassed =
-                    !isPending &&
-                    (exam.status === "passed" ||
-                      exam.status === "ناجح" ||
-                      percentage >= 50);
+                  const percentage =
+                    parseFloat(exam.percentage) ||
+                    (fullMark > 0 ? Math.round((score / fullMark) * 100) : 0);
 
                   return (
                     <div
@@ -933,15 +1089,23 @@ const ParentDashboard = () => {
                       className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isOnline ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isOnline ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}
+                        >
                           <Award size={20} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-sm text-gray-900">{exam.title || "امتحان تقييمي"}</h4>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              isOnline ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
-                            }`}>
+                            <h4 className="font-bold text-sm text-gray-900">
+                              {exam.title || "امتحان تقييمي"}
+                            </h4>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                isOnline
+                                  ? "bg-purple-100 text-purple-700"
+                                  : "bg-blue-100 text-blue-700"
+                              }`}
+                            >
                               {isOnline ? "إلكتروني" : "ورقي"}
                             </span>
                           </div>
@@ -954,22 +1118,26 @@ const ParentDashboard = () => {
 
                       <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0">
                         <div className="text-right sm:text-left">
-                          <div className="text-base font-black text-gray-800 flex items-center gap-1 justify-end" dir="ltr">
-                            <span>{score}</span>
-                            <span className="text-gray-400 font-normal">/</span>
-                            <span>{fullMark}</span>
-                          </div>
-                          <span className="text-xs text-gray-400 block font-medium">الدرجة المحققة</span>
+                          <span className="text-base font-black text-gray-800 block">
+                            {score} / {fullMark}
+                          </span>
+                          <span className="text-xs text-gray-400 block font-medium">
+                            الدرجة المحققة
+                          </span>
                         </div>
 
-                        <span className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
-                          isPending
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : isPassed
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-red-50 text-red-700 border-red-200"
-                        }`}>
-                          {isPending ? "قيد التصحيح" : `${percentage}% (${isPassed ? "ناجح" : "راسب"})`}
+                        <span
+                          className={`text-xs font-black px-3 py-1.5 rounded-xl border ${
+                            isPending
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : isPassed
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-red-50 text-red-700 border-red-200"
+                          }`}
+                        >
+                          {isPending
+                            ? "قيد التصحيح"
+                            : `${percentage}% (${isPassed ? "ناجح" : "راسب"})`}
                         </span>
                       </div>
                     </div>
@@ -982,14 +1150,19 @@ const ParentDashboard = () => {
 
         {/* Tab 5: Assignments */}
         {activeTab === "assignments" && (
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80">
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-2xl p-5 shadow-xs border border-gray-200/80"
+          >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <ClipboardList size={16} className="text-emerald-700" />
                   سجل الواجبات والمهام الدراسية
                 </h3>
-                <span className="text-xs text-gray-500">إجمالي الواجبات: {assignments.length}</span>
+                <span className="text-xs text-gray-500">
+                  إجمالي الواجبات: {assignments.length}
+                </span>
               </div>
             </div>
 
@@ -1009,9 +1182,13 @@ const ParentDashboard = () => {
                         <ClipboardList size={20} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm text-gray-900">{asg.title}</h4>
+                        <h4 className="font-bold text-sm text-gray-900">
+                          {asg.title}
+                        </h4>
                         <span className="text-xs text-gray-500 block mt-0.5">
-                          {asg.deadline ? `آخر موعد للتسليم: ${formatDeadline(asg.deadline)}` : "بدون موعد محدد"}
+                          {asg.deadline
+                            ? `آخر موعد للتسليم: ${formatDeadline(asg.deadline)}`
+                            : "بدون موعد محدد"}
                         </span>
                       </div>
                     </div>
@@ -1022,15 +1199,17 @@ const ParentDashboard = () => {
                           {asg.score} / {asg.full_mark || 10}
                         </span>
                       )}
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        asg.status === "graded"
-                          ? "bg-green-100 text-green-700"
-                          : asg.status === "submitted"
-                            ? "bg-blue-100 text-blue-700"
-                            : asg.status === "overdue"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
-                      }`}>
+                      <span
+                        className={`text-xs font-bold px-3 py-1 rounded-full ${
+                          asg.status === "graded"
+                            ? "bg-green-100 text-green-700"
+                            : asg.status === "submitted"
+                              ? "bg-blue-100 text-blue-700"
+                              : asg.status === "overdue"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
                         {asg.status === "graded"
                           ? "تم التصحيح"
                           : asg.status === "submitted"

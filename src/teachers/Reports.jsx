@@ -22,11 +22,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Printer,
-  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import {
   PieChart,
   Pie,
@@ -146,107 +143,6 @@ const Reports = () => {
   const closeDetails = () => {
     setSelectedStudent(null);
     setStudentDetails(null);
-  };
-
-  const [exportLoading, setExportLoading] = useState(false);
-
-  const fetchExportStudents = async () => {
-    try {
-      const res = await fetchAllStudents(
-        1,
-        searchQuery,
-        selectedGrade === "all" ? "" : selectedGrade,
-        "",
-        10000
-      );
-      if (res.success && Array.isArray(res.data)) {
-        return res.data;
-      }
-      return students;
-    } catch (err) {
-      console.error("Error fetching students for export:", err);
-      return students;
-    }
-  };
-
-  const handleExportPdfReport = async () => {
-    setExportLoading(true);
-    try {
-      const allStudents = await fetchExportStudents();
-      const gradeName =
-        selectedGrade !== "all"
-          ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
-          : "";
-      const filterDesc = gradeName ? `(${gradeName})` : "(كل المراحل)";
-      const title = `تقرير المنصة الشامل - قائمة الطلاب ${filterDesc}`;
-      const columns = [
-        { header: "#", key: "index", width: 8 },
-        { header: "الباركود", key: "barcode", width: 20 },
-        { header: "اسم الطالب", key: "full_name", width: 35 },
-        { header: "الصف", key: "grade_name", width: 20 },
-        { header: "المجموعة", key: "group_name", width: 17 },
-      ];
-      const rows = allStudents.map((s, idx) => ({
-        index: idx + 1,
-        barcode: s.barcode || "-",
-        full_name: s.full_name || "-",
-        grade_name: s.grade_name || "-",
-        group_name: s.group_name || "-",
-      }));
-      exportPdfTable(
-        `تقرير_المنصة_${new Date().toISOString().slice(0, 10)}.pdf`,
-        `${title} - إجمالي الطلاب: ${rows.length}`,
-        columns,
-        rows
-      );
-    } catch (err) {
-      console.error("PDF export error:", err);
-    } finally {
-      setExportLoading(false);
-    }
-  };
-
-  const handleExportExcelReport = async () => {
-    setExportLoading(true);
-    try {
-      const allStudents = await fetchExportStudents();
-      const gradeName =
-        selectedGrade !== "all"
-          ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
-          : "";
-      const filterDesc = gradeName ? `_${gradeName}` : "";
-      const aoa = [
-        [
-          "#",
-          "الباركود",
-          "اسم الطالب",
-          "الصف",
-          "المجموعة",
-          "رقم الهاتف",
-          "رقم ولي الأمر",
-        ],
-      ];
-      allStudents.forEach((s, idx) => {
-        aoa.push([
-          idx + 1,
-          s.barcode || "-",
-          s.full_name || "-",
-          s.grade_name || "-",
-          s.group_name || "-",
-          s.phone || "-",
-          s.parent_phone || "-",
-        ]);
-      });
-      exportAoaExcel(
-        `تقرير_المنصة${filterDesc}_${new Date().toISOString().slice(0, 10)}.xlsx`,
-        "الطلاب",
-        aoa
-      );
-    } catch (err) {
-      console.error("Excel export error:", err);
-    } finally {
-      setExportLoading(false);
-    }
   };
 
   const attendanceStats = stats?.attendance || [];
@@ -379,33 +275,9 @@ const Reports = () => {
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <button
-              onClick={handleExportExcelReport}
-              disabled={exportLoading}
-              className="flex items-center gap-2 bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-800 transition shadow-xs disabled:opacity-50"
-            >
-              {exportLoading ? (
-                <RefreshCw size={14} className="animate-spin" />
-              ) : (
-                <Download size={15} />
-              )}
-              تصدير Excel
-            </button>
-            <button
-              onClick={handleExportPdfReport}
-              disabled={exportLoading}
-              className="flex items-center gap-2 bg-[#009966] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#007a52] transition shadow-xs disabled:opacity-50"
-            >
-              {exportLoading ? (
-                <RefreshCw size={14} className="animate-spin" />
-              ) : (
-                <Printer size={15} />
-              )}
-              طباعة التقرير (PDF)
-            </button>
-            <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50 shadow-sm"
+              className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50 shadow-sm"
             >
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
               {refreshing ? "جاري التحديث..." : "تحديث"}

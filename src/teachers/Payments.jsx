@@ -12,8 +12,7 @@ import {
   Search,
   X,
   RefreshCw,
-  Printer,
-  Download,
+  FileText,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
@@ -30,7 +29,7 @@ import {
   fetchPayments,
   fetchStudentFilters,
 } from "../api/teacher/actions";
-import { exportPdfTable, exportAoaExcel } from "../utils/office";
+import { exportPdfTable } from "../utils/office";
 
 const Payments = () => {
   const navigate = useNavigate();
@@ -59,6 +58,8 @@ const Payments = () => {
   const [exporting, setExporting] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPage, setHistoryPage] = useState(1);
+  const [statusPage, setStatusPage] = useState(1);
+  const [statusLimit, setStatusLimit] = useState(20);
 
   // Load General Data
   const loadInitialData = useCallback(async () => {
@@ -146,6 +147,23 @@ const Payments = () => {
       return matchesSearch && matchesGrade && matchesGroup && matchesStatus;
     });
   }, [studentsStatus, searchQuery, selectedGrade, selectedGroup, statusFilter]);
+
+  // Reset status pagination on filter change
+  useEffect(() => {
+    setStatusPage(1);
+  }, [searchQuery, selectedGrade, selectedGroup, statusFilter]);
+
+  const totalStatusPages = useMemo(() => {
+    if (statusLimit === "all") return 1;
+    return Math.max(1, Math.ceil(filteredStudents.length / Number(statusLimit)));
+  }, [filteredStudents.length, statusLimit]);
+
+  const paginatedStudents = useMemo(() => {
+    if (statusLimit === "all") return filteredStudents;
+    const limitNum = Number(statusLimit);
+    const start = (statusPage - 1) * limitNum;
+    return filteredStudents.slice(start, start + limitNum);
+  }, [filteredStudents, statusPage, statusLimit]);
 
   // Derived Metrics
   const metrics = useMemo(() => {
@@ -249,59 +267,6 @@ const Payments = () => {
     }
   };
 
-  // Excel Export
-  const handleExportExcel = () => {
-    try {
-      const gradeLabel = selectedGrade
-        ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
-        : "";
-      const groupLabel = selectedGroup
-        ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
-        : "";
-      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join(" - ");
-
-      const aoa = [
-        [
-          "#",
-          "اسم الطالب",
-          "الباركود",
-          "الصف",
-          "المجموعة",
-          "المطلوب (ج.م)",
-          "المدفوع (ج.م)",
-          "المتبقي (ج.م)",
-          "الحالة",
-        ],
-      ];
-
-      filteredStudents.forEach((s, index) => {
-        const req = Number(s.required_amount || 0);
-        const paid = Number(s.paid_amount || 0);
-        const rem = Math.max(0, req - paid);
-        let statusText = "غير مسدد";
-        if (s.payment_status === "paid") statusText = "مسدد بالكامل";
-        else if (s.payment_status === "no_subscription") statusText = "بدون اشتراك";
-
-        aoa.push([
-          index + 1,
-          s.full_name || "-",
-          s.barcode || "-",
-          s.grade_name || "-",
-          s.group_name || "-",
-          req,
-          paid,
-          rem,
-          statusText,
-        ]);
-      });
-
-      const filename = `تقرير_المدفوعات_${filterDesc ? filterDesc.replace(/\s+/g, "_") + "_" : ""}${new Date().toISOString().slice(0, 10)}.xlsx`;
-      exportAoaExcel(filename, "المدفوعات", aoa);
-    } catch (err) {
-      console.error("Excel export error:", err);
-    }
-  };
-
   if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -334,25 +299,22 @@ const Payments = () => {
         </div>
         <div className="flex items-center gap-2 self-stretch sm:self-auto">
           <button
-            onClick={handleExportExcel}
-            disabled={exporting || filteredStudents.length === 0}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-800 transition shadow-xs disabled:opacity-50"
-          >
-            <Download size={16} />
-            <span>تصدير كشف Excel</span>
-          </button>
-          <button
             onClick={handleExportPDF}
             disabled={exporting || filteredStudents.length === 0}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#009966] text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#007a52] transition shadow-xs disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50"
+            title="تصدير كشف PDF للمدفوعات"
           >
-            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
-            <span>{exporting ? "جاري التصدير..." : "تصدير كشف PDF"}</span>
+            {exporting ? (
+              <Loader2 size={15} className="animate-spin text-gray-400" />
+            ) : (
+              <FileText size={15} className="text-gray-500" />
+            )}
+            <span>{exporting ? "جاري التجهيز..." : "كشف PDF"}</span>
           </button>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center justify-center gap-1.5 bg-white border border-gray-200 px-3.5 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 bg-white border border-gray-200 px-3.5 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50"
             title="تحديث البيانات"
           >
             <RefreshCw size={16} className={refreshing ? "animate-spin text-[#009966]" : ""} />
@@ -573,12 +535,16 @@ const Payments = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
-                    {filteredStudents.map((student, idx) => {
+                    {paginatedStudents.map((student, idx) => {
                       const required = Number(student.required_amount || 0);
                       const paid = Number(student.paid_amount || 0);
                       const remaining = Math.max(0, required - paid);
                       const isPaid = student.payment_status === "paid";
                       const isNoSub = student.payment_status === "no_subscription";
+                      const itemIndex =
+                        statusLimit === "all"
+                          ? idx + 1
+                          : (statusPage - 1) * Number(statusLimit) + idx + 1;
 
                       return (
                         <tr
@@ -586,7 +552,7 @@ const Payments = () => {
                           className="hover:bg-gray-50/80 transition group"
                         >
                           <td className="p-3.5 pr-4 text-gray-400 font-bold text-xs">
-                            {idx + 1}
+                            {itemIndex}
                           </td>
                           <td className="p-3.5">
                             <span
@@ -651,6 +617,73 @@ const Payments = () => {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls for Tab 1 */}
+            {filteredStudents.length > 0 && (
+              <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600 bg-white">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span>
+                    عرض{" "}
+                    <strong className="text-gray-900 font-bold">
+                      {statusLimit === "all" ? 1 : (statusPage - 1) * Number(statusLimit) + 1}
+                    </strong>{" "}
+                    إلى{" "}
+                    <strong className="text-gray-900 font-bold">
+                      {statusLimit === "all"
+                        ? filteredStudents.length
+                        : Math.min(statusPage * Number(statusLimit), filteredStudents.length)}
+                    </strong>{" "}
+                    من إجمالي{" "}
+                    <strong className="text-[#009966] font-bold">{filteredStudents.length}</strong> طالب
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <span>لكل صفحة:</span>
+                    <select
+                      value={statusLimit}
+                      onChange={(e) => {
+                        const val = e.target.value === "all" ? "all" : Number(e.target.value);
+                        setStatusLimit(val);
+                        setStatusPage(1);
+                      }}
+                      className="border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#009966]"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value="all">الكل</option>
+                    </select>
+                  </div>
+                </div>
+
+                {statusLimit !== "all" && totalStatusPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStatusPage((p) => Math.max(1, p - 1))}
+                      disabled={statusPage <= 1}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#009966] hover:text-[#009966] disabled:opacity-40 transition font-medium text-gray-700 bg-white shadow-xs"
+                    >
+                      <ChevronRight size={14} />
+                      <span>السابق</span>
+                    </button>
+
+                    <span className="px-2 font-medium text-gray-700">
+                      صفحة {statusPage} من {totalStatusPages}
+                    </span>
+
+                    <button
+                      onClick={() => setStatusPage((p) => Math.min(totalStatusPages, p + 1))}
+                      disabled={statusPage >= totalStatusPages}
+                      className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#009966] hover:text-[#009966] disabled:opacity-40 transition font-medium text-gray-700 bg-white shadow-xs"
+                    >
+                      <span>التالي</span>
+                      <ChevronLeft size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

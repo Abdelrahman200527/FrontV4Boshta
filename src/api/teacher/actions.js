@@ -580,6 +580,8 @@ const fetchPayments = async (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
+  month = "",
 ) => {
   try {
     const res = await teacherServices.getPayments(
@@ -587,6 +589,8 @@ const fetchPayments = async (
       search,
       gradeId,
       groupId,
+      limit,
+      month,
     );
     return { success: true, data: res.data, pagination: res.pagination };
   } catch (error) {

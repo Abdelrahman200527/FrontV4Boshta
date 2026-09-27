@@ -19,11 +19,8 @@ import {
   GraduationCap,
   Phone,
   Barcode,
-  Printer,
-  Download,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { exportPdfTable, exportAoaExcel } from "../utils/office";
 import {
   PieChart,
   Pie,
@@ -202,52 +199,6 @@ const Attendance = () => {
       setSearchError(result.error || "فشل تحميل الملخص");
     }
     setLoadingFilters(false);
-  };
-
-  const handleExportGroupAttendance = () => {
-    if (!groupDateAttendance || groupDateAttendance.length === 0) return;
-    const groupObj = groups.find((g) => String(g.id) === String(selectedGroup));
-    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
-    const groupName = groupObj?.name || "";
-    const gradeName = gradeObj?.name || "";
-    const title = `كشف حضور المجموعة ${groupName ? `(${groupName})` : ""} - ${gradeName} - تاريخ ${selectedDate || ""}`;
-    const columns = [
-      { header: "#", key: "index", width: 8 },
-      { header: "الاسم", key: "full_name", width: 45 },
-      { header: "الباركود", key: "barcode", width: 25 },
-      { header: "الحالة", key: "status", width: 22 },
-    ];
-    const rows = groupDateAttendance.map((item, idx) => ({
-      index: idx + 1,
-      full_name: item.full_name || "-",
-      barcode: item.barcode || "-",
-      status: item.status === "present" ? "حاضر" : "غائب",
-    }));
-    exportPdfTable("attendance-group", title, columns, rows);
-  };
-
-  const handleExportGroupAttendanceExcel = () => {
-    if (!groupDateAttendance || groupDateAttendance.length === 0) return;
-    const groupObj = groups.find((g) => String(g.id) === String(selectedGroup));
-    const gradeObj = grades.find((g) => String(g.id) === String(selectedGrade));
-    const groupName = groupObj?.name || "";
-    const gradeName = gradeObj?.name || "";
-    const aoa = [
-      ["#", "اسم الطالب", "الباركود", "الحالة", "المجموعة", "الصف", "التاريخ"],
-    ];
-    groupDateAttendance.forEach((item, idx) => {
-      aoa.push([
-        idx + 1,
-        item.full_name || "-",
-        item.barcode || "-",
-        item.status === "present" ? "حاضر" : "غائب",
-        groupName || "-",
-        gradeName || "-",
-        selectedDate || "-",
-      ]);
-    });
-    const filename = `كشف_حضور_${groupName ? groupName.replace(/\s+/g, "_") + "_" : ""}${selectedDate || ""}.xlsx`;
-    exportAoaExcel(filename, "الحضور", aoa);
   };
 
   const handleSearch = async () => {
@@ -756,22 +707,6 @@ const Attendance = () => {
                       <h4 className="font-bold text-xs sm:text-sm text-gray-800">
                         حضور المجموعة - {selectedDate} ({groupDateAttendance.length} طالب)
                       </h4>
-                      <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
-                        <button
-                          onClick={handleExportGroupAttendanceExcel}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-bold hover:bg-emerald-800 transition shadow-xs"
-                        >
-                          <Download size={13} />
-                          تصدير كشف (Excel)
-                        </button>
-                        <button
-                          onClick={handleExportGroupAttendance}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#009966] text-white rounded-lg text-xs font-bold hover:bg-[#007a52] transition shadow-xs"
-                        >
-                          <Printer size={13} />
-                          طباعة الكشف (PDF)
-                        </button>
-                      </div>
                     </div>
                     <div className="overflow-x-auto max-h-72 overflow-y-auto rounded-lg border border-gray-200">
                       <table className="w-full text-xs sm:text-sm">

@@ -13,7 +13,7 @@ import {
   Eye,
   Barcode,
   Loader2,
-  Printer,
+  FileText,
 } from "lucide-react";
 import React, {
   useEffect,
@@ -28,7 +28,7 @@ import {
   fetchStudentFilters,
   fetchStudentDetails,
 } from "../api/teacher/actions";
-import { exportPdfTable, exportAoaExcel } from "../utils/office";
+import { exportPdfTable } from "../utils/office";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -150,7 +150,7 @@ const Students = () => {
         searchQuery,
         selectedGrade,
         selectedGroup,
-        10000,
+        "all",
       );
       const studentList =
         result.success && Array.isArray(result.data) && result.data.length > 0
@@ -165,13 +165,22 @@ const Students = () => {
       const groupLabel = selectedGroup
         ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
         : "";
-      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join(" - ");
-      const title = filterDesc
-        ? `قائمة الطلاب (${filterDesc}) - العدد: ${studentList.length}`
-        : `قائمة جميع الطلاب - العدد: ${studentList.length}`;
+      
+      let title = "قائمة جميع الطلاب";
+      if (gradeLabel && groupLabel) {
+        title = `قائمة طلاب (${gradeLabel} - ${groupLabel})`;
+      } else if (gradeLabel) {
+        title = `قائمة طلاب (${gradeLabel})`;
+      } else if (groupLabel) {
+        title = `قائمة طلاب (${groupLabel})`;
+      }
+      title += ` - إجمالي: ${studentList.length} طالب`;
+
+      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join("_");
+      const filename = `كشف_الطلاب_${filterDesc ? `${filterDesc.replace(/\s+/g, "_")}_` : ""}${new Date().toISOString().slice(0, 10)}.pdf`;
 
       exportPdfTable(
-        `قائمة_الطلاب_${filterDesc ? `${filterDesc.replace(/\s+/g, "_")}_` : ""}${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename,
         title,
         [
           { header: "#", key: "index", width: 8 },
@@ -185,58 +194,10 @@ const Students = () => {
         studentList.map((s, idx) => ({
           ...s,
           index: idx + 1,
-        }))
+        })),
       );
     } catch (err) {
       console.error("Failed to export students PDF:", err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    try {
-      setExporting(true);
-      const result = await fetchAllStudents(
-        1,
-        searchQuery,
-        selectedGrade,
-        selectedGroup,
-        10000,
-      );
-      const studentList =
-        result.success && Array.isArray(result.data) && result.data.length > 0
-          ? result.data
-          : students;
-
-      if (!studentList || studentList.length === 0) return;
-
-      const gradeLabel = selectedGrade
-        ? grades.find((g) => String(g.id) === String(selectedGrade))?.name
-        : "";
-      const groupLabel = selectedGroup
-        ? groups.find((g) => String(g.id) === String(selectedGroup))?.name
-        : "";
-      const filterDesc = [gradeLabel, groupLabel].filter(Boolean).join(" - ");
-
-      const headers = ["#", "الاسم", "الباركود", "الصف", "المجموعة", "هاتف الطالب", "هاتف ولي الأمر"];
-      const rows = studentList.map((s, idx) => [
-        idx + 1,
-        s.full_name || "-",
-        s.barcode || "-",
-        s.grade_name || "-",
-        s.group_name || "-",
-        s.phone || "-",
-        s.parent_phone || "-",
-      ]);
-
-      exportAoaExcel(
-        `قائمة_الطلاب_${filterDesc ? `${filterDesc.replace(/\s+/g, "_")}_` : ""}${new Date().toISOString().slice(0, 10)}.xlsx`,
-        "الطلاب",
-        [headers, ...rows]
-      );
-    } catch (err) {
-      console.error("Failed to export students Excel:", err);
     } finally {
       setExporting(false);
     }
@@ -309,29 +270,20 @@ const Students = () => {
             <button
               onClick={handleExportPDF}
               disabled={exporting || students.length === 0}
-              className="flex items-center gap-1.5 bg-[#009966] text-white px-3.5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#007a52] transition disabled:opacity-50 shadow-xs"
-              title="طباعة / تصدير PDF لكافة الطلاب المحددين"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50"
+              title="تصدير كشف PDF للطلاب"
             >
               {exporting ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin text-gray-400" />
               ) : (
-                <Printer size={15} />
+                <FileText size={15} className="text-gray-500" />
               )}
-              <span>{exporting ? "جاري التجهيز..." : "طباعة PDF"}</span>
-            </button>
-            <button
-              onClick={handleExportExcel}
-              disabled={exporting || students.length === 0}
-              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3.5 py-2.5 rounded-lg text-sm font-bold hover:border-[#009966] hover:text-[#009966] transition disabled:opacity-50 shadow-xs"
-              title="تصدير كشف Excel لكافة الطلاب المحددين"
-            >
-              <Download size={15} />
-              <span>تصدير Excel</span>
+              <span>{exporting ? "جاري التجهيز..." : "كشف PDF"}</span>
             </button>
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition disabled:opacity-50"
+              className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:border-[#009966] transition disabled:opacity-50"
             >
               {refreshing ? (
                 <Loader2 size={14} className="animate-spin" />

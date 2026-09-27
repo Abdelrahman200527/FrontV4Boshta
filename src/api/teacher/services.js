@@ -138,11 +138,16 @@ const getStudents = async (
   limit = 20,
 ) => {
   const params = new URLSearchParams();
-  params.append("page", page);
-  if (limit) params.append("limit", limit);
+  if (limit === "all" || limit === 10000 || Number(limit) >= 500) {
+    params.append("all", "true");
+    params.append("limit", "all");
+  } else {
+    params.append("page", page);
+    if (limit) params.append("limit", limit);
+  }
   if (search) params.append("search", search);
-  if (gradeId) params.append("grade_id", gradeId);
-  if (groupId) params.append("group_id", groupId);
+  if (gradeId && gradeId !== "all") params.append("grade_id", gradeId);
+  if (groupId && groupId !== "all") params.append("group_id", groupId);
   const response = await httpGet(`/teacher/students?${params.toString()}`);
   return response;
 };
@@ -365,12 +370,16 @@ const getPayments = async (
   search = "",
   gradeId = "",
   groupId = "",
+  limit = 20,
+  month = "",
 ) => {
   const params = new URLSearchParams();
   params.append("page", page);
+  if (limit) params.append("limit", limit);
   if (search) params.append("search", search);
   if (gradeId) params.append("grade_id", gradeId);
   if (groupId) params.append("group_id", groupId);
+  if (month) params.append("month", month);
   const response = await httpGet(`/teacher/payments?${params.toString()}`);
   return response;
 };
