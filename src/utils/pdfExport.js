@@ -2,6 +2,16 @@
 
 import html2pdf from "html2pdf.js";
 
+const escapeHtml = (str) => {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 const generatePDF = (element, filename) => {
   const opt = {
     margin: [10, 10],
@@ -23,7 +33,7 @@ const exportStudentsPDF = (students, filters = {}) => {
   container.innerHTML = `
     <div style="text-align:center;margin-bottom:20px;">
       <h2 style="color:#009966;">قائمة الطلاب</h2>
-      ${filters.gradeName ? `<p style="color:#666;">الصف: ${filters.gradeName}</p>` : ""}
+      ${filters.gradeName ? `<p style="color:#666;">الصف: ${escapeHtml(filters.gradeName)}</p>` : ""}
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead>
@@ -41,12 +51,12 @@ const exportStudentsPDF = (students, filters = {}) => {
           .map(
             (s) => `
           <tr>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.barcode}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.full_name}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.grade_name}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.group_name}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.phone}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${s.parent_phone}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.barcode)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.full_name)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.grade_name)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.group_name)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.phone)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(s.parent_phone)}</td>
           </tr>
         `,
           )
@@ -86,11 +96,11 @@ const exportPaymentsPDF = (payments, filters = {}) => {
           .map(
             (p) => `
           <tr>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${p.barcode}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${p.full_name}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;">${p.group_name}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(p.barcode)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(p.full_name)}</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;">${escapeHtml(p.group_name)}</td>
             <td style="padding:6px;border-bottom:1px solid #eee;color:${p.payment_status === "paid" ? "#16a34a" : "#dc2626"};font-weight:bold;">${p.payment_status === "paid" ? "✓ مدفوع" : "✗ غير مدفوع"}</td>
-            <td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">${p.paid_amount || 0} جنيه</td>
+            <td style="padding:6px;border-bottom:1px solid #eee;font-weight:bold;">${escapeHtml(p.paid_amount || 0)} جنيه</td>
           </tr>
         `,
           )
@@ -105,3 +115,4 @@ const exportPaymentsPDF = (payments, filters = {}) => {
 };
 
 export { exportStudentsPDF, exportPaymentsPDF };
+

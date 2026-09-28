@@ -23,6 +23,7 @@ import {
   submitStudentAnswer,
   submitStudentEssayAnswer,
 } from "../api/student/actions";
+import { validateFileUpload } from "../utils/validators";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -207,6 +208,16 @@ const ExamTaking = () => {
 
   const handleEssayUpload = async (questionId, file) => {
     if (uploadingFile) return;
+
+    const fileCheck = validateFileUpload(file, {
+      allowedExtensions: ["pdf", "jpg", "jpeg", "png", "webp"],
+      maxSizeMB: 15,
+    });
+    if (!fileCheck.valid) {
+      notifyError(fileCheck.error);
+      return;
+    }
+
     setUploadingFile(true);
 
     try {

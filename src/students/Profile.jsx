@@ -24,6 +24,7 @@ import {
 } from "../api/student/actions";
 import getUser from "../utils/getUser";
 import getImageUrl from "../utils/imageUrl";
+import { validateFileUpload } from "../utils/validators";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -115,6 +116,15 @@ const Profile = () => {
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    const fileCheck = validateFileUpload(file, {
+      allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+      maxSizeMB: 5,
+    });
+    if (!fileCheck.valid) {
+      setImageMessage({ type: "error", text: fileCheck.error });
+      return;
+    }
 
     setImageLoading(true);
     setImageMessage(null);

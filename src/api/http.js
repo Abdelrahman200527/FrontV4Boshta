@@ -1,23 +1,20 @@
 import config from "../config";
-import { getCookie } from "../utils/cookies";
+import { getCookie, clearAllAuthCookies } from "../utils/cookies";
 
 const { apiUrl, apiUserName, apiPassword } = config;
 
 const credential = btoa(`${apiUserName}:${apiPassword}`);
 
-function clearAuthCookies() {
-  document.cookie =
-    "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-  document.cookie =
-    "super_admin_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-}
-
 function forceLogout() {
-  clearAuthCookies();
-  localStorage.clear();
-  sessionStorage.clear();
+  clearAllAuthCookies();
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {
+    console.error("Failed to clear storage:", e);
+  }
 
-  if (window.location.pathname !== "/login") {
+  if (window.location.pathname !== "/login" && window.location.pathname !== "/user/login") {
     window.location.href = "/login";
   }
 }
@@ -56,6 +53,15 @@ async function httpRequest(path, options = {}) {
     }
 
     const data = await response.json().catch(() => null);
+
+    // Check for session expiry / invalid token
+    if (response.status === 401 && !path.startsWith("/auth/")) {
+      forceLogout();
+      const error = new Error(data?.message || "انتهت الجلسة، يرجى تسجيل الدخول مجدداً");
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
 
     // Check for platform paused - force logout
     if (response.status === 403 && data?.force_logout) {

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import getUser, { updateUserCookie } from "../utils/getUser";
 import getImageUrl from "../utils/imageUrl";
+import { validateFileUpload } from "../utils/validators";
 import {
   changeTeacherPassword,
   updateTeacherProfileImageAction,
@@ -73,6 +74,15 @@ const Profile = () => {
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    const fileCheck = validateFileUpload(file, {
+      allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+      maxSizeMB: 5,
+    });
+    if (!fileCheck.valid) {
+      setImageMessage({ type: "error", text: fileCheck.error });
+      return;
+    }
 
     setImageLoading(true);
     setImageMessage(null);

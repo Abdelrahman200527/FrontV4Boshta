@@ -29,6 +29,7 @@ import {
   updateStudentAssignment,
   downloadAssignmentFile,
 } from "../api/student/actions";
+import { validateFileUpload } from "../utils/validators";
 
 const Homework = () => {
   const [assignments, setAssignments] = useState([]);
@@ -127,6 +128,15 @@ const Homework = () => {
       return;
     }
 
+    const fileCheck = validateFileUpload(uploadFile, {
+      allowedExtensions: ["pdf", "doc", "docx", "jpg", "jpeg", "png"],
+      maxSizeMB: 20,
+    });
+    if (!fileCheck.valid) {
+      setUploadMessage({ type: "error", text: fileCheck.error });
+      return;
+    }
+
     setUploadLoading(true);
     setUploadMessage(null);
 
@@ -152,6 +162,15 @@ const Homework = () => {
   const handleUpdateAssignment = async () => {
     if (!uploadFile) {
       setUploadMessage({ type: "error", text: "يرجى اختيار ملف" });
+      return;
+    }
+
+    const fileCheck = validateFileUpload(uploadFile, {
+      allowedExtensions: ["pdf", "doc", "docx", "jpg", "jpeg", "png"],
+      maxSizeMB: 20,
+    });
+    if (!fileCheck.valid) {
+      setUploadMessage({ type: "error", text: fileCheck.error });
       return;
     }
 

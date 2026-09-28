@@ -28,6 +28,7 @@ import {
   previewVideoFileAction,
 } from "../api/teacher/actions";
 import getImageUrl from "../utils/imageUrl";
+import { getSafeEmbedUrl } from "../utils/videoSecurity";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -82,26 +83,7 @@ const WatchVideo = () => {
     window.scrollTo(0, 0);
   }, [loadData]);
 
-  const getEmbedUrl = useCallback((url) => {
-    if (!url) return null;
 
-    if (url.includes("watch?v=")) {
-      const videoId = url.split("watch?v=")[1]?.split("&")[0];
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-
-    if (url.includes("youtu.be/")) {
-      const videoId = url.split("youtu.be/")[1]?.split("?")[0];
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-
-    if (url.includes("shorts/")) {
-      const videoId = url.split("shorts/")[1]?.split("?")[0];
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-
-    return url;
-  }, []);
 
   const handlePreview = async (video) => {
     setActionLoading(`${video.id}-preview`);
@@ -219,10 +201,10 @@ const WatchVideo = () => {
         >
           {/* Video Player */}
           <div className="bg-black rounded-2xl overflow-hidden aspect-video shadow-xl border border-gray-800">
-            {currentVideo.video_url ? (
+            {getSafeEmbedUrl(currentVideo.video_url) ? (
               <iframe
                 key={currentVideo.id}
-                src={getEmbedUrl(currentVideo.video_url)}
+                src={getSafeEmbedUrl(currentVideo.video_url)}
                 title={currentVideo.title}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

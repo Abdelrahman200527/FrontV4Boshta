@@ -45,6 +45,7 @@ import {
 import { useApiQuery, useInvalidate } from "../../../hooks/useApiQuery";
 import { qk } from "../../../api/queryKeys";
 import getUser from "../../../utils/getUser";
+import Pagination from "../../../components/Pagination";
 
 const ARABIC_MONTHS = [
   "يناير",
@@ -871,31 +872,14 @@ const Dashboard = () => {
 
         {/* Activity Log Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-            <span className="text-xs text-gray-500">
-              صفحة {pagination.page} من {pagination.totalPages} • إجمالي {pagination.total} نشاط
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm font-medium transition"
-              >
-                السابق
-              </button>
-              <span className="text-xs sm:text-sm text-gray-600 font-bold">
-                {page}
-              </span>
-              <button
-                onClick={() =>
-                  setPage((p) => Math.min(pagination.totalPages, p + 1))
-                }
-                disabled={page === pagination.totalPages}
-                className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm font-medium transition"
-              >
-                التالي
-              </button>
-            </div>
+          <div className="mt-4">
+            <Pagination
+              currentPage={page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={20}
+              onChange={setPage}
+            />
           </div>
         )}
       </motion.div>

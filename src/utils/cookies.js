@@ -10,8 +10,17 @@ const setCookie = (name, value, days = 7) => {
 const getCookie = (name) => {
   const cookies = document.cookie.split(";");
   for (const cookie of cookies) {
-    const [key, ...valueParts] = cookie.trim().split("=");
-    if (key === name) return decodeURIComponent(valueParts.join("="));
+    const trimmed = cookie.trim();
+    if (!trimmed) continue;
+    const [key, ...valueParts] = trimmed.split("=");
+    if (key === name) {
+      const rawValue = valueParts.join("=");
+      try {
+        return decodeURIComponent(rawValue);
+      } catch {
+        return rawValue;
+      }
+    }
   }
   return null;
 };
@@ -21,4 +30,11 @@ const deleteCookie = (name) => {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;samesite=strict${secureFlag}`;
 };
 
-export { setCookie, getCookie, deleteCookie };
+const clearAllAuthCookies = () => {
+  deleteCookie("auth_token");
+  deleteCookie("user_data");
+  deleteCookie("super_admin_key");
+};
+
+export { setCookie, getCookie, deleteCookie, clearAllAuthCookies };
+

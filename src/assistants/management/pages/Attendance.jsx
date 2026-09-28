@@ -224,7 +224,7 @@ const PaymentModalContent = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -232,7 +232,7 @@ const PaymentModalContent = ({
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-4 sm:p-5 space-y-3.5 sm:space-y-4 max-h-[92vh] overflow-y-auto"
           >
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -284,7 +284,7 @@ const PaymentModalContent = ({
                 <button
                   type="button"
                   onClick={() => setPaymentMode("normal")}
-                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all ${
                     paymentMode === "normal"
                       ? "bg-primary text-white shadow-lg shadow-primary/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -295,7 +295,7 @@ const PaymentModalContent = ({
                 <button
                   type="button"
                   onClick={() => setPaymentMode("custom")}
-                  className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  className={`px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all ${
                     paymentMode === "custom"
                       ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -563,6 +563,165 @@ const AttendanceRow = memo(function AttendanceRow({
   );
 });
 
+/* ============================ Mobile Attendance Card ============================ */
+
+const MobileAttendanceCard = memo(function MobileAttendanceCard({
+  student,
+  index,
+  record,
+  canEdit,
+  isLoading,
+  onMarkPresent,
+  onMarkAbsent,
+  onDetails,
+  onDelete,
+  onPay,
+}) {
+  const isPresent = record?.status === "present";
+  const isAbsent = record?.status === "absent";
+  const isPaid = student?.payment_status === "paid";
+
+  const methodBadge =
+    record?.method === "barcode" ? (
+      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
+        باركود
+      </span>
+    ) : record?.method === "manual" ? (
+      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+        يدوي
+      </span>
+    ) : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.02, 0.2) }}
+      className="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-xs space-y-3 hover:border-gray-200 transition-all"
+    >
+      {/* Top Header: Name, Makeup badge, Barcode & Time */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-bold text-gray-800 text-sm">
+              {student.full_name}
+            </span>
+            {record?.is_makeup === 1 && (
+              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-semibold">
+                تعويضي
+              </span>
+            )}
+            {methodBadge}
+          </div>
+          <p className="text-xs font-mono text-gray-400 mt-0.5" dir="ltr">
+            {student.barcode}
+          </p>
+        </div>
+
+        {record?.attendance_time && (
+          <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100 font-medium whitespace-nowrap">
+            {formatTimeLabel(record.attendance_time)}
+          </span>
+        )}
+      </div>
+
+      {/* Middle Statuses: Attendance & Payment */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50 text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-400">الحالة:</span>
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+              isPresent
+                ? "bg-green-100 text-green-700"
+                : isAbsent
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {isPresent && <CheckCircle size={11} />}
+            {isAbsent && <XCircle size={11} />}
+            {!record && <AlertCircle size={11} />}
+            {record ? (isPresent ? "حاضر" : "غائب") : "غير مسجل"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+              isPaid
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }`}
+          >
+            {isPaid ? <CheckCircle size={11} /> : <XCircle size={11} />}
+            {isPaid ? "مدفوع" : "غير مدفوع"}
+          </span>
+          {!isPaid && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => onPay(student)}
+              className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs text-white font-medium hover:bg-emerald-600 transition-all shadow-xs"
+            >
+              <Wallet size={11} />
+              دفع
+            </motion.button>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Actions: Big touch-friendly buttons for mobile */}
+      <div className="flex items-center gap-2 pt-1">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          onClick={() => onMarkPresent(student)}
+          disabled={!canEdit || isPresent || isLoading}
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-xs text-white font-medium hover:shadow-md disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+        >
+          {isLoading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <UserCheck size={14} />
+          )}
+          حضور
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          type="button"
+          onClick={() => markAbsent(student)}
+          disabled={!canEdit || isAbsent || isLoading}
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2.5 text-xs text-white font-medium hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+        >
+          <UserX size={14} />
+          غياب
+        </motion.button>
+
+        <button
+          type="button"
+          onClick={() => onDetails(record)}
+          disabled={!record}
+          className="p-2.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-all"
+          title="تفاصيل"
+        >
+          <Info size={15} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onDelete(record, student)}
+          disabled={!record || isLoading}
+          className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-30 transition-all"
+          title="حذف"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+    </motion.div>
+  );
+});
+
 /* ============================ Stats Table ============================ */
 
 const StatsTable = ({ rows }) => {
@@ -692,13 +851,44 @@ const Attendance = () => {
   const [monthRecords, setMonthRecords] = useState([]);
   const [monthLoading, setMonthLoading] = useState(false);
 
-  /* ---------- Barcode ---------- */
+  /* ---------- Barcode & Scan Queue ---------- */
   const [barcode, setBarcode] = useState("");
   const [lastScan, setLastScan] = useState(null);
   const [scannerReady, setScannerReady] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
   const barcodeInputRef = useRef(null);
-  const lastSubmitTimeRef = useRef(0);
+  const scanQueueRef = useRef([]);
+  const isProcessingQueueRef = useRef(false);
+  const lastScannedBarcodeRef = useRef({ code: "", time: 0 });
   const savingRef = useRef(false);
+  const enqueueBarcodeRef = useRef(null);
+
+  // Sync refs for async queue worker to prevent stale closures
+  const selectedGroupRef = useRef(selectedGroup);
+  const selectedGradeRef = useRef(selectedGrade);
+  const sessionIdRef = useRef(sessionId);
+  const sessionActiveRef = useRef(sessionActive);
+  const selectedDateRef = useRef(selectedDate);
+  const isMakeupEnabledRef = useRef(isMakeupEnabled);
+
+  useEffect(() => {
+    selectedGroupRef.current = selectedGroup;
+  }, [selectedGroup]);
+  useEffect(() => {
+    selectedGradeRef.current = selectedGrade;
+  }, [selectedGrade]);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+  useEffect(() => {
+    sessionActiveRef.current = sessionActive;
+  }, [sessionActive]);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+  useEffect(() => {
+    isMakeupEnabledRef.current = isMakeupEnabled;
+  }, [isMakeupEnabled]);
 
   /* ---------- Payment Modal ---------- */
   const [paymentStudent, setPaymentStudent] = useState(null);
@@ -1069,9 +1259,13 @@ const Attendance = () => {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
 
       // Skip if user is typing in another input/textarea/select
-      const tag = document.activeElement?.tagName;
+      const target = e.target;
+      const tag = target?.tagName;
       const isOtherInput =
-        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable;
 
       const now = Date.now();
 
@@ -1083,33 +1277,19 @@ const Attendance = () => {
 
       // Enter pressed
       if (e.key === "Enter") {
-        if (
-          buffer.length >= MIN_BARCODE_LENGTH &&
-          !isOtherInput &&
-          !savingRef.current
-        ) {
+        if (buffer.length >= MIN_BARCODE_LENGTH && !isOtherInput) {
           e.preventDefault();
           const code = buffer.trim();
           buffer = "";
 
-          // Focus the input and trigger the scan
+          // Enqueue scan directly into FIFO queue
+          enqueueBarcodeRef.current?.(code);
+
           if (barcodeInputRef.current) {
+            barcodeInputRef.current.value = "";
             barcodeInputRef.current.focus();
-            // Set value natively so React picks it up
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-              window.HTMLInputElement.prototype,
-              "value",
-            ).set;
-            nativeInputValueSetter.call(barcodeInputRef.current, code);
-            barcodeInputRef.current.dispatchEvent(
-              new Event("input", { bubbles: true }),
-            );
-            // Trigger form submit
-            const form = barcodeInputRef.current.closest("form");
-            if (form) {
-              form.requestSubmit();
-            }
           }
+          setBarcode("");
         }
         buffer = "";
         return;
@@ -1141,19 +1321,24 @@ const Attendance = () => {
         tag === "SELECT" ||
         tag === "BUTTON" ||
         tag === "A" ||
-        target.isContentEditable
+        target.isContentEditable ||
+        target.closest("button") ||
+        target.closest("a") ||
+        target.closest("input") ||
+        target.closest("select") ||
+        target.closest("textarea")
       ) {
         return;
       }
 
-      if (barcodeInputRef.current && !saving) {
+      if (barcodeInputRef.current) {
         barcodeInputRef.current.focus();
       }
     };
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [sessionActive, saving]);
+  }, [sessionActive]);
 
   /* ============================ Scanner Ready Indicator ============================ */
 
@@ -1184,7 +1369,7 @@ const Attendance = () => {
   // Ensures the barcode input stays focused whenever the session is active
   // and no other interaction is in progress.
   useEffect(() => {
-    if (!sessionActive || saving) return;
+    if (!sessionActive) return;
 
     const focusInput = () => {
       if (
@@ -1202,7 +1387,7 @@ const Attendance = () => {
 
     const timer = setTimeout(focusInput, 150);
     return () => clearTimeout(timer);
-  }, [sessionActive, saving, lastScan]);
+  }, [sessionActive, lastScan]);
 
   /* ============================ Payment Handlers ============================ */
 
@@ -1439,111 +1624,198 @@ const Attendance = () => {
     );
   }
 
-  /* ============================ Barcode Scan ============================ */
+  /* ============================ Barcode Scan Queue & Processing ============================ */
 
-  async function handleBarcodeSubmit(e) {
-    e.preventDefault();
-    const code = barcode.trim();
-    if (!code) return;
-
-    if (code.length < MIN_BARCODE_LENGTH) {
-      playBeep("error");
-      notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
-      setBarcode("");
-      setTimeout(() => {
-        barcodeInputRef.current?.focus();
-      }, 100);
-      return;
-    }
-
-    const now = Date.now();
-    if (now - lastSubmitTimeRef.current < DOUBLE_SUBMIT_GUARD) return;
-    lastSubmitTimeRef.current = now;
-
-    if (!sessionActive) {
-      playBeep("error");
-      notifyError("الجلسة غير نشطة، يرجى بدء جلسة أولاً");
-      setBarcode("");
-      setTimeout(() => {
-        barcodeInputRef.current?.focus();
-      }, 100);
-      return;
-    }
-
+  const processScanQueue = useCallback(async () => {
+    if (isProcessingQueueRef.current) return;
+    isProcessingQueueRef.current = true;
     setSaving(true);
+    savingRef.current = true;
+
     try {
-      const result = await scanStudentBarcode({
-        barcode: code,
-        group_id: Number(selectedGroup),
-        grade_id: Number(selectedGrade),
-        session_id: sessionId,
-      });
+      while (scanQueueRef.current.length > 0) {
+        const currentCode = scanQueueRef.current.shift();
+        setQueueCount(scanQueueRef.current.length);
 
-      if (result.success) {
-        const student = result.data.student;
-        const attendance = result.data.attendance;
+        if (!currentCode) continue;
 
-        // Optimistic update
-        setAttendanceRecords((prev) => ({
-          ...prev,
-          [student.id]: attendance,
-        }));
+        try {
+          const result = await scanStudentBarcode({
+            barcode: currentCode,
+            group_id: Number(selectedGroupRef.current),
+            grade_id: Number(selectedGradeRef.current),
+            session_id: sessionIdRef.current,
+          });
 
-        // Update students list: merge fresh payment data from backend response
-        setStudents((prev) =>
-          prev.map((s) =>
-            s.id === student.id
-              ? {
-                  ...s,
-                  payment_status:
-                    student.payment_status || s.payment_status || "unpaid",
-                  required_amount:
-                    student.required_amount ||
-                    student.monthly_price ||
-                    s.required_amount,
+          if (result.success && result.data) {
+            const student = result.data.student;
+            const attendance = result.data.attendance;
+
+            // Optimistic update of attendance records
+            if (student?.id) {
+              setAttendanceRecords((prev) => ({
+                ...prev,
+                [student.id]: attendance,
+              }));
+
+              // Update or prepend student to ensure immediate visibility even if makeup or on another page
+              setStudents((prev) => {
+                const exists = prev.some((s) => s.id === student.id);
+                if (!exists) {
+                  return [
+                    {
+                      ...student,
+                      payment_status: student.payment_status || "unpaid",
+                      required_amount:
+                        student.required_amount ||
+                        student.monthly_price ||
+                        0,
+                      is_makeup: result.data.is_makeup === 1,
+                    },
+                    ...prev,
+                  ];
                 }
-              : s,
-          ),
-        );
+                return prev.map((s) =>
+                  s.id === student.id
+                    ? {
+                        ...s,
+                        ...student,
+                        payment_status:
+                          student.payment_status || s.payment_status || "unpaid",
+                        required_amount:
+                          student.required_amount ||
+                          student.monthly_price ||
+                          s.required_amount,
+                      }
+                    : s,
+                );
+              });
+            }
 
-        // Update summary from server
-        const summaryResult = await fetchAttendanceSummary(
-          selectedGroup,
-          selectedDate,
-        );
-        if (summaryResult.success) {
-          setServerSummary(summaryResult.data || null);
+            // Optimistic summary increment
+            setServerSummary((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                present_count: num(prev.present_count) + 1,
+                not_marked_count: Math.max(0, num(prev.not_marked_count) - 1),
+              };
+            });
+
+            playBeep("success");
+            setLastScan({
+              type: "success",
+              name: student?.full_name || currentCode,
+              isMakeup: result.data.is_makeup === 1,
+            });
+
+            notifySuccess(
+              `${result.data.is_makeup === 1 ? "حضور تعويضي" : "تم تسجيل حضور"} ${student?.full_name || currentCode}`,
+            );
+
+            // Reconcile summary in background (non-blocking)
+            if (selectedGroupRef.current && selectedDateRef.current) {
+              fetchAttendanceSummary(
+                selectedGroupRef.current,
+                selectedDateRef.current,
+              )
+                .then((summaryRes) => {
+                  if (summaryRes.success && summaryRes.data) {
+                    setServerSummary(summaryRes.data);
+                  }
+                })
+                .catch(() => {});
+            }
+          } else {
+            playBeep("error");
+            setLastScan({
+              type: "error",
+              message: result.error || "لم يتم العثور على الطالب",
+            });
+            notifyError(result.error || "لم يتم العثور على الطالب");
+          }
+        } catch (scanErr) {
+          playBeep("error");
+          setLastScan({
+            type: "error",
+            message: "حدث خطأ في مسح الباركود",
+          });
+          notifyError("حدث خطأ في مسح الباركود");
         }
-
-        playBeep("success");
-        setLastScan({
-          type: "success",
-          name: student.full_name,
-          isMakeup: result.data.is_makeup === 1,
-        });
-
-        notifySuccess(
-          `${result.data.is_makeup === 1 ? "حضور تعويضي" : "تم تسجيل حضور"} ${student.full_name}`,
-        );
-      } else {
-        playBeep("error");
-        setLastScan({
-          type: "error",
-          message: result.error,
-        });
-        notifyError(result.error || "لم يتم العثور على الطالب");
       }
-    } catch (error) {
-      playBeep("error");
-      notifyError("حدث خطأ في مسح الباركود");
     } finally {
-      setBarcode("");
+      isProcessingQueueRef.current = false;
       setSaving(false);
-      setTimeout(() => {
-        barcodeInputRef.current?.focus();
-      }, FOCUS_RESTORE_DELAY);
+      savingRef.current = false;
+      setQueueCount(0);
+      if (sessionActiveRef.current && barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
     }
-  }
+  }, []);
+
+  const enqueueBarcode = useCallback(
+    (code) => {
+      const trimmed = String(code || "").trim();
+      if (!trimmed) return;
+
+      if (trimmed.length < MIN_BARCODE_LENGTH) {
+        playBeep("error");
+        notifyError("الباركود قصير جداً - امسح الباركود مرة أخرى");
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.value = "";
+          barcodeInputRef.current.focus();
+        }
+        setBarcode("");
+        return;
+      }
+
+      // Guard against bounce/duplicate scan of the exact SAME barcode within 800ms
+      const now = Date.now();
+      if (
+        lastScannedBarcodeRef.current.code === trimmed &&
+        now - lastScannedBarcodeRef.current.time < 800
+      ) {
+        return;
+      }
+      lastScannedBarcodeRef.current = { code: trimmed, time: now };
+
+      if (!sessionActiveRef.current) {
+        playBeep("error");
+        notifyError("الجلسة غير نشطة، يرجى بدء جلسة أولاً");
+        if (barcodeInputRef.current) {
+          barcodeInputRef.current.value = "";
+          barcodeInputRef.current.focus();
+        }
+        setBarcode("");
+        return;
+      }
+
+      // Push to FIFO scan queue
+      scanQueueRef.current.push(trimmed);
+      setQueueCount(scanQueueRef.current.length);
+
+      // Trigger queue processor
+      processScanQueue();
+    },
+    [processScanQueue],
+  );
+
+  useEffect(() => {
+    enqueueBarcodeRef.current = enqueueBarcode;
+  }, [enqueueBarcode]);
+
+  const handleBarcodeSubmit = (e) => {
+    if (e) e.preventDefault();
+    const code = (barcode || barcodeInputRef.current?.value || "").trim();
+    if (barcodeInputRef.current) {
+      barcodeInputRef.current.value = "";
+    }
+    setBarcode("");
+    if (code) {
+      enqueueBarcode(code);
+    }
+  };
 
   /* ============================ Mark Status ============================ */
 
@@ -1580,13 +1852,34 @@ const Attendance = () => {
           },
         }));
 
-        const summaryResult = await fetchAttendanceSummary(
-          selectedGroup,
-          selectedDate,
-        );
-        if (summaryResult.success) {
-          setServerSummary(summaryResult.data || null);
+        if (status === "present") {
+          setServerSummary((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              present_count: num(prev.present_count) + 1,
+              not_marked_count: Math.max(0, num(prev.not_marked_count) - 1),
+            };
+          });
+        } else if (status === "absent") {
+          setServerSummary((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              absent_count: num(prev.absent_count) + 1,
+              not_marked_count: Math.max(0, num(prev.not_marked_count) - 1),
+            };
+          });
         }
+
+        // Non-blocking summary reconciliation from server
+        fetchAttendanceSummary(selectedGroup, selectedDate)
+          .then((summaryResult) => {
+            if (summaryResult.success && summaryResult.data) {
+              setServerSummary(summaryResult.data);
+            }
+          })
+          .catch(() => {});
 
         notifySuccess(
           `تم تسجيل ${status === "present" ? "حضور" : "غياب"} ${student.full_name}`,
@@ -1692,13 +1985,28 @@ const Attendance = () => {
                 delete next[record.student_id ?? student?.id];
                 return next;
               });
-              const summaryResult = await fetchAttendanceSummary(
-                selectedGroup,
-                selectedDate,
-              );
-              if (summaryResult.success) {
-                setServerSummary(summaryResult.data || null);
-              }
+              setServerSummary((prev) => {
+                if (!prev) return prev;
+                const wasPresent = record.status === "present";
+                const wasAbsent = record.status === "absent";
+                return {
+                  ...prev,
+                  present_count: wasPresent
+                    ? Math.max(0, num(prev.present_count) - 1)
+                    : prev.present_count,
+                  absent_count: wasAbsent
+                    ? Math.max(0, num(prev.absent_count) - 1)
+                    : prev.absent_count,
+                  not_marked_count: num(prev.not_marked_count) + 1,
+                };
+              });
+              fetchAttendanceSummary(selectedGroup, selectedDate)
+                .then((summaryResult) => {
+                  if (summaryResult.success && summaryResult.data) {
+                    setServerSummary(summaryResult.data);
+                  }
+                })
+                .catch(() => {});
             } else {
               notifyError(res.error || "تعذر حذف السجل");
             }
@@ -2028,7 +2336,7 @@ const Attendance = () => {
                   initial={{ opacity: 0, y: -10, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                  className="absolute left-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+                  className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
                 >
                   {/* Header */}
                   <div className="p-4 border-b border-gray-100 bg-linear-to-r from-red-50/50 to-transparent">
@@ -2183,7 +2491,7 @@ const Attendance = () => {
           <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3"
+            className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3"
           >
             {statCards.map((stat, idx) => (
               <motion.div
@@ -2191,14 +2499,16 @@ const Attendance = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.07 }}
-                className="flex items-center gap-3 p-3 bg-white rounded-xl shadow-sm border border-gray-100"
+                className={`flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-xl shadow-xs border border-gray-100 ${
+                  idx === 4 ? "col-span-2 sm:col-span-1" : ""
+                }`}
               >
-                <div className={`p-2 rounded-lg ${stat.cls.split(" ")[0]}`}>
+                <div className={`p-2 rounded-xl shrink-0 ${stat.cls.split(" ")[0]}`}>
                   <stat.icon size={16} className={stat.cls.split(" ")[1]} />
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                  <p className="text-lg font-bold text-gray-800">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-500 truncate">{stat.label}</p>
+                  <p className="text-base sm:text-lg font-bold text-gray-800 truncate">
                     {stat.value}
                   </p>
                 </div>
@@ -2208,13 +2518,15 @@ const Attendance = () => {
         )}
       </motion.header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Left Panel */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="lg:col-span-1 space-y-4"
+          className={`lg:col-span-1 space-y-4 ${
+            sessionActive ? "order-2 lg:order-1" : "order-1"
+          }`}
         >
           <motion.div
             variants={itemVariants}
@@ -2421,7 +2733,9 @@ const Attendance = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="lg:col-span-2 space-y-4"
+          className={`lg:col-span-2 space-y-4 ${
+            sessionActive ? "order-1 lg:order-2" : "order-2"
+          }`}
         >
           {/* Barcode Scan */}
           <motion.div
@@ -2459,21 +2773,29 @@ const Attendance = () => {
                       : "غير نشطة"}
                 </div>
                 {sessionActive && (
-                  <div
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-                      scannerReady
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${
+                  <div className="flex items-center gap-2">
+                    {queueCount > 0 && (
+                      <div className="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                        <Loader2 size={12} className="animate-spin text-amber-700" />
+                        <span>طابور المسح: {queueCount}</span>
+                      </div>
+                    )}
+                    <div
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 ${
                         scannerReady
-                          ? "bg-emerald-500 animate-pulse"
-                          : "bg-gray-400"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-100 text-gray-500"
                       }`}
-                    ></span>
-                    {scannerReady ? "جاهز للمسح" : "دوس على الحقل"}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          scannerReady
+                            ? "bg-emerald-500 animate-pulse"
+                            : "bg-gray-400"
+                        }`}
+                      ></span>
+                      {scannerReady ? "جاهز للمسح" : "دوس على الحقل"}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2493,7 +2815,7 @@ const Attendance = () => {
                   ref={barcodeInputRef}
                   value={barcode}
                   onChange={(e) => setBarcode(e.target.value)}
-                  disabled={!sessionActive || saving}
+                  disabled={!sessionActive}
                   placeholder="امسح الباركود أو اكتبه يدوياً"
                   autoFocus
                   autoComplete="off"
@@ -2509,13 +2831,18 @@ const Attendance = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="submit"
-                disabled={!sessionActive || saving}
+                disabled={!sessionActive}
                 className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 shadow-lg disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none flex items-center gap-2 justify-center"
               >
                 {saving ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    جاري...
+                    <span>جاري...</span>
+                    {queueCount > 0 && (
+                      <span className="bg-white/30 text-xs px-2 py-0.5 rounded-full font-mono font-bold">
+                        +{queueCount}
+                      </span>
+                    )}
                   </>
                 ) : (
                   <>
@@ -2569,7 +2896,7 @@ const Attendance = () => {
             variants={itemVariants}
             className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 sm:p-5"
           >
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2 mb-4">
               {[
                 { id: "day", label: "حضور اليوم", icon: CalendarCheck },
                 { id: "month", label: "سجل الشهر", icon: CalendarDays },
@@ -2579,24 +2906,24 @@ const Attendance = () => {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                     activeTab === tab.id
                       ? "bg-primary text-white shadow-lg shadow-primary/30"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  <tab.icon size={16} />
-                  {tab.label}
+                  <tab.icon size={15} />
+                  <span>{tab.label}</span>
                 </button>
               ))}
             </div>
 
             {activeTab === "day" && (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <div className="relative">
                   <Search
                     size={18}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                   />
                   <input
                     type="search"
@@ -2604,31 +2931,31 @@ const Attendance = () => {
                     onChange={(e) => setSearch(e.target.value)}
                     disabled={!selectedGroup}
                     placeholder="ابحث بالاسم أو الباركود..."
-                    className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-12 pl-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
+                    className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 pr-11 pl-4 py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 transition-all"
                   />
                 </div>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[44px]"
                 />
               </div>
             )}
 
             {activeTab === "month" && (
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
                 <input
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className="w-full sm:w-auto rounded-xl border-2 border-gray-200 bg-gray-50 px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all min-h-[44px]"
                 />
                 <button
                   type="button"
                   onClick={loadMonth}
                   disabled={!selectedGroup || monthLoading}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 transition-all"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 text-xs sm:text-sm font-medium transition-all"
                 >
                   <RefreshCw
                     size={16}
@@ -2647,7 +2974,7 @@ const Attendance = () => {
               className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
             >
               <div className="p-4 sm:p-5 border-b border-gray-100">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <h3 className="font-bold text-gray-800 flex items-center gap-2">
                     <Users size={18} className="text-primary" />
                     قائمة الطلاب
@@ -2662,33 +2989,33 @@ const Attendance = () => {
                       </span>
                     )}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex flex-wrap gap-3 text-sm">
-                      <span className="flex items-center gap-1.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                      <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-medium">
                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                         الكل: {summary.total}
                       </span>
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2.5 py-1 rounded-lg font-medium">
                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
                         حاضر: {summary.present}
                       </span>
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-lg font-medium">
                         <span className="w-2 h-2 rounded-full bg-red-500"></span>
                         غائب: {summary.absent}
                       </span>
                     </div>
 
                     {selectedGroup && filteredStudents.length > 0 && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <motion.button
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
                           type="button"
                           onClick={handleExportAttendancePdf}
-                          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                          className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
                           title="تصدير كشف الحضور بصيغة PDF"
                         >
-                          <FileText size={15} className="text-gray-600" />
+                          <FileText size={14} className="text-gray-600" />
                           <span>كشف PDF</span>
                         </motion.button>
                         <motion.button
@@ -2696,10 +3023,10 @@ const Attendance = () => {
                           whileTap={{ scale: 0.97 }}
                           type="button"
                           onClick={handleExportAttendanceExcel}
-                          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-full text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
+                          className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-white border-2 border-gray-200 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-50 transition-all shadow-xs"
                           title="تصدير كشف الحضور بصيغة Excel"
                         >
-                          <FileText size={15} className="text-gray-600" />
+                          <FileText size={14} className="text-gray-600" />
                           <span>كشف Excel</span>
                         </motion.button>
                       </div>
@@ -2733,51 +3060,75 @@ const Attendance = () => {
                 </div>
               ) : (
                 <>
-                  <ResponsiveTable minWidth={980} maxHeight="max-h-[60vh]">
-                    <table className="w-full text-right whitespace-nowrap">
-                      <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الاسم
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الباركود
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الحالة
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            حالة الدفع
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            الوقت
-                          </th>
-                          <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
-                            إجراء
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        <AnimatePresence>
-                          {filteredStudents.map((student, index) => (
-                            <AttendanceRow
-                              key={student.id || index}
-                              student={student}
-                              index={index}
-                              record={attendanceRecords[student.id]}
-                              canEdit={canEdit}
-                              isLoading={!!rowLoading[student.id]}
-                              onMarkPresent={markPresent}
-                              onMarkAbsent={markAbsent}
-                              onDetails={openDetails}
-                              onDelete={deleteRecord}
-                              onPay={handlePayClick}
-                            />
-                          ))}
-                        </AnimatePresence>
-                      </tbody>
-                    </table>
-                  </ResponsiveTable>
+                  {/* Desktop / Tablet Table View (md and up) */}
+                  <div className="hidden md:block">
+                    <ResponsiveTable minWidth={980} maxHeight="max-h-[60vh]">
+                      <table className="w-full text-right whitespace-nowrap">
+                        <thead className="bg-linear-to-r from-gray-50 to-gray-100/50 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              الاسم
+                            </th>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              الباركود
+                            </th>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              الحالة
+                            </th>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              حالة الدفع
+                            </th>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              الوقت
+                            </th>
+                            <th className="px-3 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-gray-600">
+                              إجراء
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          <AnimatePresence>
+                            {filteredStudents.map((student, index) => (
+                              <AttendanceRow
+                                key={student.id || index}
+                                student={student}
+                                index={index}
+                                record={attendanceRecords[student.id]}
+                                canEdit={canEdit}
+                                isLoading={!!rowLoading[student.id]}
+                                onMarkPresent={markPresent}
+                                onMarkAbsent={markAbsent}
+                                onDetails={openDetails}
+                                onDelete={deleteRecord}
+                                onPay={handlePayClick}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </ResponsiveTable>
+                  </div>
+
+                  {/* Mobile Card View (Android & iPhone - under md) */}
+                  <div className="block md:hidden p-3 space-y-2.5 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                    <AnimatePresence>
+                      {filteredStudents.map((student, index) => (
+                        <MobileAttendanceCard
+                          key={student.id || index}
+                          student={student}
+                          index={index}
+                          record={attendanceRecords[student.id]}
+                          canEdit={canEdit}
+                          isLoading={!!rowLoading[student.id]}
+                          onMarkPresent={markPresent}
+                          onMarkAbsent={markAbsent}
+                          onDetails={openDetails}
+                          onDelete={deleteRecord}
+                          onPay={handlePayClick}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
 
                   {/* Pagination */}
                   <Pagination
@@ -2924,7 +3275,7 @@ const Attendance = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4"
             onClick={() => {
               setDetailsRecord(null);
               setEditForm(null);
@@ -2935,7 +3286,7 @@ const Attendance = () => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-5 space-y-4"
+              className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-4 sm:p-5 space-y-3.5 sm:space-y-4 max-h-[92vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-gray-800 flex items-center gap-2">

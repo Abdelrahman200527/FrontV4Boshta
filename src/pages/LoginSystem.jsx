@@ -14,6 +14,7 @@ import Background from "../assets/background.png";
 
 // Auth Context
 import { authenticate } from "../api/auth/actions";
+import { isValidEgyptianPhone, normalizePhone } from "../utils/validators";
 
 const Badge = ({ title, subtitle, style, rotate = "0" }) => (
   <div className="absolute z-20" style={style}>
@@ -43,22 +44,34 @@ const LoginSystem = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || !password) {
+      setError("يرجى إدخال رقم الهاتف وكلمة المرور");
+      return;
+    }
+
+    if (!isValidEgyptianPhone(cleanPhone)) {
+      setError("يرجى إدخال رقم هاتف مصري صحيح (11 رقم يبدأ بـ 01)");
+      return;
+    }
 
     const roleMap = {
       المعلم: "teacher",
       المساعد: "assistant",
     };
 
+    const targetRole = roleMap[role] || "assistant";
+    setLoading(true);
+
     try {
-      const result = await authenticate(roleMap[role], phone, password);
+      const result = await authenticate(targetRole, cleanPhone, password);
 
       if (result.success) {
-        const selectedRole = roleMap[role];
-        if (selectedRole === "teacher") {
+        if (targetRole === "teacher") {
           navigate("/teacher");
-        } else if (selectedRole === "assistant") {
+        } else {
           navigate("/assistant");
         }
       } else {

@@ -24,6 +24,7 @@ import {
   Clock,
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import Pagination from "../components/Pagination";
 import {
   PieChart,
   Pie,
@@ -708,44 +709,13 @@ const Reports = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-2">
-            <span className="text-xs sm:text-sm text-gray-500">
-              عرض {(page - 1) * 10 + 1} - {Math.min(page * 10, totalStudents)}{" "}
-              من {totalStudents}
-            </span>
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition"
-              >
-                <ChevronRight size={14} />
-              </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                      page === pageNum
-                        ? "bg-[#009966] text-white"
-                        : "border border-gray-200 hover:bg-gray-50 text-gray-600"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50 transition"
-              >
-                <ChevronLeft size={14} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            total={totalStudents}
+            limit={10}
+            onChange={setPage}
+          />
         )}
       </motion.div>
 

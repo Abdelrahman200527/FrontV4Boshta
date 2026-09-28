@@ -131,9 +131,13 @@ const Profile = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // ✅ Validation: تأكد إن الملف صورة
+    // ✅ Validation: تأكد إن الملف صورة وحجمه أقل من 5 ميجابايت
     if (!file.type.startsWith("image/")) {
       setImageMessage({ type: "error", text: "يرجى اختيار ملف صورة" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageMessage({ type: "error", text: "حجم الصورة يتجاوز الحد المسموح به (5 ميجابايت)" });
       return;
     }
 

@@ -25,6 +25,7 @@ import {
   fetchPaperExams,
   fetchExamResults,
 } from "../api/student/actions";
+import Pagination from "../components/Pagination";
 
 const toNumber = (value) => {
   const num = parseFloat(value);
@@ -85,6 +86,8 @@ const Degrees = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -374,7 +377,10 @@ const Degrees = () => {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setPage(1);
+            }}
             className={`shrink-0 px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold border-b-2 transition ${
               activeTab === tab.id
                 ? "border-blue-600 text-blue-600"
@@ -401,7 +407,9 @@ const Degrees = () => {
               <p className="text-gray-400 text-sm">لا توجد امتحانات</p>
             </div>
           ) : (
-            filteredExams.map((exam, idx) => {
+            filteredExams
+              .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+              .map((exam, idx) => {
               const grade = getGrade(exam.percentage, exam.graded, exam.status);
 
               return (
@@ -478,6 +486,18 @@ const Degrees = () => {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {filteredExams.length > PAGE_SIZE && (
+        <div className="mt-3 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
+          <Pagination
+            currentPage={page}
+            totalPages={Math.ceil(filteredExams.length / PAGE_SIZE)}
+            total={filteredExams.length}
+            limit={PAGE_SIZE}
+            onChange={setPage}
+          />
+        </div>
+      )}
     </motion.section>
   );
 };

@@ -10,6 +10,7 @@ export const getParentData = async (parent_phone, student_id = null) => {
 };
 
 export const getParentDataByToken = async (token) => {
-  const response = await httpGet(`/parent/${token}`);
+  const response = await httpGet(`/parent/${encodeURIComponent(token || "")}`);
   return response.data;
 };
+

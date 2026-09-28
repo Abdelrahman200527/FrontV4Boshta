@@ -606,11 +606,6 @@ const StudentCard = ({
               <span dir="ltr">{totalPaidFromStats.toLocaleString()}</span> ج.م
             </span>
           }
-          subtitle={
-            <span>
-              المطلوب: <span dir="ltr">{totalRequired.toLocaleString()}</span> ج.م
-            </span>
-          }
           icon={Wallet}
           color="amber"
         />
@@ -622,15 +617,6 @@ const StudentCard = ({
               : paymentStatus === "unpaid"
                 ? "غير مدفوع"
                 : "غير محدد"
-          }
-          subtitle={
-            remainingBalance > 0 ? (
-              <span>
-                المتبقي: <span dir="ltr">{remainingBalance.toLocaleString()}</span> ج.م
-              </span>
-            ) : (
-              "لا يوجد متأخرات"
-            )
           }
           icon={TrendingUp}
           color={paymentStatus === "paid" ? "green" : "red"}
@@ -858,12 +844,6 @@ const StudentCard = ({
             <p className="text-xs text-blue-600">الاشتراك الحالي</p>
             <p className="text-sm font-bold text-blue-900">
               {currentSub.month || currentMonthStr}
-            </p>
-          </div>
-          <div className="text-left">
-            <p className="text-xs text-blue-600">المطلوب</p>
-            <p className="text-sm font-bold text-blue-900">
-              <span dir="ltr">{num(currentSub.required_amount).toLocaleString()}</span> ج.م
             </p>
           </div>
           <div className="text-left">

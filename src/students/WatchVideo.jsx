@@ -18,23 +18,7 @@ import { downloadFile, previewFile } from "../utils/fileHandler";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
-// ✅ دالة تحويل YouTube URL لصيغة embed
-const getYouTubeEmbedUrl = (url) => {
-  if (!url) return null;
-
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
-  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
-
-  const watchMatch = url.match(/watch\?v=([a-zA-Z0-9_-]+)/);
-  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
-
-  if (url.includes("embed/")) return url;
-
-  const shortsMatch = url.match(/shorts\/([a-zA-Z0-9_-]+)/);
-  if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-
-  return null;
-};
+import { getSafeEmbedUrl } from "../utils/videoSecurity";
 
 const WatchVideo = () => {
   const { videoId } = useParams();
@@ -97,7 +81,7 @@ const WatchVideo = () => {
             ...foundVideo,
             id: foundVideo.video_id || foundVideo.id,
             playlist_title: foundPlaylist?.title || "",
-            embed_url: getYouTubeEmbedUrl(foundVideo.video_url),
+            embed_url: getSafeEmbedUrl(foundVideo.video_url),
           });
         } else {
           setError("الفيديو غير موجود");
@@ -224,7 +208,7 @@ const WatchVideo = () => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
-            ) : currentVideo.video_url ? (
+            ) : currentVideo.video_url && /^https?:\/\//i.test(currentVideo.video_url) ? (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                 <Youtube size={64} className="text-gray-700" />
                 <p className="text-white text-sm">الفيديو غير مدعوم للتضمين</p>

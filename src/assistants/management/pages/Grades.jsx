@@ -25,6 +25,7 @@ import {
   toast,
 } from "../../../lib/notify";
 import { exportPdfTable, exportAoaExcel } from "../../../utils/office";
+import { validateFileUpload } from "../../../utils/validators";
 import {
   fetchAllGrades,
   createNewGrade,
@@ -72,6 +73,15 @@ const Grades = () => {
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        const fileCheck = validateFileUpload(file, {
+          allowedExtensions: ["xlsx", "xls"],
+          maxSizeMB: 15,
+        });
+        if (!fileCheck.valid) {
+          notifyError(fileCheck.error);
+          return;
+        }
 
         setImporting(true);
 

@@ -27,6 +27,7 @@ import {
 } from "../api/teacher/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
+import Pagination from "../components/Pagination";
 
 const Degrees = () => {
   const navigate = useNavigate();
@@ -40,6 +41,9 @@ const Degrees = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [paperPage, setPaperPage] = useState(1);
+  const [onlinePage, setOnlinePage] = useState(1);
+  const EXAMS_PER_PAGE = 12;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -80,6 +84,8 @@ const Degrees = () => {
 
   const handleGradeFilter = async (grade) => {
     setSelectedGrade(grade);
+    setPaperPage(1);
+    setOnlinePage(1);
     if (grade === "all") {
       const result = await fetchAllExams();
       if (result.success) {
@@ -239,12 +245,20 @@ const Degrees = () => {
               type="text"
               placeholder="بحث عن امتحان..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPaperPage(1);
+                setOnlinePage(1);
+              }}
               className="bg-transparent focus:outline-none text-sm w-full"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setPaperPage(1);
+                  setOnlinePage(1);
+                }}
                 className="text-gray-400 shrink-0"
               >
                 <X size={14} />
@@ -335,146 +349,184 @@ const Degrees = () => {
       {/* Exams Grid */}
       <AnimatePresence mode="wait">
         {activeTab === "paper" ? (
-          <motion.div
-            key="paper"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4"
-          >
-            {filteredPaper.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-400">
-                <FileText size={48} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-sm">
-                  {searchQuery || selectedGrade !== "all"
-                    ? "لا توجد نتائج مطابقة"
-                    : "لا توجد امتحانات ورقية"}
-                </p>
-              </div>
-            ) : (
-              filteredPaper.map((exam) => {
-                const status = getExamStatus(exam, "paper");
-                const StatusIcon = status.icon;
-                return (
-                  <motion.div
-                    key={exam.id}
-                    whileHover={{
-                      y: -3,
-                      shadow: "0 10px 25px rgba(0,0,0,0.08)",
-                    }}
-                    onClick={() => navigate(`/teacher/exams/paper/${exam.id}`)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#009966] transition cursor-pointer group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="bg-blue-50 rounded-xl p-2.5 group-hover:bg-blue-100 transition">
-                        <FileText size={20} className="text-blue-500" />
-                      </div>
-                      <ArrowRight
-                        size={18}
-                        className="text-gray-300 group-hover:text-[#009966] transition"
-                      />
-                    </div>
-                    <h3 className="font-bold text-sm text-gray-900 line-clamp-1 mb-2">
-                      {exam.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap mb-3">
-                      <span className="flex items-center gap-1">
-                        <GraduationCap size={13} />
-                        {exam.grade_name || "-"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BarChart3 size={13} />
-                        {exam.total_degree || "-"} درجة
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(exam.exam_date).toLocaleDateString("ar-EG")}
-                      </span>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${status.color}`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`}
+          <div className="flex flex-col gap-4">
+            <motion.div
+              key="paper"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4"
+            >
+              {filteredPaper.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-gray-400">
+                  <FileText size={48} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-sm">
+                    {searchQuery || selectedGrade !== "all"
+                      ? "لا توجد نتائج مطابقة"
+                      : "لا توجد امتحانات ورقية"}
+                  </p>
+                </div>
+              ) : (
+                filteredPaper
+                  .slice(
+                    (paperPage - 1) * EXAMS_PER_PAGE,
+                    paperPage * EXAMS_PER_PAGE,
+                  )
+                  .map((exam) => {
+                  const status = getExamStatus(exam, "paper");
+                  const StatusIcon = status.icon;
+                  return (
+                    <motion.div
+                      key={exam.id}
+                      whileHover={{
+                        y: -3,
+                        shadow: "0 10px 25px rgba(0,0,0,0.08)",
+                      }}
+                      onClick={() => navigate(`/teacher/exams/paper/${exam.id}`)}
+                      className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#009966] transition cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="bg-blue-50 rounded-xl p-2.5 group-hover:bg-blue-100 transition">
+                          <FileText size={20} className="text-blue-500" />
+                        </div>
+                        <ArrowRight
+                          size={18}
+                          className="text-gray-300 group-hover:text-[#009966] transition"
                         />
-                        {status.label}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })
+                      </div>
+                      <h3 className="font-bold text-sm text-gray-900 line-clamp-1 mb-2">
+                        {exam.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap mb-3">
+                        <span className="flex items-center gap-1">
+                          <GraduationCap size={13} />
+                          {exam.grade_name || "-"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <BarChart3 size={13} />
+                          {exam.total_degree || "-"} درجة
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Calendar size={12} />
+                          {new Date(exam.exam_date).toLocaleDateString("ar-EG")}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${status.color}`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`}
+                          />
+                          {status.label}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </motion.div>
+
+            {filteredPaper.length > EXAMS_PER_PAGE && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
+                <Pagination
+                  currentPage={paperPage}
+                  totalPages={Math.ceil(filteredPaper.length / EXAMS_PER_PAGE)}
+                  total={filteredPaper.length}
+                  limit={EXAMS_PER_PAGE}
+                  onChange={setPaperPage}
+                />
+              </div>
             )}
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            key="online"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4"
-          >
-            {filteredOnline.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-gray-400">
-                <Monitor size={48} className="mx-auto mb-3 text-gray-200" />
-                <p className="text-sm">
-                  {searchQuery || selectedGrade !== "all"
-                    ? "لا توجد نتائج مطابقة"
-                    : "لا توجد امتحانات إلكترونية"}
-                </p>
-              </div>
-            ) : (
-              filteredOnline.map((exam) => {
-                const status = getExamStatus(exam, "online");
-                const StatusIcon = status.icon;
-                return (
-                  <motion.div
-                    key={exam.id}
-                    whileHover={{ y: -3 }}
-                    onClick={() => navigate(`/teacher/exams/online/${exam.id}`)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#009966] transition cursor-pointer group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="bg-emerald-50 rounded-xl p-2.5 group-hover:bg-emerald-100 transition">
-                        <Monitor size={20} className="text-[#009966]" />
-                      </div>
-                      <ArrowRight
-                        size={18}
-                        className="text-gray-300 group-hover:text-[#009966] transition"
-                      />
-                    </div>
-                    <h3 className="font-bold text-sm text-gray-900 line-clamp-1 mb-2">
-                      {exam.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap mb-3">
-                      <span className="flex items-center gap-1">
-                        <GraduationCap size={13} />
-                        {exam.grade_name || "-"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BarChart3 size={13} />
-                        {exam.full_mark || "-"} درجة
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Clock size={12} />
-                        {exam.duration_minutes || "-"} دقيقة
-                      </span>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${status.color}`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`}
+          <div className="flex flex-col gap-4">
+            <motion.div
+              key="online"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4"
+            >
+              {filteredOnline.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-gray-400">
+                  <Monitor size={48} className="mx-auto mb-3 text-gray-200" />
+                  <p className="text-sm">
+                    {searchQuery || selectedGrade !== "all"
+                      ? "لا توجد نتائج مطابقة"
+                      : "لا توجد امتحانات إلكترونية"}
+                  </p>
+                </div>
+              ) : (
+                filteredOnline
+                  .slice(
+                    (onlinePage - 1) * EXAMS_PER_PAGE,
+                    onlinePage * EXAMS_PER_PAGE,
+                  )
+                  .map((exam) => {
+                  const status = getExamStatus(exam, "online");
+                  const StatusIcon = status.icon;
+                  return (
+                    <motion.div
+                      key={exam.id}
+                      whileHover={{ y: -3 }}
+                      onClick={() => navigate(`/teacher/exams/online/${exam.id}`)}
+                      className="bg-white rounded-xl border border-gray-200 p-4 hover:border-[#009966] transition cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="bg-emerald-50 rounded-xl p-2.5 group-hover:bg-emerald-100 transition">
+                          <Monitor size={20} className="text-[#009966]" />
+                        </div>
+                        <ArrowRight
+                          size={18}
+                          className="text-gray-300 group-hover:text-[#009966] transition"
                         />
-                        {status.label}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })
+                      </div>
+                      <h3 className="font-bold text-sm text-gray-900 line-clamp-1 mb-2">
+                        {exam.title}
+                      </h3>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap mb-3">
+                        <span className="flex items-center gap-1">
+                          <GraduationCap size={13} />
+                          {exam.grade_name || "-"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <BarChart3 size={13} />
+                          {exam.full_mark || "-"} درجة
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Clock size={12} />
+                          {exam.duration_minutes || "-"} دقيقة
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${status.color}`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`}
+                          />
+                          {status.label}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </motion.div>
+
+            {filteredOnline.length > EXAMS_PER_PAGE && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
+                <Pagination
+                  currentPage={onlinePage}
+                  totalPages={Math.ceil(filteredOnline.length / EXAMS_PER_PAGE)}
+                  total={filteredOnline.length}
+                  limit={EXAMS_PER_PAGE}
+                  onChange={setOnlinePage}
+                />
+              </div>
             )}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </motion.section>

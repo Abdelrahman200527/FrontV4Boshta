@@ -47,6 +47,7 @@ import {
 } from "../api/teacher/actions";
 import getUser from "../utils/getUser";
 import { motion, AnimatePresence } from "framer-motion";
+import Pagination from "../components/Pagination";
 
 const ARABIC_MONTHS = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
@@ -973,31 +974,14 @@ const Dashboard = () => {
 
         {/* Activity Log Pagination */}
         {activityPagination && activityPagination.totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-            <span className="text-xs text-gray-500">
-              صفحة {activityPagination.page} من {activityPagination.totalPages} • إجمالي {activityPagination.total} نشاط
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActivityPage((p) => Math.max(1, p - 1))}
-                disabled={activityPage === 1}
-                className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm font-medium transition"
-              >
-                السابق
-              </button>
-              <span className="text-xs sm:text-sm text-gray-600 font-bold">
-                {activityPage}
-              </span>
-              <button
-                onClick={() =>
-                  setActivityPage((p) => Math.min(activityPagination.totalPages, p + 1))
-                }
-                disabled={activityPage === activityPagination.totalPages}
-                className="px-3 py-1 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs sm:text-sm font-medium transition"
-              >
-                التالي
-              </button>
-            </div>
+          <div className="mt-4">
+            <Pagination
+              currentPage={activityPage}
+              totalPages={activityPagination.totalPages}
+              total={activityPagination.total}
+              limit={20}
+              onChange={setActivityPage}
+            />
           </div>
         )}
       </motion.div>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { isValidEgyptianPhone, normalizePhone } from "../../../utils/validators";
 
 const AddStudentDialog = ({
   onClose,
@@ -43,6 +44,17 @@ const AddStudentDialog = ({
       newErrors.barcode = "الباركود مطلوب";
     if (!student.grade_id) newErrors.grade_id = "المرحلة مطلوبة";
     if (!student.group_id) newErrors.group_id = "المجموعة مطلوبة";
+
+    const cleanPhone = normalizePhone(student.phone);
+    if (cleanPhone && !isValidEgyptianPhone(cleanPhone)) {
+      newErrors.phone = "رقم الجوال غير صحيح (11 رقم يبدأ بـ 01)";
+    }
+
+    const cleanParentPhone = normalizePhone(student.parent_phone);
+    if (cleanParentPhone && !isValidEgyptianPhone(cleanParentPhone)) {
+      newErrors.parent_phone = "رقم ولي الأمر غير صحيح (11 رقم يبدأ بـ 01)";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -212,6 +224,11 @@ const AddStudentDialog = ({
                     placeholder="01xxxxxxxxx"
                     className={inputClass(errors.phone)}
                   />
+                  {errors.phone && (
+                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.phone}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -228,6 +245,11 @@ const AddStudentDialog = ({
                     placeholder="01xxxxxxxxx"
                     className={inputClass(errors.parent_phone)}
                   />
+                  {errors.parent_phone && (
+                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.parent_phone}
+                    </p>
+                  )}
                 </div>
               </div>
 

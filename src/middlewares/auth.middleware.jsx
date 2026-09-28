@@ -13,9 +13,13 @@ const AuthMiddleware = ({ children, allowedRoles = [] }) => {
   }
 
   const userRole = user.role || user.user?.role;
+  const validRoles = ["student", "assistant", "teacher", "parent"];
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-    return <Navigate to={`/${userRole}`} replace />;
+    if (validRoles.includes(userRole)) {
+      return <Navigate to={`/${userRole}`} replace />;
+    }
+    return <Navigate to="/login" replace />;
   }
 
   return children;

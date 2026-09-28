@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../../motion";
 import { fetchGroupsByGrade } from "../../api/assistant/actions";
+import getImageUrl from "../../utils/imageUrl";
 
 const AddHomeworkModal = ({
   open = true,
@@ -147,6 +148,10 @@ const AddHomeworkModal = ({
       setError("الملف لازم يكون PDF أو Word أو صورة فقط");
       return;
     }
+    if (f.size > 20 * 1024 * 1024) {
+      setError("حجم الملف يتجاوز الحد المسموح به (20 ميجابايت)");
+      return;
+    }
     setError("");
     setFile(f);
   };
@@ -158,9 +163,7 @@ const AddHomeworkModal = ({
   };
 
   const getFileUrl = (filePath) => {
-    if (!filePath) return "";
-    if (filePath.startsWith("http")) return filePath;
-    return `https://backend.benb3n.cloud/${filePath.replace(/^\//, "")}`;
+    return getImageUrl(filePath) || "";
   };
 
   const handleSubmit = async (e) => {

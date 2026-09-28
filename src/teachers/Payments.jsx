@@ -30,6 +30,7 @@ import {
   fetchStudentFilters,
 } from "../api/teacher/actions";
 import { exportPdfTable, exportAoaExcel } from "../utils/office";
+import Pagination from "../components/Pagination";
 
 const Payments = () => {
   const navigate = useNavigate();
@@ -692,68 +693,44 @@ const Payments = () => {
 
             {/* Pagination Controls for Tab 1 */}
             {filteredStudents.length > 0 && (
-              <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600 bg-white">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span>
-                    عرض{" "}
-                    <strong className="text-gray-900 font-bold">
-                      {statusLimit === "all" ? 1 : (statusPage - 1) * Number(statusLimit) + 1}
-                    </strong>{" "}
-                    إلى{" "}
-                    <strong className="text-gray-900 font-bold">
-                      {statusLimit === "all"
-                        ? filteredStudents.length
-                        : Math.min(statusPage * Number(statusLimit), filteredStudents.length)}
-                    </strong>{" "}
-                    من إجمالي{" "}
-                    <strong className="text-[#009966] font-bold">{filteredStudents.length}</strong> طالب
-                  </span>
-
-                  <div className="flex items-center gap-1.5">
-                    <span>لكل صفحة:</span>
-                    <select
-                      value={statusLimit}
-                      onChange={(e) => {
-                        const val = e.target.value === "all" ? "all" : Number(e.target.value);
-                        setStatusLimit(val);
-                        setStatusPage(1);
-                      }}
-                      className="border border-gray-200 rounded-lg px-2 py-1 bg-gray-50 text-gray-700 font-medium focus:outline-none focus:border-[#009966]"
-                    >
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                      <option value="all">الكل</option>
-                    </select>
-                  </div>
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-100 bg-gray-50/70 p-3 sm:p-4 gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">لكل صفحة:</span>
+                  <select
+                    value={statusLimit}
+                    onChange={(e) => {
+                      const val = e.target.value === "all" ? "all" : Number(e.target.value);
+                      setStatusLimit(val);
+                      setStatusPage(1);
+                    }}
+                    className="border border-gray-200 rounded-lg px-2 py-1 bg-white text-xs text-gray-700 font-medium focus:outline-none focus:border-[#009966] shadow-xs"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value="all">الكل</option>
+                  </select>
                 </div>
-
-                {statusLimit !== "all" && totalStatusPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setStatusPage((p) => Math.max(1, p - 1))}
-                      disabled={statusPage <= 1}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#009966] hover:text-[#009966] disabled:opacity-40 transition font-medium text-gray-700 bg-white shadow-xs"
-                    >
-                      <ChevronRight size={14} />
-                      <span>السابق</span>
-                    </button>
-
-                    <span className="px-2 font-medium text-gray-700">
-                      صفحة {statusPage} من {totalStatusPages}
-                    </span>
-
-                    <button
-                      onClick={() => setStatusPage((p) => Math.min(totalStatusPages, p + 1))}
-                      disabled={statusPage >= totalStatusPages}
-                      className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg hover:border-[#009966] hover:text-[#009966] disabled:opacity-40 transition font-medium text-gray-700 bg-white shadow-xs"
-                    >
-                      <span>التالي</span>
-                      <ChevronLeft size={14} />
-                    </button>
-                  </div>
-                )}
+                
+                <div className="flex-1 w-full sm:w-auto">
+                  {statusLimit !== "all" && totalStatusPages > 1 ? (
+                    <Pagination
+                      currentPage={statusPage}
+                      totalPages={totalStatusPages}
+                      total={filteredStudents.length}
+                      limit={Number(statusLimit)}
+                      onChange={setStatusPage}
+                      className="border-t-0 p-0 bg-transparent"
+                    />
+                  ) : (
+                    <div className="text-center sm:text-left">
+                      <span className="text-xs text-gray-500 font-medium">
+                        إجمالي {filteredStudents.length} طالب
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -834,27 +811,14 @@ const Payments = () => {
 
             {/* Pagination Controls */}
             {pagination.totalPages > 1 && (
-              <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600">
-                <span>
-                  صفحة {pagination.page} من {pagination.totalPages} (إجمالي: {pagination.total} معاملة)
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                    disabled={pagination.page <= 1}
-                    className="p-1.5 border border-gray-200 rounded-lg hover:border-[#009966] disabled:opacity-40 transition"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                  <button
-                    onClick={() => setHistoryPage((p) => Math.min(pagination.totalPages, p + 1))}
-                    disabled={pagination.page >= pagination.totalPages}
-                    className="p-1.5 border border-gray-200 rounded-lg hover:border-[#009966] disabled:opacity-40 transition"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                limit={20}
+                onChange={setHistoryPage}
+                className="border-t border-gray-100"
+              />
             )}
           </div>
         </motion.div>

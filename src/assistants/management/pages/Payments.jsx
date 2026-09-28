@@ -451,8 +451,8 @@ const Payments = () => {
       return;
     }
 
-    if (!payment.amount || Number(payment.amount) <= 0) {
-      notifyError("يرجى إدخال مبلغ صحيح");
+    if (!payment.amount || isNaN(Number(payment.amount)) || Number(payment.amount) <= 0) {
+      notifyError("يرجى إدخال مبلغ صحيح أكبر من الصفر");
       return;
     }
 
@@ -1282,6 +1282,8 @@ const Payments = () => {
                       </label>
                       <input
                         type="number"
+                        min="0"
+                        step="any"
                         value={payment.amount ?? ""}
                         onChange={(e) =>
                           setPayment({ ...payment, amount: e.target.value })

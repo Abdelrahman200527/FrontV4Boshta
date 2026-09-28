@@ -20,6 +20,7 @@ import {
   fetchConsecutiveAbsences,
 } from "../api/student/actions";
 import { formatTime12 } from "../utils/timeFormat";
+import Pagination from "../components/Pagination";
 
 const Attendance = () => {
   const [stats, setStats] = useState(null);
@@ -454,26 +455,13 @@ const Attendance = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-gray-50 transition text-gray-600"
-          >
-            <ChevronRight size={14} />
-            السابق
-          </button>
-          <span className="text-sm text-gray-600 font-bold">
-            {page} من {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold disabled:opacity-30 hover:bg-gray-50 transition text-gray-600"
-          >
-            التالي
-            <ChevronLeft size={14} />
-          </button>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            limit={10}
+            onChange={setPage}
+          />
         </div>
       )}
     </motion.section>

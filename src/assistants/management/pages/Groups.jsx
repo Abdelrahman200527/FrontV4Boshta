@@ -25,6 +25,7 @@ import {
 } from "../../../lib/notify";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportPdfTable, exportAoaExcel } from "../../../utils/office.js";
+import { validateFileUpload } from "../../../utils/validators.js";
 import { ARABIC_DAYS, formatTime } from "../../../utils/helpers.js";
 import {
   fetchAllGroups,
@@ -215,6 +216,15 @@ const Groups = () => {
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        const fileCheck = validateFileUpload(file, {
+          allowedExtensions: ["xlsx", "xls"],
+          maxSizeMB: 15,
+        });
+        if (!fileCheck.valid) {
+          notifyError(fileCheck.error);
+          return;
+        }
 
         setImporting(true);
 

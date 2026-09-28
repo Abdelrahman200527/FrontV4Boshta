@@ -33,6 +33,8 @@ import {
   updatePlaylistInfo,
   removeVideoFromPlaylistAction,
 } from "../../api/assistant/actions";
+import { isValidVideoUrl } from "../../utils/videoSecurity";
+import { validateFileUpload } from "../../utils/validators";
 import VideoCard from "../../components/VideoCard";
 import PlaylistCard from "../../components/PlaylistCard";
 import { motion } from "framer-motion";
@@ -152,19 +154,59 @@ const Videos = () => {
       setMessage({ type: "error", text: "الصف مطلوب" });
       return;
     }
-    if (!videoForm.videoUrl?.trim()) {
+
+    const cleanUrl = (videoForm.videoUrl || "").trim();
+    if (!cleanUrl) {
       setMessage({ type: "error", text: "رابط الفيديو مطلوب" });
       return;
+    }
+    if (!isValidVideoUrl(cleanUrl)) {
+      setMessage({
+        type: "error",
+        text: "يرجى إدخال رابط يوتيوب أو Google Drive صحيح",
+      });
+      return;
+    }
+
+    if (videoForm.thumbnailFile) {
+      const check = validateFileUpload(videoForm.thumbnailFile, {
+        allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+        maxSizeMB: 5,
+      });
+      if (!check.valid) {
+        setMessage({ type: "error", text: check.error });
+        return;
+      }
+    }
+
+    if (videoForm.videoFile) {
+      const check = validateFileUpload(videoForm.videoFile, {
+        allowedExtensions: [
+          "pdf",
+          "doc",
+          "docx",
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+          "zip",
+        ],
+        maxSizeMB: 25,
+      });
+      if (!check.valid) {
+        setMessage({ type: "error", text: check.error });
+        return;
+      }
     }
 
     setSavingVideo(true);
 
     const formData = new FormData();
-    formData.append("title", videoForm.title);
+    formData.append("title", videoForm.title.trim());
     formData.append("grade_id", videoForm.gradeId);
-    formData.append("video_url", videoForm.videoUrl);
+    formData.append("video_url", cleanUrl);
     if (videoForm.description)
-      formData.append("description", videoForm.description);
+      formData.append("description", videoForm.description.trim());
     if (videoForm.thumbnailFile)
       formData.append("thumbnail", videoForm.thumbnailFile);
     if (videoForm.videoFile) formData.append("file", videoForm.videoFile);
@@ -210,10 +252,21 @@ const Videos = () => {
       return;
     }
 
+    if (playlistForm.thumbnailFile) {
+      const check = validateFileUpload(playlistForm.thumbnailFile, {
+        allowedExtensions: ["jpg", "jpeg", "png", "webp"],
+        maxSizeMB: 5,
+      });
+      if (!check.valid) {
+        setMessage({ type: "error", text: check.error });
+        return;
+      }
+    }
+
     setSavingPlaylist(true);
 
     const formData = new FormData();
-    formData.append("title", playlistForm.title);
+    formData.append("title", playlistForm.title.trim());
     formData.append("grade_id", playlistForm.gradeId);
     if (playlistForm.thumbnailFile)
       formData.append("thumbnail", playlistForm.thumbnailFile);

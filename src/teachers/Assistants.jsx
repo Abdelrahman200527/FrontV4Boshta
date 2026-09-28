@@ -20,6 +20,7 @@ import { fetchAssistants, fetchAssistantById } from "../api/teacher/actions";
 import getImageUrl from "../utils/imageUrl";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
+import Pagination from "../components/Pagination";
 
 const PAGE_SIZE = 10;
 
@@ -420,30 +421,13 @@ const Assistants = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-t border-gray-100 bg-gray-50/50">
-            <span className="text-sm text-gray-600">
-              عرض {firstRowNumber} - {lastRowNumber} من {total}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 transition"
-              >
-                <ChevronRight size={16} />
-              </button>
-              <span className="text-sm font-medium text-gray-700">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 transition"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            limit={PAGE_SIZE}
+            onChange={setPage}
+          />
         )}
       </motion.div>
 

@@ -15,6 +15,7 @@ import Background from "../assets/background.png";
 // Auth Context
 import { authenticate } from "../api/auth/actions";
 import { fetchParentDashboard } from "../api/parent/actions";
+import { isValidEgyptianPhone, normalizePhone } from "../utils/validators";
 
 const Badge = ({ title, subtitle, style, rotate = "0" }) => (
   <div className="absolute z-20" style={style}>
@@ -45,21 +46,30 @@ const Login = () => {
 
   const handleSubmit_s = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    const cleanPhone = normalizePhone(phone);
+    if (!cleanPhone || !password) {
+      setError("يرجى إدخال رقم الهاتف وكلمة المرور");
+      return;
+    }
+
+    if (!isValidEgyptianPhone(cleanPhone)) {
+      setError("يرجى إدخال رقم هاتف مصري صحيح (11 رقم يبدأ بـ 01)");
+      return;
+    }
+
+    setLoading(true);
 
     const roleMap = {
       الطالب: "student",
     };
 
     try {
-      const Sresult = await authenticate(roleMap[role], phone, password);
+      const Sresult = await authenticate(roleMap[role] || "student", cleanPhone, password);
 
       if (Sresult.success) {
-        const selectedRole = roleMap[role];
-        if (selectedRole === "student") {
-          navigate("/student");
-        }
+        navigate("/student");
       } else {
         setError(Sresult.error || "حدث خطأ في تسجيل الدخول");
       }
@@ -72,29 +82,27 @@ const Login = () => {
 
   const handleSubmit_p = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
-    const roleMap = {
-      "ولي الأمر": "parent",
-    };
-
-    const cleanPhone = (parentPhone || "").trim();
+    const cleanPhone = normalizePhone(parentPhone);
     if (!cleanPhone) {
-      setError("برجاء إدخال رقم الهاتف");
-      setLoading(false);
+      setError("يرجى إدخال رقم الهاتف");
       return;
     }
+
+    if (!isValidEgyptianPhone(cleanPhone)) {
+      setError("يرجى إدخال رقم هاتف مصري صحيح (11 رقم يبدأ بـ 01)");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const Presult = await fetchParentDashboard(cleanPhone);
 
       if (Presult.success) {
         localStorage.setItem("phone", cleanPhone);
-        const selectedRole = roleMap[role];
-        if (selectedRole === "parent") {
-          navigate("/parent");
-        }
+        navigate("/parent");
       } else {
         setError(Presult.error || "رقم الهاتف غير مسجل في السنتر");
       }

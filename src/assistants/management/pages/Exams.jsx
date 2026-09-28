@@ -28,6 +28,7 @@ import {
 import { memo, useMemo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../../../components/Pagination";
 import {
   fetchAllExams,
   createNewExam,
@@ -863,38 +864,13 @@ const Exams = () => {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50/50 text-sm">
-            <span className="text-gray-600">
-              عرض {filteredExams.length} من {totalExams}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronRight size={16} />
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (pageNum) => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${page === pageNum ? "bg-primary text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100"}`}
-                  >
-                    {pageNum}
-                  </button>
-                ),
-              )}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            total={totalExams}
+            limit={PAGE_SIZE}
+            onChange={setPage}
+          />
         )}
       </motion.div>
 

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Pagination from "../components/Pagination";
 import {
   fetchPaperExamResults,
   fetchOnlineExamStats,
@@ -754,45 +755,15 @@ const ExamResults = () => {
           {totalPages > 1 && (
             <motion.div
               variants={itemVariants}
-              className="bg-white rounded-xl border border-gray-200 px-3 sm:px-4 py-3 flex items-center justify-between flex-wrap gap-2"
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm text-gray-500">
-                  صفحة {currentPage} من {totalPages}
-                </span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(parseInt(e.target.value));
-                    setPage(1);
-                  }}
-                  className="border border-gray-200 rounded-md px-2 py-1 text-xs"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50"
-                >
-                  <ChevronRight size={14} />
-                </button>
-                <span className="px-2 text-xs text-gray-600">
-                  {currentPage}
-                </span>
-                <button
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={currentPage >= totalPages}
-                  className="p-2 border border-gray-200 rounded-lg disabled:opacity-30 hover:bg-gray-50"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                total={filteredResults.length}
+                limit={itemsPerPage}
+                onChange={setPage}
+              />
             </motion.div>
           )}
 

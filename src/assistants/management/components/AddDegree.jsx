@@ -32,6 +32,7 @@ import {
 } from "../../../utils/office.js";
 import { LoadingState } from "../components/Spinner";
 import { toast } from "sonner";
+import Pagination from "../../../components/Pagination";
 
 const PAGE_SIZE = 50;
 
@@ -728,36 +729,13 @@ const AddDegree = () => {
 
         {/* Pagination */}
         {filteredStudents.length > PAGE_SIZE && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50/50 text-sm">
-            <span className="text-gray-600">
-              عرض {(currentPage - 1) * PAGE_SIZE + 1}
-              {" - "}
-              {Math.min(currentPage * PAGE_SIZE, filteredStudents.length)}
-              {" من "}
-              {filteredStudents.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40"
-                title="السابق"
-              >
-                <ChevronRight size={16} />
-              </button>
-              <span className="px-3 py-1 bg-white border border-gray-200 rounded-lg font-medium">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40"
-                title="التالي"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={filteredStudents.length}
+            limit={PAGE_SIZE}
+            onChange={setPage}
+          />
         )}
       </motion.div>
     </motion.section>

@@ -34,8 +34,10 @@ const downloadFile = async (url, fileName = "file") => {
 
     const contentDisposition = response.headers.get("Content-Disposition");
     if (contentDisposition) {
-      const match = contentDisposition.match(/filename="?(.+?)"?$/);
-      if (match) fileName = match[1];
+      const match = contentDisposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        fileName = match[1].replace(/[/\\]/g, "").replace(/^(\.\.)+/, "").replace(/["']/g, "").trim() || "file";
+      }
     }
 
     const blob = await response.blob();
@@ -44,6 +46,7 @@ const downloadFile = async (url, fileName = "file") => {
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = fileName;
+    link.rel = "noopener noreferrer";
     link.style.display = "none";
     document.body.appendChild(link);
     link.click();
@@ -76,7 +79,7 @@ const previewFile = async (url) => {
     const blob = await response.blob();
     const blobUrl = window.URL.createObjectURL(blob);
 
-    window.open(blobUrl, "_blank");
+    window.open(blobUrl, "_blank", "noopener,noreferrer");
 
     setTimeout(() => {
       window.URL.revokeObjectURL(blobUrl);
@@ -91,11 +94,15 @@ const previewFile = async (url) => {
 
 
 const getImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith("http")) return path;
+  if (!path || typeof path !== "string") return null;
+  const trimmed = path.trim();
+  if (/^javascript:/i.test(trimmed) || /^vbscript:/i.test(trimmed)) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("blob:") || trimmed.startsWith("data:image/")) {
+    return trimmed;
+  }
   
-  const baseUrl = config.apiUrl.replace("/api", "");
-  const cleanPath = path.replace(/^\//, "");
+  const baseUrl = config.apiUrl.replace(/\/api\/?$/, "");
+  const cleanPath = trimmed.replace(/^\/+/, "");
   
   return `${baseUrl}/${cleanPath}`;
 };

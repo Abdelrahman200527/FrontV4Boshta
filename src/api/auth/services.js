@@ -1,5 +1,5 @@
 import { httpPost } from "../http";
-import { setCookie, deleteCookie } from "../../utils/cookies";
+import { setCookie, clearAllAuthCookies } from "../../utils/cookies";
 
 const loginUser = async (phone, password) => {
   const response = await httpPost("/auth/user/login", { phone, password });
@@ -24,8 +24,13 @@ const loginStudent = async (phone, password) => {
 };
 
 const logout = () => {
-  deleteCookie("auth_token");
-  deleteCookie("user_data");
+  clearAllAuthCookies();
+  try {
+    localStorage.removeItem("phone");
+    sessionStorage.clear();
+  } catch (e) {
+    console.error("Storage clear error:", e);
+  }
 };
 
 export { loginUser, loginStudent, logout };

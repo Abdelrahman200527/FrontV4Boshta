@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 
 import Sidebar from "../components/Sidebar";
 import background from "../assets/background.png";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -17,7 +18,9 @@ export default function MainLayout() {
         backgroundRepeat: "no-repeat",
       }}>
         <main className="p-2.5 sm:p-4 lg:p-6 overflow-y-auto overflow-x-hidden touch-scroll flex-1">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </motion.div>
     </motion.div>

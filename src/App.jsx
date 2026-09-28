@@ -4,11 +4,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { router } from "./routes.jsx";
 import { queryClient } from "./lib/queryClient";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
       {/* كل رسائل التطبيق (نجاح / خطأ / تنبيه) تظهر هنا */}
       <Toaster
         position="top-center"

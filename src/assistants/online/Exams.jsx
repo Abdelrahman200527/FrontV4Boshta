@@ -30,6 +30,7 @@ import {
   Loader2,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import Pagination from "../../components/Pagination";
 import {
   fetchAllOnlineExams,
   createNewOnlineExam,
@@ -107,6 +108,11 @@ const Exams = () => {
   const [gradingLoading, setGradingLoading] = useState(false);
   const [gradingSubmittingId, setGradingSubmittingId] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const EXAMS_PER_PAGE = 12;
+  const [studentsPage, setStudentsPage] = useState(1);
+  const STUDENTS_PER_PAGE = 10;
+
   // ✅ دالة لتحويل التاريخ لصيغة datetime-local مع تعويض فرق التوقيت
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return "";
@@ -137,6 +143,7 @@ const Exams = () => {
 
   useEffect(() => {
     loadExams();
+    setCurrentPage(1);
   }, [filterType, filterGradeId, filterGroupId]);
 
   const isExamEnded = (exam) => {
@@ -209,6 +216,7 @@ const Exams = () => {
     setSelectedExam(exam);
     setShowDetailsModal(true);
     setDetailsLoading(true);
+    setStudentsPage(1);
 
     const [statsRes, studentsRes] = await Promise.all([
       fetchOnlineExamStats(exam.id),
@@ -340,6 +348,16 @@ const Exams = () => {
   };
 
   const setQuestionFile = (questionId, file) => {
+    if (!file) return;
+    const allowed = /\.(pdf|jpe?g|png|webp)$/i.test(file.name);
+    if (!allowed) {
+      notifyError("الملف يجب أن يكون PDF أو صورة فقط");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      notifyError("حجم الملف يتجاوز الحد المسموح به (15 ميجابايت)");
+      return;
+    }
     setQuestions(
       questions.map((q) => (q.id === questionId ? { ...q, file } : q)),
     );
@@ -997,7 +1015,12 @@ const Exams = () => {
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {examStudents.map((student) => (
+                  {examStudents
+                    .slice(
+                      (studentsPage - 1) * STUDENTS_PER_PAGE,
+                      studentsPage * STUDENTS_PER_PAGE,
+                    )
+                    .map((student) => (
                     <div
                       key={student.id}
                       className="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
@@ -1037,6 +1060,16 @@ const Exams = () => {
                       </div>
                     </div>
                   ))}
+                  {examStudents.length > STUDENTS_PER_PAGE && (
+                    <Pagination
+                      currentPage={studentsPage}
+                      totalPages={Math.ceil(examStudents.length / STUDENTS_PER_PAGE)}
+                      total={examStudents.length}
+                      limit={STUDENTS_PER_PAGE}
+                      onChange={setStudentsPage}
+                      className="mt-3 rounded-xl border border-gray-100"
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -1564,7 +1597,12 @@ const Exams = () => {
             لا توجد امتحانات
           </div>
         ) : (
-          exams.map((exam) => {
+          exams
+            .slice(
+              (currentPage - 1) * EXAMS_PER_PAGE,
+              currentPage * EXAMS_PER_PAGE,
+            )
+            .map((exam) => {
             const attemptsCount = examAttemptsMap[exam.id] || 0;
             const ended = isExamEnded(exam);
             const isEditLocked = attemptsCount > 0;
@@ -1679,6 +1717,18 @@ const Exams = () => {
           })
         )}
       </div>
+
+      {exams.length > EXAMS_PER_PAGE && (
+        <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(exams.length / EXAMS_PER_PAGE)}
+            total={exams.length}
+            limit={EXAMS_PER_PAGE}
+            onChange={setCurrentPage}
+          />
+        </div>
+      )}
     </section>
   );
 };

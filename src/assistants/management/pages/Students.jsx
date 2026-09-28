@@ -45,6 +45,7 @@ import { useDebounce } from "../../../hooks/useDebounce";
 import { SkeletonRows } from "../components/Spinner";
 import { printBarcodeWindow } from "../../../utils/barcode.js";
 import { exportPdfTable, exportAoaExcel } from "../../../utils/office.js";
+import { validateFileUpload } from "../../../utils/validators";
 import {
   fetchAllStudents,
   fetchDeletedStudents,
@@ -408,11 +409,22 @@ const Students = () => {
   const refreshing = studentsQuery.isFetching && !studentsQuery.isLoading;
 
   const pagination = studentsQuery.pagination;
+  const hasServerPagination = !!pagination?.totalPages;
   const total = debouncedBarcode
     ? students.length
     : (pagination?.total ?? students.length);
-  const totalPages = debouncedBarcode ? 1 : (pagination?.totalPages ?? 1);
+  const totalPages = debouncedBarcode
+    ? 1
+    : hasServerPagination
+      ? (pagination?.totalPages ?? 1)
+      : Math.max(1, Math.ceil(students.length / PAGE_SIZE));
   const limit = pagination?.limit ?? PAGE_SIZE;
+
+  const displayedStudents = useMemo(() => {
+    if (debouncedBarcode || hasServerPagination) return students;
+    const start = (page - 1) * PAGE_SIZE;
+    return students.slice(start, start + PAGE_SIZE);
+  }, [debouncedBarcode, hasServerPagination, students, page]);
 
   // ============================================
   // MUTATIONS
@@ -730,6 +742,15 @@ const Students = () => {
       fileInput.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        const fileCheck = validateFileUpload(file, {
+          allowedExtensions: ["xlsx", "xls"],
+          maxSizeMB: 15,
+        });
+        if (!fileCheck.valid) {
+          notifyError(fileCheck.error);
+          return;
+        }
 
         setImporting(true);
 
@@ -1237,7 +1258,7 @@ const Students = () => {
                 <AnimatePresence mode="wait">
                   {tableLoading ? (
                     <SkeletonRows rows={8} cols={8} />
-                  ) : students.length === 0 ? (
+                  ) : displayedStudents.length === 0 ? (
                     <motion.tr
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -1266,7 +1287,7 @@ const Students = () => {
                       </td>
                     </motion.tr>
                   ) : (
-                    students.map((item, index) => (
+                    displayedStudents.map((item, index) => (
                       <StudentRow
                         key={item.id || index}
                         student={item}

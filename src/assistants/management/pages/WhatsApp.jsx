@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { memo, useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Pagination from "../../../components/Pagination";
 import { Spinner, LoadingState } from "../components/Spinner.jsx";
 import {
   useApiQuery,
@@ -751,28 +752,16 @@ const WhatsApp = () => {
               ))}
             </AnimatePresence>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-100">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-all"
-              >
-                <ChevronRight size={15} /> السابق
-              </button>
-              <span className="text-xs text-gray-400">
-                صفحة {page} من {totalPages} • إجمالي{" "}
-                {pagination?.total ?? messages.length}
-              </span>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 disabled:opacity-40 hover:bg-gray-50 transition-all"
-              >
-                التالي <ChevronLeft size={15} />
-              </button>
-            </div>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                total={pagination?.total ?? messages.length}
+                limit={pagination?.limit || 20}
+                onChange={setPage}
+                className="mt-4 pt-4 border-t border-gray-100 rounded-b-xl"
+              />
+            )}
           </>
         ) : (
           <p className="text-sm text-gray-400 py-8 text-center">

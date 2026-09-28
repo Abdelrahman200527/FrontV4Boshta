@@ -308,51 +308,42 @@ const StudentDetails = () => {
             </div>
 
             {/* Payment Summary */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {
-                  label: "المدفوع",
-                  value: toNumber(balance.total_paid || stats.total_paid),
-                  color: "text-emerald-700",
-                  bg: "bg-emerald-50",
-                  border: "border-emerald-200",
-                },
-                {
-                  label: "المطلوب",
-                  value: toNumber(balance.total_required || stats.total_required),
-                  color: "text-orange-700",
-                  bg: "bg-orange-50",
-                  border: "border-orange-200",
-                },
-                {
-                  label: "المتبقي",
-                  value: toNumber(balance.remaining_balance || stats.remaining_balance),
-                  color: "text-red-700",
-                  bg: "bg-red-50",
-                  border: "border-red-200",
-                },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className={`${item.bg} ${item.border} border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center`}
-                >
-                  <span className={`text-base sm:text-xl font-bold ${item.color} block text-center`}>
-                    {item.value} ج.م
-                  </span>
-                  <span className="text-[10px] sm:text-xs text-gray-500 text-center">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 sm:p-4 flex items-center justify-between">
+              <span className="text-xs sm:text-sm font-semibold text-emerald-900">
+                إجمالي المدفوع
+              </span>
+              <span className="text-base sm:text-xl font-bold text-emerald-700">
+                {toNumber(balance.total_paid || stats.total_paid)} ج.م
+              </span>
             </div>
 
             {/* Contact Info */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
               {[
-                { label: "الهاتف", value: profile.phone, icon: Phone, dir: "ltr" },
-                { label: "ولي الأمر", value: profile.parent_phone, icon: Phone, dir: "ltr" },
-                { label: "الصف", value: profile.grade_name, icon: GraduationCap, dir: "rtl" },
-                { label: "المجموعة", value: profile.group_name, icon: Users, dir: "rtl" },
+                {
+                  label: "الهاتف",
+                  value: profile.phone,
+                  icon: Phone,
+                  dir: "ltr",
+                },
+                {
+                  label: "ولي الأمر",
+                  value: profile.parent_phone,
+                  icon: Phone,
+                  dir: "ltr",
+                },
+                {
+                  label: "الصف",
+                  value: profile.grade_name,
+                  icon: GraduationCap,
+                  dir: "rtl",
+                },
+                {
+                  label: "المجموعة",
+                  value: profile.group_name,
+                  icon: Users,
+                  dir: "rtl",
+                },
               ].map((item, idx) => (
                 <div
                   key={idx}
@@ -362,7 +353,10 @@ const StudentDetails = () => {
                     <item.icon size={11} />
                     {item.label}
                   </span>
-                  <span className="font-bold text-xs sm:text-sm text-center" dir={item.dir}>
+                  <span
+                    className="font-bold text-xs sm:text-sm text-center"
+                    dir={item.dir}
+                  >
                     {item.value || "-"}
                   </span>
                 </div>
@@ -382,24 +376,43 @@ const StudentDetails = () => {
                   <table className="w-full min-w-100">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الشهر</th>
-                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">حضور</th>
-                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">غياب</th>
-                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">النسبة</th>
+                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                          الشهر
+                        </th>
+                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                          حضور
+                        </th>
+                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                          غياب
+                        </th>
+                        <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                          النسبة
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {monthlyAttendance.map((month, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">{month.month}</td>
-                          <td className="py-3 px-4 text-xs sm:text-sm text-green-600 font-bold text-center">{month.present_days}</td>
-                          <td className="py-3 px-4 text-xs sm:text-sm text-red-600 font-bold text-center">{month.absent_days}</td>
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
+                            {month.month}
+                          </td>
+                          <td className="py-3 px-4 text-xs sm:text-sm text-green-600 font-bold text-center">
+                            {month.present_days}
+                          </td>
+                          <td className="py-3 px-4 text-xs sm:text-sm text-red-600 font-bold text-center">
+                            {month.absent_days}
+                          </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              toNumber(month.attendance_percentage) >= 75
-                                ? "bg-green-50 text-green-700"
-                                : "bg-red-50 text-red-700"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                toNumber(month.attendance_percentage) >= 75
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
                               {toNumber(month.attendance_percentage)}%
                             </span>
                           </td>
@@ -452,28 +465,58 @@ const StudentDetails = () => {
               <table className="w-full min-w-100">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">#</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">التاريخ</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">اليوم</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الحالة</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      #
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      التاريخ
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      اليوم
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      الحالة
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filterAttendance.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-400 text-sm">لا يوجد سجل</td>
+                      <td
+                        colSpan={4}
+                        className="text-center py-8 text-gray-400 text-sm"
+                      >
+                        لا يوجد سجل
+                      </td>
                     </tr>
                   ) : (
                     filterAttendance.map((att, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-2.5 px-4 text-xs text-gray-400 text-center">{index + 1}</td>
-                        <td className="py-2.5 px-4 text-xs sm:text-sm text-center">{formatDate(att.attendance_date)}</td>
-                        <td className="py-2.5 px-4 text-xs sm:text-sm text-center">{att.day_name || "-"}</td>
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-2.5 px-4 text-xs text-gray-400 text-center">
+                          {index + 1}
+                        </td>
+                        <td className="py-2.5 px-4 text-xs sm:text-sm text-center">
+                          {formatDate(att.attendance_date)}
+                        </td>
+                        <td className="py-2.5 px-4 text-xs sm:text-sm text-center">
+                          {att.day_name || "-"}
+                        </td>
                         <td className="py-2.5 px-4 text-center">
-                          <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                            att.status === "present" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                          }`}>
-                            {att.status === "present" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                              att.status === "present"
+                                ? "bg-green-50 text-green-700"
+                                : "bg-red-50 text-red-700"
+                            }`}
+                          >
+                            {att.status === "present" ? (
+                              <CheckCircle2 size={12} />
+                            ) : (
+                              <XCircle size={12} />
+                            )}
                             {att.status === "present" ? "حضور" : "غياب"}
                           </span>
                         </td>
@@ -505,7 +548,10 @@ const StudentDetails = () => {
                 className="bg-transparent focus:outline-none text-sm w-full"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="text-gray-400 shrink-0">
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-gray-400 shrink-0"
+                >
                   <XIcon />
                 </button>
               )}
@@ -523,30 +569,56 @@ const StudentDetails = () => {
                 <table className="w-full min-w-87.5">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الامتحان</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الدرجة</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الحالة</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الامتحان
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الدرجة
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الحالة
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {paperExams.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center py-8 text-gray-400 text-sm">لا توجد امتحانات</td>
+                        <td
+                          colSpan={3}
+                          className="text-center py-8 text-gray-400 text-sm"
+                        >
+                          لا توجد امتحانات
+                        </td>
                       </tr>
                     ) : (
                       paperExams.map((exam, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {exam.exam_title || exam.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
-                            {exam.student_degree ?? exam.degree ?? "-"} / {exam.total_degree || "-"}
+                          <td
+                            className="py-3 px-4 text-xs sm:text-sm font-bold text-center"
+                            dir="ltr"
+                          >
+                            {exam.student_degree ?? exam.degree ?? "-"} /{" "}
+                            {exam.total_degree || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              exam.exam_status === "attended" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                            }`}>
-                              {exam.exam_status === "attended" ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                exam.exam_status === "attended"
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {exam.exam_status === "attended" ? (
+                                <CheckCircle2 size={11} />
+                              ) : (
+                                <XCircle size={11} />
+                              )}
                               {exam.exam_status === "attended" ? "حضر" : "غائب"}
                             </span>
                           </td>
@@ -570,29 +642,51 @@ const StudentDetails = () => {
                 <table className="w-full min-w-87.5">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الامتحان</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الدرجة</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">النسبة</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الامتحان
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الدرجة
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        النسبة
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {examResults.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center py-8 text-gray-400 text-sm">لا توجد نتائج</td>
+                        <td
+                          colSpan={3}
+                          className="text-center py-8 text-gray-400 text-sm"
+                        >
+                          لا توجد نتائج
+                        </td>
                       </tr>
                     ) : (
                       examResults.map((result, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {result.exam_title || result.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
-                            {result.degree ?? "-"} / {result.total_degree || "-"}
+                          <td
+                            className="py-3 px-4 text-xs sm:text-sm font-bold text-center"
+                            dir="ltr"
+                          >
+                            {result.degree ?? "-"} /{" "}
+                            {result.total_degree || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              toNumber(result.percentage) >= 50 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                toNumber(result.percentage) >= 50
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
                               {toNumber(result.percentage)}%
                             </span>
                           </td>
@@ -616,29 +710,50 @@ const StudentDetails = () => {
                 <table className="w-full min-w-87.5">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الامتحان</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الدرجة</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">النسبة</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الامتحان
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الدرجة
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        النسبة
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {onlineExams.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center py-8 text-gray-400 text-sm">لا توجد امتحانات</td>
+                        <td
+                          colSpan={3}
+                          className="text-center py-8 text-gray-400 text-sm"
+                        >
+                          لا توجد امتحانات
+                        </td>
                       </tr>
                     ) : (
                       onlineExams.map((exam, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {exam.exam_title || exam.title || "-"}
                           </td>
-                          <td className="py-3 px-4 text-xs sm:text-sm font-bold text-center" dir="ltr">
+                          <td
+                            className="py-3 px-4 text-xs sm:text-sm font-bold text-center"
+                            dir="ltr"
+                          >
                             {exam.score ?? "-"} / {exam.full_mark || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              toNumber(exam.percentage) >= 50 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                toNumber(exam.percentage) >= 50
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
                               {toNumber(exam.percentage)}%
                             </span>
                           </td>
@@ -680,22 +795,42 @@ const StudentDetails = () => {
               <table className="w-full min-w-87.5">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">#</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">التاريخ</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">المبلغ</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الشهر</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      #
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      التاريخ
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      المبلغ
+                    </th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                      الشهر
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filterPayments.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-400 text-sm">لا توجد مدفوعات</td>
+                      <td
+                        colSpan={4}
+                        className="text-center py-8 text-gray-400 text-sm"
+                      >
+                        لا توجد مدفوعات
+                      </td>
                     </tr>
                   ) : (
                     filterPayments.map((payment, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 text-xs text-gray-400 text-center">{index + 1}</td>
-                        <td className="py-3 px-4 text-xs sm:text-sm text-center">{formatDate(payment.payment_date)}</td>
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-4 text-xs text-gray-400 text-center">
+                          {index + 1}
+                        </td>
+                        <td className="py-3 px-4 text-xs sm:text-sm text-center">
+                          {formatDate(payment.payment_date)}
+                        </td>
                         <td className="py-3 px-4 text-xs sm:text-sm font-bold text-emerald-600 text-center">
                           {payment.amount} ج.م
                         </td>
@@ -732,19 +867,33 @@ const StudentDetails = () => {
                 <table className="w-full min-w-87.5">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الواجب</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الدرجة</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الحالة</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الواجب
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الدرجة
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الحالة
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {assignments.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center py-8 text-gray-400 text-sm">لا توجد واجبات</td>
+                        <td
+                          colSpan={3}
+                          className="text-center py-8 text-gray-400 text-sm"
+                        >
+                          لا توجد واجبات
+                        </td>
                       </tr>
                     ) : (
                       assignments.map((assignment, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {assignment.title || "-"}
                           </td>
@@ -752,16 +901,19 @@ const StudentDetails = () => {
                             {assignment.full_mark || "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              assignment.assignment_status === "graded"
-                                ? "bg-green-50 text-green-700"
-                                : assignment.assignment_status === "submitted"
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "bg-yellow-50 text-yellow-700"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                assignment.assignment_status === "graded"
+                                  ? "bg-green-50 text-green-700"
+                                  : assignment.assignment_status === "submitted"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "bg-yellow-50 text-yellow-700"
+                              }`}
+                            >
                               {assignment.assignment_status === "graded" ? (
                                 <CheckCircle2 size={11} />
-                              ) : assignment.assignment_status === "submitted" ? (
+                              ) : assignment.assignment_status ===
+                                "submitted" ? (
                                 <FileText size={11} />
                               ) : (
                                 <Clock size={11} />
@@ -793,19 +945,33 @@ const StudentDetails = () => {
                 <table className="w-full min-w-87.5">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الواجب</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">الدرجة</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">التوقيت</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الواجب
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        الدرجة
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600">
+                        التوقيت
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {submissions.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center py-8 text-gray-400 text-sm">لا توجد تسليمات</td>
+                        <td
+                          colSpan={3}
+                          className="text-center py-8 text-gray-400 text-sm"
+                        >
+                          لا توجد تسليمات
+                        </td>
                       </tr>
                     ) : (
                       submissions.map((submission, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={index}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
                           <td className="py-3 px-4 text-xs sm:text-sm font-medium text-center">
                             {submission.assignment_title || "-"}
                           </td>
@@ -813,17 +979,21 @@ const StudentDetails = () => {
                             {submission.score ?? "-"}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                              submission.submission_timing === "on_time"
-                                ? "bg-green-50 text-green-700"
-                                : "bg-red-50 text-red-700"
-                            }`}>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
+                                submission.submission_timing === "on_time"
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
+                              }`}
+                            >
                               {submission.submission_timing === "on_time" ? (
                                 <CheckCircle2 size={11} />
                               ) : (
                                 <Clock size={11} />
                               )}
-                              {submission.submission_timing === "on_time" ? "في الوقت" : "متأخر"}
+                              {submission.submission_timing === "on_time"
+                                ? "في الوقت"
+                                : "متأخر"}
                             </span>
                           </td>
                         </tr>
