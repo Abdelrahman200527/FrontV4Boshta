@@ -1094,8 +1094,14 @@ const StudentCard = ({
                 <h2 className="text-base sm:text-xl font-bold text-slate-900 truncate">
                   {full_name || "طالب"}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 truncate">
+                <p className="text-xs sm:text-sm text-slate-500 truncate flex items-center gap-1">
                   {grade_name || "-"} • {group_name || "-"}
+                  {(student?.deleted === 1 || student?.status === "deleted") && (
+                    <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-0.5 mr-2">
+                      <UserX size={10} />
+                      محذوف
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -1125,6 +1131,18 @@ const StudentCard = ({
           <div className="mt-3 flex items-center justify-center bg-slate-50 rounded-xl py-2 px-3">
             <svg ref={svgRef}></svg>
           </div>
+          
+          {/* Deletion Reason Alert */}
+          {(student?.deleted === 1 || student?.status === "deleted") && (
+            <div className="mt-2 bg-red-50 border border-red-100 rounded-xl p-3 text-right">
+              <span className="text-red-500 block text-[11px] font-bold mb-1">
+                سبب الحذف / الإيقاف
+              </span>
+              <span className="font-bold text-red-800 text-sm block">
+                {student?.delete_reason || student?.deletion_reason || "لم يتم تحديد سبب"}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ==================== TABS ==================== */}
