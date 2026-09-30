@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Phone,
   Users,
+  UserX,
   CheckCircle2,
   XCircle,
   FileText,

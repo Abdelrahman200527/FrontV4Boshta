@@ -15,6 +15,7 @@ import {
   User,
   FileText,
   Video,
+  UserX,
   TrendingUp,
   Award,
   BookOpen,
