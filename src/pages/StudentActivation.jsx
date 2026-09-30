@@ -42,15 +42,21 @@ const StudentActivation = () => {
 
   // Error mapping helper to provide friendly arabic messages without emojis
   const handleVerifyError = (err) => {
-    // If it's our structured error from the backend
-    if (err?.response?.data) {
-      const data = err.response.data;
-      if (data.code === "ACCOUNT_ALREADY_ACTIVATED" || data.is_already_activated) {
-        return "تم تفعيل هذا الحساب من قبل. يرجى تسجيل الدخول مباشرة برقم هاتفك وكلمة المرور الخاصة بك.";
-      }
-      return data.message || "بيانات الاعتماد غير متطابقة. يرجى التأكد من مسح الباركود بشكل صحيح وكتابة رقم هاتف ولي الأمر المسجل في السنتر.";
+    const data = err?.data || err?.response?.data;
+    if (
+      data?.code === "ACCOUNT_ALREADY_ACTIVATED" || 
+      data?.is_already_activated || 
+      err?.status === 409
+    ) {
+      return data?.message || "تم تفعيل هذا الحساب من قبل. يرجى تسجيل الدخول مباشرة برقم هاتفك وكلمة المرور الخاصة بك.";
     }
-    return "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقا.";
+    if (data?.message) {
+      return data.message;
+    }
+    if (err?.message && !err.message.startsWith("HTTP")) {
+      return err.message;
+    }
+    return "بيانات الاعتماد غير متطابقة. يرجى التأكد من مسح الباركود بشكل صحيح وكتابة رقم هاتف ولي الأمر المسجل في السنتر.";
   };
 
   const startScanner = async () => {
@@ -112,20 +118,21 @@ const StudentActivation = () => {
     e.preventDefault();
     setError(null);
     
-    if (!barcode) {
-      setError("يرجى إدخال الباركود أو مسح الكارت.");
+    const cleanBarcode = barcode ? barcode.trim() : "";
+    if (!cleanBarcode) {
+      setError("يرجى مسح باركود الكارت بالكاميرا أولاً.");
       return;
     }
 
     const cleanPhone = normalizePhone(parentPhone);
     if (!isValidEgyptianPhone(cleanPhone)) {
-      setError("يرجى إدخال رقم هاتف ولي أمر صحيح.");
+      setError("يرجى إدخال رقم هاتف ولي أمر صحيح (11 رقم يبدأ بـ 01).");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await verifyStudentActivation(barcode, cleanPhone);
+      const res = await verifyStudentActivation(cleanBarcode, cleanPhone);
       if (res.success && res.activation_token) {
         setActivationToken(res.activation_token);
         setStudentInfo(res.student);
@@ -162,7 +169,7 @@ const StudentActivation = () => {
         setError(res.message || "حدث خطأ أثناء تفعيل الحساب.");
       }
     } catch (err) {
-      const msg = err?.response?.data?.message || "حدث خطأ أثناء حفظ كلمة المرور.";
+      const msg = err?.data?.message || err?.response?.data?.message || err?.message || "حدث خطأ أثناء حفظ كلمة المرور.";
       setError(msg);
     } finally {
       setLoading(false);

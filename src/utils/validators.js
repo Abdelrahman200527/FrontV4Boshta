@@ -3,20 +3,27 @@
  */
 
 /**
+ * Normalizes phone number by trimming whitespace and converting Arabic/Indic numerals to standard digits
+ */
+export const normalizePhone = (phone) => {
+  if (!phone || typeof phone !== "string") return "";
+  const arabicNumbers = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  const easternArabicNumbers = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+  
+  let cleaned = phone.trim().replace(/\s+/g, "");
+  for (let i = 0; i < 10; i++) {
+    cleaned = cleaned.replaceAll(arabicNumbers[i], i.toString()).replaceAll(easternArabicNumbers[i], i.toString());
+  }
+  return cleaned;
+};
+
+/**
  * Validates Egyptian phone numbers (11 digits starting with 010, 011, 012, or 015)
  */
 export const isValidEgyptianPhone = (phone) => {
   if (!phone || typeof phone !== "string") return false;
-  const cleanPhone = phone.trim().replace(/\s+/g, "");
+  const cleanPhone = normalizePhone(phone);
   return /^01[0125][0-9]{8}$/.test(cleanPhone);
-};
-
-/**
- * Normalizes phone number by trimming and stripping whitespace
- */
-export const normalizePhone = (phone) => {
-  if (!phone || typeof phone !== "string") return "";
-  return phone.trim().replace(/\s+/g, "");
 };
 
 /**
