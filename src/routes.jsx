@@ -57,6 +57,7 @@ import TeacherPayments from "./teachers/Payments.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 import LoginSystem from "./pages/LoginSystem.jsx";
+import StudentActivation from "./pages/StudentActivation.jsx";
 
 export const router = createBrowserRouter([
   {
@@ -64,6 +65,15 @@ export const router = createBrowserRouter([
     Component: () => (
       <GuestMiddleware>
         <LandingPage />
+      </GuestMiddleware>
+    ),
+  },
+
+  {
+    path: "/activate",
+    Component: () => (
+      <GuestMiddleware>
+        <StudentActivation />
       </GuestMiddleware>
     ),
   },
