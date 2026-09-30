@@ -209,17 +209,17 @@ const StudentDetails = () => {
                 <GraduationCap size={12} />
                 {profile.grade_name} - {profile.group_name}
               </span>
-              {(profile.deleted === 1 || profile.status === "deleted") && (
+              {(profile.deleted === 1 || profile.is_active === false || profile.status === "deleted" || profile.status === "inactive") && (
                 <span className="text-[11px] sm:text-sm flex items-center gap-1 bg-red-500/20 text-red-200 border border-red-500/30 px-2.5 py-0.5 rounded-full font-bold">
                   <UserX size={12} className="text-red-300" />
-                  طالب محذوف
+                  {profile.deleted === 1 ? "طالب محذوف" : "طالب غير مفعل"}
                 </span>
               )}
             </div>
-            {(profile.deleted === 1 || profile.status === "deleted") && (
+            {(profile.deleted === 1 || profile.is_active === false || profile.status === "deleted" || profile.status === "inactive") && (
               <div className="mt-3 bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-red-100 text-xs sm:text-sm">
                 <strong className="block text-red-200 mb-1">سبب الحذف / الإيقاف:</strong>
-                {profile.delete_reason || profile.deletion_reason || "لم يتم تحديد سبب"}
+                {profile.deactivation_reason || profile.delete_reason || profile.deletion_reason || "لم يتم تحديد سبب"}
               </div>
             )}
           </div>

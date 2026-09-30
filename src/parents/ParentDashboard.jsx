@@ -561,9 +561,9 @@ const ParentDashboard = () => {
                   حالة الطالب
                 </span>
                 <span
-                  className={`font-bold text-sm sm:text-base mt-1 block ${student?.is_active ? "text-emerald-600" : "text-red-600"}`}
+                  className={`font-bold text-sm sm:text-base mt-1 block ${(student?.deleted === 1 || student?.is_active === false) ? "text-red-600" : "text-emerald-600"}`}
                 >
-                  {student?.is_active ? "نشط" : "محذوف"}
+                  {student?.deleted === 1 ? "محذوف" : student?.is_active === false ? "غير مفعل" : "مفعل"}
                 </span>
               </div>
               <div className="bg-white border border-gray-100 rounded-2xl p-3.5 shadow-2xs text-center flex flex-col items-center justify-center">
@@ -602,15 +602,13 @@ const ParentDashboard = () => {
                 </span>
               </div>
 
-              {(student?.deleted === 1 || student?.status === "deleted") && (
-                <div className="col-span-2 sm:col-span-4 bg-red-50/50 border border-red-100 rounded-2xl p-3.5 shadow-2xs text-right mt-1">
+              {(student?.deleted === 1 || student?.is_active === false) && (
+                <div className="col-span-2 sm:col-span-5 bg-red-50/50 border border-red-100 rounded-2xl p-3.5 shadow-2xs text-right mt-1">
                   <span className="text-red-500 block text-[11px] font-bold mb-1">
                     سبب الحذف / الإيقاف
                   </span>
                   <span className="font-bold text-red-800 text-sm sm:text-base block">
-                    {student?.delete_reason ||
-                      student?.deletion_reason ||
-                      "لم يتم تحديد سبب"}
+                    {student?.deactivation_reason || student?.delete_reason || student?.deletion_reason || "لم يتم تحديد سبب"}
                   </span>
                 </div>
               )}
