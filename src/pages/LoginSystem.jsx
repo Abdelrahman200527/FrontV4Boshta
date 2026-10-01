@@ -69,7 +69,10 @@ const LoginSystem = () => {
       const result = await authenticate(targetRole, cleanPhone, password);
 
       if (result.success) {
-        if (targetRole === "teacher") {
+        const returnedRole = result.data?.user?.role || targetRole;
+        if (returnedRole === "super_admin") {
+          navigate("/super-admin");
+        } else if (returnedRole === "teacher") {
           navigate("/teacher");
         } else {
           navigate("/assistant");

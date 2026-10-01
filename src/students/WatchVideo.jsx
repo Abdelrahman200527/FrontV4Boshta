@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
 import { getSafeEmbedUrl } from "../utils/videoSecurity";
+import CustomVideoPlayer from "../components/CustomVideoPlayer";
 
 const WatchVideo = () => {
   const { videoId } = useParams();
@@ -29,6 +30,53 @@ const WatchVideo = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isObscured, setIsObscured] = useState(false);
+
+  // Anti-Screen Recording & Screenshots (DOM deterrents for the whole page)
+  useEffect(() => {
+    const handleObscure = () => {
+      setIsObscured(true);
+    };
+    
+    const handleClear = () => {
+      setIsObscured(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleObscure();
+      } else {
+        handleClear();
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      // Block common screenshot shortcut keys
+      if (
+        e.key === "PrintScreen" ||
+        (e.metaKey && e.shiftKey && ["s", "S", "3", "4", "5"].includes(e.key)) ||
+        (e.ctrlKey && e.shiftKey && ["s", "S"].includes(e.key))
+      ) {
+        handleObscure();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText("غير مسموح بأخذ لقطات شاشة.");
+        }
+        setTimeout(handleClear, 3000);
+      }
+    };
+
+    window.addEventListener("blur", handleObscure);
+    window.addEventListener("focus", handleClear);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("blur", handleObscure);
+      window.removeEventListener("focus", handleClear);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const loadVideo = useCallback(async () => {
     if (!videoId || videoId === "undefined") {
@@ -163,7 +211,15 @@ const WatchVideo = () => {
   }
 
   return (
-    <motion.section
+    <>
+      {isObscured && (
+        <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center text-white p-6 text-center">
+          <AlertCircle size={64} className="text-red-500 mb-4 animate-pulse" />
+          <h2 className="text-2xl font-bold mb-2">تسجيل الشاشة غير مسموح</h2>
+          <p className="text-gray-400">يرجى إغلاق أي تطبيق تسجيل شاشة والعودة للمنصة لاستكمال المشاهدة.</p>
+        </div>
+      )}
+      <motion.section
       variants={pageVariants}
       initial="hidden"
       animate="show"
@@ -199,34 +255,10 @@ const WatchVideo = () => {
           className="lg:col-span-2 flex flex-col gap-4"
         >
           {/* Video Player */}
-          <div className="bg-black rounded-2xl overflow-hidden aspect-video">
-            {currentVideo.embed_url ? (
-              <iframe
-                src={currentVideo.embed_url}
-                title={currentVideo.title}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : currentVideo.video_url && /^https?:\/\//i.test(currentVideo.video_url) ? (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                <Youtube size={64} className="text-gray-700" />
-                <p className="text-white text-sm">الفيديو غير مدعوم للتضمين</p>
-                <a
-                  href={currentVideo.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition"
-                >
-                  فتح في YouTube
-                </a>
-              </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Youtube size={64} className="text-gray-700" />
-              </div>
-            )}
-          </div>
+          <CustomVideoPlayer
+            videoUrl={currentVideo.video_url || currentVideo.embed_url}
+            title={currentVideo.title}
+          />
 
           {/* Video Info */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm">
@@ -332,6 +364,7 @@ const WatchVideo = () => {
         </motion.div>
       </div>
     </motion.section>
+    </>
   );
 };
 

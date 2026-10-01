@@ -143,10 +143,24 @@ const assistantCenterNavItems = [
   { title: "الملف الشخصي", icon: User, path: "/assistant/profile" },
 ];
 
+const superAdminNavItems = [
+  { title: "لوحة التحكم", icon: LayoutDashboard, path: "/super-admin" },
+  { title: "المستخدمين والموظفين", icon: UserRoundPen, path: "/super-admin/users" },
+  { title: "الطلاب", icon: Users, path: "/super-admin/students" },
+  { title: "الحضور والغياب", icon: CalendarCheck2, path: "/super-admin/attendance" },
+  { title: "المجموعات", icon: CalendarClock, path: "/super-admin/groups" },
+  { title: "الصفوف", icon: BarChart3, path: "/super-admin/grades" },
+  { title: "المدفوعات", icon: BadgeDollarSign, path: "/super-admin/payments" },
+  { title: "الامتحانات", icon: ClipboardPlus, path: "/super-admin/exams" },
+  { title: "سجل النشاطات", icon: ClipboardList, path: "/super-admin/activity-log" },
+  { title: "إعدادات المنصة", icon: Settings, path: "/super-admin/settings" },
+];
+
 const roleNames = {
   student: "الطالب",
   teacher: "المعلم",
   assistant: "المساعد",
+  super_admin: "المدير العام",
 };
 
 function ArabicGeomPattern() {
@@ -239,6 +253,7 @@ const Sidebar = () => {
   const role = getUserRole() || getRoleFromPath();
 
   function getRoleFromPath() {
+    if (location.pathname.startsWith("/super-admin")) return "super_admin";
     if (location.pathname.startsWith("/student")) return "student";
     if (location.pathname.startsWith("/teacher")) return "teacher";
     if (location.pathname.startsWith("/assistant")) return "assistant";
@@ -248,6 +263,7 @@ const Sidebar = () => {
   const getNavItems = () => {
     const permissions = getUserPermissions();
 
+    if (role === "super_admin") return superAdminNavItems;
     if (role === "student") return studentNavItems;
     if (role === "teacher") return teacherNavItems;
 

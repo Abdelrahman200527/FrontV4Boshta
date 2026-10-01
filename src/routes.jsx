@@ -55,6 +55,12 @@ import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
 import TeacherHomeworks from "./teachers/Homework.jsx";
 import TeacherPayments from "./teachers/Payments.jsx";
 
+// Super Admin
+import SuperAdminDashboard from "./super-admin/Dashboard.jsx";
+import SuperAdminUsers from "./super-admin/Users.jsx";
+import SuperAdminActivityLog from "./super-admin/ActivityLog.jsx";
+import SuperAdminSettings from "./super-admin/Settings.jsx";
+
 import NotFound from "./pages/NotFound.jsx";
 import LoginSystem from "./pages/LoginSystem.jsx";
 import StudentActivation from "./pages/StudentActivation.jsx";
@@ -198,6 +204,33 @@ export const router = createBrowserRouter([
       { path: "exams/:type/:examId", Component: TeacherExamResults },
       { path: "homework", Component: TeacherHomeworks },
       { path: "payments", Component: TeacherPayments },
+    ],
+  },
+
+  // ============================================
+  // SUPER ADMIN ROUTES
+  // ============================================
+  {
+    path: "/super-admin",
+    Component: () => (
+      <AuthMiddleware allowedRoles={["super_admin"]}>
+        <MainLayout />
+      </AuthMiddleware>
+    ),
+    children: [
+      { index: true, Component: SuperAdminDashboard },
+      { path: "users", Component: SuperAdminUsers },
+      { path: "students", Component: AssistantManagementStudents },
+      { path: "students/:studentId", Component: TeacherStudentDetails },
+      { path: "attendance", Component: AssistantManagementAttendance },
+      { path: "groups", Component: AssistantManagementGroups },
+      { path: "grades", Component: AssistantManagementGrades },
+      { path: "payments", Component: AssistantManagementPayments },
+      { path: "exams", Component: AssistantManagementExams },
+      { path: "exams/:id", Component: AssistantManagementAddDegree },
+      { path: "reports", Component: TeacherReports },
+      { path: "activity-log", Component: SuperAdminActivityLog },
+      { path: "settings", Component: SuperAdminSettings },
     ],
   },
 

@@ -110,6 +110,14 @@ export function httpDelete(path, headers = {}) {
   return httpRequest(path, { method: "DELETE", headers });
 }
 
+export function httpPatch(path, body, headers = {}) {
+  return httpRequest(path, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body),
+  });
+}
+
 export function httpPostFormData(path, formData, headers = {}) {
   return httpRequest(path, {
     method: "POST",

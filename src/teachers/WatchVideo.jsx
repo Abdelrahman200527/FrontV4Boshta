@@ -29,6 +29,7 @@ import {
 } from "../api/teacher/actions";
 import getImageUrl from "../utils/imageUrl";
 import { getSafeEmbedUrl } from "../utils/videoSecurity";
+import CustomVideoPlayer from "../components/CustomVideoPlayer";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -200,26 +201,10 @@ const WatchVideo = () => {
           className="lg:col-span-2 flex flex-col gap-4"
         >
           {/* Video Player */}
-          <div className="bg-black rounded-2xl overflow-hidden aspect-video shadow-xl border border-gray-800">
-            {getSafeEmbedUrl(currentVideo.video_url) ? (
-              <iframe
-                key={currentVideo.id}
-                src={getSafeEmbedUrl(currentVideo.video_url)}
-                title={currentVideo.title}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-linear-to-b from-gray-900 to-gray-800">
-                <div className="flex flex-col items-center gap-3">
-                  <Youtube size={64} className="text-gray-600" />
-                  <p className="text-gray-500 text-sm">لا يوجد فيديو</p>
-                </div>
-              </div>
-            )}
-          </div>
+          <CustomVideoPlayer
+            videoUrl={currentVideo.video_url}
+            title={currentVideo.title}
+          />
 
           {/* Video Info */}
           <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm">

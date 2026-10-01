@@ -12,6 +12,7 @@ import { pageVariants, itemVariants } from "../motion";
 import config from "../config";
 import getImageUrl from "../utils/imageUrl";
 import { previewVideoFileAction } from "../api/assistant/actions.js";
+import CustomVideoPlayer from "./CustomVideoPlayer";
 
 const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
   const [downloadLoading, setDownloadLoading] = useState(false);
@@ -114,13 +115,7 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
         >
           <ArrowRight size={18} />
         </button>
-        {isYouTube(video.video_url) ? (
-          <Youtube size={24} className="text-red-600" />
-        ) : isDrive(video.video_url) ? (
-          <FileVideo size={24} className="text-blue-600" />
-        ) : (
-          <FileVideo size={24} className="text-gray-600" />
-        )}
+        <FileVideo size={24} className="text-[#1a5d1a]" />
         <span className="font-bold text-sm sm:text-base">المحاضرات</span>
       </motion.div>
 
@@ -130,27 +125,10 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
       >
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] gap-4 sm:gap-5">
           <div>
-            <div className="rounded-xl overflow-hidden bg-black aspect-video">
-              {isYouTube(video.video_url) ? (
-                <iframe
-                  src={`https://www.youtube.com/embed/${getYouTubeId(video.video_url)}?autoplay=1`}
-                  className="w-full h-full"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                />
-              ) : isDrive(video.video_url) ? (
-                <iframe
-                  src={getDriveEmbedUrl(video.video_url)}
-                  className="w-full h-full"
-                  allow="autoplay"
-                  allowFullScreen
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <FileVideo size={64} />
-                </div>
-              )}
-            </div>
+            <CustomVideoPlayer
+              videoUrl={video.video_url}
+              title={video.title}
+            />
 
             <div className="mt-3 flex flex-col gap-3">
               <h1 className="text-base sm:text-xl font-bold text-gray-900">
