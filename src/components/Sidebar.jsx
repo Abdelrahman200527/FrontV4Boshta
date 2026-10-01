@@ -37,6 +37,7 @@ const studentNavItems = [
     path: "/student/attendance",
   },
   { title: "المحاضرات", icon: BookOpen, path: "/student/courses" },
+  { title: "الحصص الأونلاين", icon: Video, path: "/student/live-sessions" },
   { title: "الدرجات", icon: BarChart3, path: "/student/degrees" },
   { title: "الامتحانات", icon: FileCheck2, path: "/student/exams" },
   { title: "الواجبات", icon: ClipboardList, path: "/student/homework" },
@@ -53,6 +54,7 @@ const teacherNavItems = [
   },
   { title: "المدفوعات", icon: BadgeDollarSign, path: "/teacher/payments" },
   { title: "المحاضرات", icon: BookOpen, path: "/teacher/courses" },
+  { title: "الحصص الأونلاين", icon: Video, path: "/teacher/live-sessions" },
   { title: "الإمتحانات", icon: BarChart3, path: "/teacher/degrees" },
   { title: "الواجبات", icon: ClipboardList, path: "/teacher/homework" },
   { title: "الإحصائيات", icon: FileText, path: "/teacher/reports" },
@@ -68,6 +70,11 @@ const assistantOnlineNavItems = [
     icon: Globe,
     children: [
       { title: "المحاضرات", icon: BookOpen, path: "/assistant/online/videos" },
+      {
+        title: "الحصص المباشرة",
+        icon: Video,
+        path: "/assistant/online/live-sessions",
+      },
       {
         title: "الامتحانات",
         icon: FileCheck2,
@@ -91,6 +98,11 @@ const assistantCenterNavItems = [
     icon: Globe,
     children: [
       { title: "المحاضرات", icon: BookOpen, path: "/assistant/online/videos" },
+      {
+        title: "الحصص المباشرة",
+        icon: Video,
+        path: "/assistant/online/live-sessions",
+      },
       {
         title: "الامتحانات",
         icon: FileCheck2,
@@ -152,6 +164,7 @@ const superAdminNavItems = [
   { title: "الصفوف", icon: BarChart3, path: "/super-admin/grades" },
   { title: "المدفوعات", icon: BadgeDollarSign, path: "/super-admin/payments" },
   { title: "الامتحانات", icon: ClipboardPlus, path: "/super-admin/exams" },
+  { title: "الحصص الأونلاين", icon: Video, path: "/super-admin/live-sessions" },
   { title: "سجل النشاطات", icon: ClipboardList, path: "/super-admin/activity-log" },
   { title: "إعدادات المنصة", icon: Settings, path: "/super-admin/settings" },
 ];

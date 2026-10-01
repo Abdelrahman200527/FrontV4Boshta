@@ -18,6 +18,7 @@ import StudentExamReview from "./students/ExamReview.jsx";
 import StudentHomework from "./students/Homework.jsx";
 import StudentProfile from "./students/Profile.jsx";
 import StudentWatchVideo from "./students/WatchVideo.jsx";
+import StudentLiveSessions from "./students/LiveSessions.jsx";
 
 // Assistants - shared
 import AssistantProfile from "./assistants/Profile.jsx";
@@ -27,6 +28,7 @@ import AssistantOnlineVideos from "./assistants/online/Videos.jsx";
 import AssistantOnlineWatchVideo from "./assistants/online/WatchVideo.jsx";
 import AssistantOnlineExams from "./assistants/online/Exams.jsx";
 import AssistantOnlineHomework from "./assistants/online/Homework.jsx";
+import AssistantOnlineLiveSessions from "./assistants/online/LiveSessions.jsx";
 
 // Assistants - management
 import AssistantManagementDashboard from "./assistants/management/pages/Dashboard.jsx";
@@ -54,6 +56,7 @@ import TeacherStudentDetails from "./teachers/StudentDetails.jsx";
 import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
 import TeacherHomeworks from "./teachers/Homework.jsx";
 import TeacherPayments from "./teachers/Payments.jsx";
+import TeacherLiveSessions from "./teachers/LiveSessions.jsx";
 
 // Super Admin
 import SuperAdminDashboard from "./super-admin/Dashboard.jsx";
@@ -127,6 +130,7 @@ export const router = createBrowserRouter([
       { path: "attendance", Component: StudentAttendance },
       { path: "courses", Component: StudentCourses },
       { path: "courses/watch/:videoId", Component: StudentWatchVideo },
+      { path: "live-sessions", Component: StudentLiveSessions },
       { path: "degrees", Component: StudentDegrees },
       { path: "exams", Component: StudentExams },
       { path: "exams/:examId", Component: StudentExamTaking },
@@ -155,6 +159,7 @@ export const router = createBrowserRouter([
         path: "online/videos/watch/:videoId",
         Component: AssistantOnlineWatchVideo,
       },
+      { path: "online/live-sessions", Component: AssistantOnlineLiveSessions },
       { path: "online/exams", Component: AssistantOnlineExams },
       { path: "online/homework", Component: AssistantOnlineHomework },
 
@@ -195,6 +200,7 @@ export const router = createBrowserRouter([
       { path: "attendance", Component: TeacherAttendance },
       { path: "courses", Component: TeacherCourses },
       { path: "courses/watch/:videoId", Component: TeacherWatchVideo },
+      { path: "live-sessions", Component: TeacherLiveSessions },
       { path: "degrees", Component: TeacherDegrees },
       { path: "profile", Component: TeacherProfile },
       { path: "reports", Component: TeacherReports },
@@ -229,6 +235,7 @@ export const router = createBrowserRouter([
       { path: "exams", Component: AssistantManagementExams },
       { path: "exams/:id", Component: AssistantManagementAddDegree },
       { path: "reports", Component: TeacherReports },
+      { path: "live-sessions", Component: TeacherLiveSessions },
       { path: "activity-log", Component: SuperAdminActivityLog },
       { path: "settings", Component: SuperAdminSettings },
     ],
