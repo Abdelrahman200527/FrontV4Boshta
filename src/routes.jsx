@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout.jsx";
 import Login from "./pages/Login.jsx";
 import LandingPage from "./landing/LandingPage.jsx";
@@ -239,6 +239,24 @@ export const router = createBrowserRouter([
       { path: "activity-log", Component: SuperAdminActivityLog },
       { path: "settings", Component: SuperAdminSettings },
     ],
+  },
+
+  // ============================================
+  // GOOGLE AUTH REDIRECT CATCHER
+  // ============================================
+  {
+    path: "/dashboard/live-sessions",
+    Component: () => {
+      // Small inline component to handle Google OAuth redirect
+      const role = localStorage.getItem("user_role") || "student";
+      let dest = "/student/live-sessions";
+      if (role === "teacher") dest = "/teacher/live-sessions";
+      if (role === "super_admin") dest = "/super-admin/live-sessions";
+      if (role === "assistant") dest = "/assistant/online/live-sessions";
+      
+      const search = window.location.search;
+      return <Navigate to={`${dest}${search}`} replace />;
+    },
   },
 
   // ============================================

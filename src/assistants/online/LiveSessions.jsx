@@ -67,7 +67,7 @@ const EMPTY_FORM = {
   description: "",
   start_time: "",
   duration_minutes: 60,
-  meet_link: "",
+
   target_type: "grade",
   grade_id: "",
   group_id: "",
@@ -272,7 +272,6 @@ const LiveSessions = () => {
       fd.append("description", form.description.trim());
       fd.append("start_time", new Date(form.start_time).toISOString());
       fd.append("duration_minutes", Number(form.duration_minutes));
-      fd.append("meet_link", form.meet_link.trim());
       fd.append("target_type", form.target_type);
       if (form.target_type === "grade" && form.grade_id)
         fd.append("grade_id", form.grade_id);
@@ -826,17 +825,6 @@ function SessionModal({
             </div>
           </div>
 
-          {/* Meet Link */}
-          <div>
-            <label className={labelCls}>رابط الاجتماع (Google Meet / Zoom)</label>
-            <input
-              type="url"
-              className={inputCls}
-              placeholder="https://meet.google.com/..."
-              value={form.meet_link}
-              onChange={(e) => setField("meet_link", e.target.value)}
-            />
-          </div>
 
           {/* Target Type */}
           <div>
