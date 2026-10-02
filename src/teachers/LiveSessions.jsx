@@ -118,7 +118,8 @@ const EMPTY_FORM = {
 function formatDateTime(iso) {
   if (!iso) return "-";
   try {
-    return new Date(iso).toLocaleString("ar-EG", {
+    const safeIso = typeof iso === "string" ? iso.replace(" ", "T") : iso;
+    return new Date(safeIso).toLocaleString("ar-EG", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -133,7 +134,8 @@ function formatDateTime(iso) {
 function toLocalDateTimeInput(iso) {
   if (!iso) return "";
   try {
-    const d = new Date(iso);
+    const safeIso = typeof iso === "string" ? iso.replace(" ", "T") : iso;
+    const d = new Date(safeIso);
     const pad = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   } catch {
@@ -577,7 +579,7 @@ function SessionFormModal({ mode, session, onClose, onSuccess }) {
         fd.append("status", form.status);
         if (form.recording_url) fd.append("recording_url", form.recording_url);
       }
-      if (form.material) fd.append("material", form.material);
+      if (form.material) fd.append("file", form.material);
 
       if (isEdit) {
         await teacherUpdateLiveSession(session.id, fd);

@@ -82,7 +82,8 @@ const EMPTY_FORM = {
 function formatDateTime(dt) {
   if (!dt) return "—";
   try {
-    return new Date(dt).toLocaleString("ar-EG", {
+    const safeDt = typeof dt === "string" ? dt.replace(" ", "T") : dt;
+    return new Date(safeDt).toLocaleString("ar-EG", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -212,7 +213,7 @@ const LiveSessions = () => {
       title: session.title || "",
       description: session.description || "",
       start_time: session.start_time
-        ? new Date(session.start_time.replace(" ", "T")).toISOString().slice(0, 16)
+        ? session.start_time.replace(" ", "T").slice(0, 16)
         : "",
       duration_minutes: session.duration_minutes ?? 60,
       meet_link: session.meet_link || "",
@@ -278,8 +279,8 @@ const LiveSessions = () => {
       if (form.target_type === "group" && form.group_id)
         fd.append("group_id", form.group_id);
       if (form.target_type === "student" && form.student_id)
-        fd.append("student_id", form.student_id.trim());
-      if (form.material_file) fd.append("material", form.material_file);
+        fd.append("student_barcode", form.student_id.trim());
+      if (form.material_file) fd.append("file", form.material_file);
 
       if (editingSession) {
         await assistantUpdateLiveSession(editingSession.id, fd);

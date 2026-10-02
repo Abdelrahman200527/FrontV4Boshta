@@ -61,7 +61,8 @@ const TARGET_LABELS = {
 function formatArabicDateTime(isoString) {
   if (!isoString) return "—";
   try {
-    const date = new Date(isoString);
+    const safeString = typeof isoString === "string" ? isoString.replace(" ", "T") : isoString;
+    const date = new Date(safeString);
     const dayName = date.toLocaleDateString("ar-EG", { weekday: "long" });
     const dayNum = date.toLocaleDateString("ar-EG", { day: "numeric" });
     const month = date.toLocaleDateString("ar-EG", { month: "long" });
@@ -335,7 +336,7 @@ const LiveSessions = () => {
       list.sort((a, b) => {
         const od = (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9);
         if (od !== 0) return od;
-        return new Date(a.start_time) - new Date(b.start_time);
+        return new Date(a.start_time.replace(" ", "T")) - new Date(b.start_time.replace(" ", "T"));
       });
       setSessions(list);
     } catch (err) {
