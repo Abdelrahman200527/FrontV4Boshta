@@ -1101,7 +1101,7 @@ const LiveSessions = () => {
     }
   };
 
-  const googleConnected = googleStatus?.connected === true;
+  const googleConnected = googleStatus?.is_connected === true || googleStatus?.connected === true;
 
   // ─────────────────────────────────────────────────────────
   // Render
