@@ -426,30 +426,29 @@ export default function CustomVideoPlayer({
       onTouchStart={triggerShowControls}
       onDoubleClick={toggleFullscreen}
       onContextMenu={(e) => e.preventDefault()}
-      className={`relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl select-none group font-sans print:hidden ${
+      className={`relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl select-none group font-sans print:hidden flex items-center justify-center ${
         isObscured ? "blur-3xl brightness-50" : "blur-none brightness-100"
       } transition-all duration-300 ${className}`}
       dir="ltr"
     >
-      {/* =========================================================================
-          THE YOUTUBE 300% OVERFLOW TRICK
-          Enlarging height to 300% and shifting up by -100% pushes YouTube titles,
-          share buttons, watermarks, and branding outside the container overflow boundaries.
-          pointer-events: none ensures user cannot interact with YouTube's iframe directly.
-         ========================================================================= */}
-      <div
-        className="absolute top-[-100%] left-0 w-full h-[300%] bg-black pointer-events-none"
-        style={{
-          position: "absolute",
-          top: "-100%",
-          left: 0,
-          width: "100%",
-          height: "300%",
-          background: "black",
-          pointerEvents: "none",
-        }}
-      >
-        <div id={playerElementId.current} className="w-full h-full" />
+      {/* 
+        INNER 16:9 WRAPPER: Ensures the 300% trick doesn't break when entering fullscreen on ultra-wide or mobile screens.
+      */}
+      <div className="relative w-full max-w-full max-h-full aspect-video">
+        <div
+          className="absolute top-[-100%] left-0 w-full h-[300%] bg-black pointer-events-none"
+          style={{
+            position: "absolute",
+            top: "-100%",
+            left: 0,
+            width: "100%",
+            height: "300%",
+            background: "black",
+            pointerEvents: "none",
+          }}
+        >
+          <div id={playerElementId.current} className="w-full h-full" />
+        </div>
       </div>
 
       {/* Global CSS override for embedded iframe */}

@@ -131,7 +131,8 @@ function SessionCard({ session, onJoin, joiningId }) {
   const { status, title, description, start_time, duration_minutes, target_type, recording_url, material_name, id } = session;
 
   const isJoining = joiningId === id;
-  const canJoin = status === "scheduled" || status === "live";
+  const canJoin = status === "live";
+  const isScheduled = status === "scheduled";
   const hasRecording = status === "ended" && recording_url;
   const materialUrl = material_name ? studentGetDownloadMaterialUrl(id) : null;
 
@@ -188,7 +189,7 @@ function SessionCard({ session, onJoin, joiningId }) {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition
               ${isJoining
                 ? "bg-[#009966]/60 cursor-not-allowed"
-                : "bg-[#009966] hover:bg-[#007a52] active:scale-95"
+                : "bg-[#009966] hover:bg-[#007a52] active:scale-95 animate-pulse shadow-md shadow-[#009966]/20"
               }`}
           >
             {isJoining ? (
@@ -197,6 +198,17 @@ function SessionCard({ session, onJoin, joiningId }) {
               <Radio size={15} />
             )}
             {isJoining ? "جاري الانضمام..." : "انضمام للحصة"}
+          </button>
+        )}
+
+        {/* Scheduled Disabled Button */}
+        {isScheduled && (
+          <button
+            disabled
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed"
+          >
+            <Clock size={15} />
+            تبدأ قريباً
           </button>
         )}
 
@@ -354,6 +366,10 @@ const LiveSessions = () => {
 
   useEffect(() => {
     loadSessions();
+    const interval = setInterval(() => {
+      loadSessions();
+    }, 30000); // refresh every 30 seconds to catch 'live' status transitions
+    return () => clearInterval(interval);
   }, [loadSessions]);
 
   const handleRefresh = async () => {

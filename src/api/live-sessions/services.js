@@ -66,7 +66,7 @@ export const teacherUpdateRecordingUrl = async (id, recording_url) => {
 };
 
 export const teacherGetDownloadMaterialUrl = (id) => {
-  return `${apiUrl}/teacher/live-sessions/${id}/download-material`;
+  const token = localStorage.getItem("token") || ""; return `${apiUrl}/teacher/live-sessions/${id}/download-material?token=${token}`;
 };
 
 // ============================================
@@ -117,7 +117,7 @@ export const assistantUpdateRecordingUrl = async (id, recording_url) => {
 };
 
 export const assistantGetDownloadMaterialUrl = (id) => {
-  return `${apiUrl}/assistant/live-sessions/${id}/download-material`;
+  const token = localStorage.getItem("token") || ""; return `${apiUrl}/assistant/live-sessions/${id}/download-material?token=${token}`;
 };
 
 // ============================================
@@ -144,5 +144,5 @@ export const studentJoinSession = async (id) => {
 };
 
 export const studentGetDownloadMaterialUrl = (id) => {
-  return `${apiUrl}/student/live-sessions/${id}/download-material`;
+  const token = localStorage.getItem("token") || ""; return `${apiUrl}/student/live-sessions/${id}/download-material?token=${token}`;
 };
