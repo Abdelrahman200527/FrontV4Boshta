@@ -560,7 +560,7 @@ function SessionFormModal({ mode, session, onClose, onSuccess }) {
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("description", form.description.trim());
-      fd.append("start_time", new Date(form.start_time).toISOString());
+      fd.append("start_time", form.start_time);
       fd.append("duration_minutes", String(form.duration_minutes));
       if (!isEdit) {
         fd.append("target_type", form.target_type);

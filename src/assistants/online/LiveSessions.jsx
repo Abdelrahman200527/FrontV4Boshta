@@ -212,7 +212,7 @@ const LiveSessions = () => {
       title: session.title || "",
       description: session.description || "",
       start_time: session.start_time
-        ? new Date(session.start_time).toISOString().slice(0, 16)
+        ? new Date(session.start_time.replace(" ", "T")).toISOString().slice(0, 16)
         : "",
       duration_minutes: session.duration_minutes ?? 60,
       meet_link: session.meet_link || "",
@@ -270,7 +270,7 @@ const LiveSessions = () => {
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("description", form.description.trim());
-      fd.append("start_time", new Date(form.start_time).toISOString());
+      fd.append("start_time", form.start_time);
       fd.append("duration_minutes", Number(form.duration_minutes));
       fd.append("target_type", form.target_type);
       if (form.target_type === "grade" && form.grade_id)
