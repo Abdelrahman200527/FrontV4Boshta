@@ -1726,6 +1726,8 @@ const Attendance = () => {
                 })
                 .catch(() => {});
             }
+
+            loadAbsentNotifications(todayDateStr);
           } else {
             playBeep("error");
             setLastScan({
@@ -1881,6 +1883,8 @@ const Attendance = () => {
           })
           .catch(() => {});
 
+        loadAbsentNotifications(todayDateStr);
+
         notifySuccess(
           `تم تسجيل ${status === "present" ? "حضور" : "غياب"} ${student.full_name}`,
         );
@@ -2007,6 +2011,7 @@ const Attendance = () => {
                   }
                 })
                 .catch(() => {});
+              loadAbsentNotifications(todayDateStr);
             } else {
               notifyError(res.error || "تعذر حذف السجل");
             }
@@ -2645,12 +2650,18 @@ const Attendance = () => {
                   </p>
                   <p>
                     بدأت:{" "}
-                    {new Date(sessionInfo.started_at).toLocaleString("ar-EG")}
+                    {sessionInfo.started_at
+                      ? !isNaN(new Date(sessionInfo.started_at).getTime())
+                        ? new Date(sessionInfo.started_at).toLocaleString("ar-EG")
+                        : sessionInfo.started_at
+                      : "الآن"}
                   </p>
                   {sessionInfo.lock_at && (
                     <p>
                       تقفل:{" "}
-                      {new Date(sessionInfo.lock_at).toLocaleString("ar-EG")}
+                      {!isNaN(new Date(sessionInfo.lock_at).getTime())
+                        ? new Date(sessionInfo.lock_at).toLocaleString("ar-EG")
+                        : sessionInfo.lock_at}
                     </p>
                   )}
                   {sessionActive && lockRemaining > 0 && (

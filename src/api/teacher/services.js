@@ -60,7 +60,16 @@ const getAssistantById = async (assistantId) => {
   return response.data;
 };
 
+const isDemo = () => localStorage.getItem("is_demo") === "true";
+
 const getGrades = async () => {
+  if (isDemo()) {
+    return [
+      { id: 3, name: "الصف الثالث الثانوي", groups_count: 3, students_count: 35 },
+      { id: 2, name: "الصف الثاني الثانوي", groups_count: 2, students_count: 10 },
+      { id: 1, name: "الصف الأول الثانوي", groups_count: 1, students_count: 5 },
+    ];
+  }
   const response = await httpGet("/teacher/grades");
   return response.data;
 };
@@ -116,6 +125,16 @@ const getGroupFullStats = async (groupId) => {
 };
 
 const getGroupsByGrade = async (gradeId) => {
+  if (isDemo()) {
+    const allGroups = [
+      { id: 1, grade_id: 3, name: "مجموعة السبت والأربعاء (السنتر)", grade_name: "الصف الثالث الثانوي" },
+      { id: 2, grade_id: 3, name: "مجموعة الأحد والثلاثاء (السنتر)", grade_name: "الصف الثالث الثانوي" },
+      { id: 3, grade_id: 3, name: "مجموعة الأونلاين المكثفة", grade_name: "الصف الثالث الثانوي" },
+      { id: 4, grade_id: 2, name: "مجموعة الخميس (السنتر)", grade_name: "الصف الثاني الثانوي" },
+      { id: 5, grade_id: 1, name: "مجموعة الأونلاين المسائية", grade_name: "الصف الأول الثانوي" },
+    ];
+    return allGroups.filter(g => !gradeId || String(g.grade_id) === String(gradeId));
+  }
   const response = await httpGet(`/teacher/groups/grade/${gradeId}`);
   return response.data;
 };
@@ -153,6 +172,15 @@ const getStudents = async (
 };
 
 const searchStudentByBarcode = async (barcode) => {
+  if (isDemo()) {
+    return {
+      id: 1,
+      full_name: "أحمد محمود سالم",
+      barcode: barcode || "0011",
+      grade_name: "الصف الثالث الثانوي",
+      group_name: "مجموعة السبت والأربعاء (السنتر)"
+    };
+  }
   const response = await httpGet(
     `/teacher/students/search/barcode?barcode=${barcode}`,
   );

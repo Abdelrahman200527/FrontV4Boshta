@@ -5,11 +5,13 @@ import { Toaster } from "sonner";
 import { router } from "./routes.jsx";
 import { queryClient } from "./lib/queryClient";
 import ErrorBoundary from "./components/ErrorBoundary";
+import DemoBadge from './demo/DemoBadge.jsx';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
+        <DemoBadge />
         <RouterProvider router={router} />
       </ErrorBoundary>
       {/* كل رسائل التطبيق (نجاح / خطأ / تنبيه) تظهر هنا */}

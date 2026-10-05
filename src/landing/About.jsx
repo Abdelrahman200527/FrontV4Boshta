@@ -1,10 +1,10 @@
 import React from "react";
 import {
   CheckCircle2,
-  GraduationCap,
-  Users,
-  ShieldCheck,
-  TrendingUp,
+  Sparkles,
+  Lock,
+  Zap,
+  HeartHandshake,
 } from "lucide-react";
 import AboutPhoto from "../assets/AboutPhoto.jpg";
 import { motion } from "framer-motion";
@@ -13,24 +13,24 @@ import { pageVariants, itemVariants } from "../motion";
 const About = () => {
   const features = [
     {
-      Icon: GraduationCap,
-      title: "تعليم تفاعلي",
-      description: "محتوى تعليمي مصمم بعناية ليتناسب مع احتياجات الطلاب",
+      Icon: Sparkles,
+      title: "كارت طالب وبصمة براندك",
+      description: "كارت مطبوع بصورتك واسمك والباركود.. دعاية متنقلة بتلف المدارس وتزود شهرتك",
     },
     {
-      Icon: Users,
-      title: "متابعة مستمرة",
-      description: "تواصل دائم بين الطلاب والمعلمين وأولياء الأمور",
+      Icon: Lock,
+      title: "فيديوهاتك في أمان تام",
+      description: "حماية قصوى لمحتواك وشروحاتك؛ الطالب يشوف لكن مستحيل يقدر يحمل الفيديو أو ينزله",
     },
     {
-      Icon: ShieldCheck,
-      title: "خصوصية وأمان",
-      description: "حماية كاملة لبيانات الطلاب والمعلمين",
+      Icon: Zap,
+      title: "إدارة السنتر في ثواني",
+      description: "حضور بالباركود، رفع درجات إكسيل بلمسة، وحسابات مظبوطة بالمليم تريّح المساعدين",
     },
     {
-      Icon: TrendingUp,
-      title: "تتبع التقدم",
-      description: "تقارير وتحليلات ذكية لمتابعة الأداء",
+      Icon: HeartHandshake,
+      title: "متابعة ولي الأمر لايف",
+      description: "أي غياب أو تقصير بيظهر لولي الأمر برقم موبايله فوراً بدون ما تحتاج ترن عليه",
     },
   ];
 
@@ -44,14 +44,11 @@ const About = () => {
           </span>
 
           <h2 className="text-lg sm:text-3xl lg:text-4xl font-extrabold leading-relaxed text-gray-900 font-lalezar">
-            هي منصة تعليمية رقمية متكاملة، صُمِّمت خصيصاً للبيئة العربية
-            لتربط الطلاب بمعلمهم في تجربة تفاعلية سلسة وآمنة.
+            منصتك التعليمية المتكاملة.. هيبتك وبراندك وإدارتك في مكان واحد يريّح بالك ويضاعف دخلك!
           </h2>
 
           <p className="text-gray-600 text-base sm:text-lg leading-8 sm:leading-10 jomhuria-regular">
-            نؤمن بأن التعليم حق للجميع، لذلك بنينا بيئة ذكية تجمع المحتوى
-            التعليمي، وأدوات التواصل، والتقييم، وتتبع التقدم في مكان واحد مع
-            الحفاظ على أعلى معايير الخصوصية والأمان لجميع المستخدمين.
+            صممنا المنصة للمدرس الشاطر اللي عايز يريّح دماغه من الصداع الإداري ولخبطة الدفاتر. ندمجلك إدارة السنتر الحقيقي مع التعليم الأونلاين بأعلى معايير السرعة والأمان؛ عشان تتفرغ لطلابك وتكبر اسمك وتوصل لآلاف الطلاب في كل محافظات مصر.
           </p>
 
           {/* Features Grid */}
@@ -59,7 +56,7 @@ const About = () => {
             {features.map(({ Icon, title, description }) => (
               <div
                 key={title}
-                className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex gap-3 items-start hover:border-blue-200 hover:bg-blue-50/50 transition-all duration-300"
+                className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex gap-3 items-start hover:border-emerald-200 hover:bg-emerald-50/40 transition-all duration-300"
               >
                 <div className="bg-[#d8e7c6] rounded-lg p-2 shrink-0">
                   <Icon size={20} className="text-[#1a5d1a]" />
@@ -78,11 +75,16 @@ const About = () => {
 
           {/* Checkmarks */}
           <div className="flex flex-wrap gap-4 mt-2">
-            {["500+ كورس تفاعلي", "مساعد ذكاء اصطناعي", "شهادات معتمدة"].map(
+            {[
+              "كارت طالب مخصص بصورة المستر",
+              "حماية مشددة تمنع تحميل الفيديوهات",
+              "حضور فوري بالباركود",
+              "متابعة لحظية لولي الأمر برقم الموبايل",
+            ].map(
               (item) => (
                 <span
                   key={item}
-                  className="flex items-center gap-2 text-sm text-gray-700"
+                  className="flex items-center gap-2 text-sm text-gray-700 font-medium"
                 >
                   <CheckCircle2 size={18} className="text-green-500" />
                   {item}

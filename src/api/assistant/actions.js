@@ -1,9 +1,12 @@
 import * as assistantServices from "./services";
+import * as mockStore from "./mockAssistantData";
 import config from "../../config";
 import { previewFile, downloadFile } from "../../utils/fileHandler";
 
 const { apiUrl } = config;
 const BASE_URL = apiUrl.replace(/\/api\/?$/, "");
+
+const isDemo = () => typeof window !== "undefined" && localStorage.getItem("is_demo") === "true";
 
 const wrapAction = async (fn, context = "العملية") => {
   try {
@@ -38,24 +41,40 @@ const wrapPaginatedAction = async (fn, context = "العملية") => {
 
 export const fetchAssistantProfile = () =>
   wrapAction(
-    () => assistantServices.getAssistantProfile(),
+    () => (isDemo() ? mockStore.mockGetAssistantProfile() : assistantServices.getAssistantProfile()),
     "تحميل الملف الشخصي",
   );
 
 export const fetchAssistantDashboard = () =>
   wrapAction(
-    () => assistantServices.getAssistantDashboard(),
+    () => (isDemo() ? mockStore.mockGetAssistantDashboard() : assistantServices.getAssistantDashboard()),
     "تحميل لوحة التحكم",
   );
 
 export const fetchActivityLog = (entityType = "", date = "", page = 1) =>
   wrapPaginatedAction(
-    () => assistantServices.getActivityLog(entityType, date, page),
+    () => (isDemo() ? mockStore.mockGetActivityLog(entityType, date, page) : assistantServices.getActivityLog(entityType, date, page)),
     "تحميل سجل النشاط",
   );
 
 export const fetchDashboardStats = () =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [grades, groups, studentsRes, payments] = await Promise.all([
+        mockStore.mockGetAllGradesStats(),
+        mockStore.mockGetGroups(),
+        mockStore.mockGetStudents(1, "", "", "", 20),
+        mockStore.mockGetPaymentOverall(),
+      ]);
+      return {
+        grades,
+        groups,
+        students: studentsRes?.data || [],
+        attendance: await mockStore.mockGetAttendanceOverall(),
+        payments,
+        subscriptions: await mockStore.mockGetSubscriptionOverall(),
+      };
+    }
     const [grades, groups, studentsRes, attendance, payments, subscriptions] =
       await Promise.all([
         assistantServices.getAllGradesStats(),
@@ -77,13 +96,13 @@ export const fetchDashboardStats = () =>
 
 export const updateAssistantProfileImageAction = (formData) =>
   wrapAction(
-    () => assistantServices.updateAssistantProfileImage(formData),
+    () => (isDemo() ? mockStore.mockUpdateAssistantProfileImage(formData) : assistantServices.updateAssistantProfileImage(formData)),
     "تحديث الصورة الشخصية",
   );
 
 export const deleteAssistantProfileImageAction = () =>
   wrapAction(
-    () => assistantServices.deleteAssistantProfileImage(),
+    () => (isDemo() ? mockStore.mockDeleteAssistantProfileImage() : assistantServices.deleteAssistantProfileImage()),
     "حذف الصورة الشخصية",
   );
 
@@ -94,11 +113,13 @@ export const changeAssistantPassword = (
 ) =>
   wrapAction(
     () =>
-      assistantServices.updateAssistantPassword(
-        oldPassword,
-        newPassword,
-        confirmPassword,
-      ),
+      isDemo()
+        ? mockStore.mockUpdateAssistantPassword(oldPassword, newPassword, confirmPassword)
+        : assistantServices.updateAssistantPassword(
+            oldPassword,
+            newPassword,
+            confirmPassword,
+          ),
     "تغيير كلمة المرور",
   );
 
@@ -107,28 +128,38 @@ export const changeAssistantPassword = (
 // ============================================
 
 export const fetchAllGrades = () =>
-  wrapAction(() => assistantServices.getGrades(), "تحميل الصفوف");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetGrades() : assistantServices.getGrades()),
+    "تحميل الصفوف",
+  );
 
 export const fetchGradesWithGroupsCount = () =>
   wrapAction(
-    () => assistantServices.getGradesWithGroupsCount(),
+    () => (isDemo() ? mockStore.mockGetGradesWithGroupsCount() : assistantServices.getGradesWithGroupsCount()),
     "تحميل الصفوف",
   );
 
 export const fetchGradesWithStudentsCount = () =>
   wrapAction(
-    () => assistantServices.getGradesWithStudentsCount(),
+    () => (isDemo() ? mockStore.mockGetGradesWithStudentsCount() : assistantServices.getGradesWithStudentsCount()),
     "تحميل الصفوف",
   );
 
 export const fetchAllGradesStats = () =>
   wrapAction(
-    () => assistantServices.getAllGradesStats(),
+    () => (isDemo() ? mockStore.mockGetAllGradesStats() : assistantServices.getAllGradesStats()),
     "تحميل إحصائيات الصفوف",
   );
 
 export const fetchGradeDetails = (gradeId) =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [grade, stats] = await Promise.all([
+        mockStore.mockGetGradeById(gradeId),
+        mockStore.mockGetGradeStats(gradeId),
+      ]);
+      return { grade, stats };
+    }
     const [grade, stats] = await Promise.all([
       assistantServices.getGradeById(gradeId),
       assistantServices.getGradeStats(gradeId),
@@ -143,20 +174,26 @@ export const findGradeByNameAction = (gradeName) =>
   );
 
 export const createNewGrade = (gradeData) =>
-  wrapAction(() => assistantServices.createGrade(gradeData), "إنشاء الصف");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockCreateGrade(gradeData) : assistantServices.createGrade(gradeData)),
+    "إنشاء الصف",
+  );
 
 export const updateGradeInfo = (gradeId, gradeData) =>
   wrapAction(
-    () => assistantServices.updateGrade(gradeId, gradeData),
+    () => (isDemo() ? mockStore.mockUpdateGrade(gradeId, gradeData) : assistantServices.updateGrade(gradeId, gradeData)),
     "تحديث الصف",
   );
 
 export const removeGrade = (gradeId) =>
-  wrapAction(() => assistantServices.softDeleteGrade(gradeId), "حذف الصف");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteGrade(gradeId) : assistantServices.softDeleteGrade(gradeId)),
+    "حذف الصف",
+  );
 
 export const permanentlyRemoveGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.hardDeleteGrade(gradeId),
+    () => (isDemo() ? mockStore.mockDeleteGrade(gradeId) : assistantServices.hardDeleteGrade(gradeId)),
     "حذف الصف نهائياً",
   );
 
@@ -165,10 +202,20 @@ export const permanentlyRemoveGrade = (gradeId) =>
 // ============================================
 
 export const fetchAllGroups = () =>
-  wrapAction(() => assistantServices.getGroups(), "تحميل المجموعات");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetGroups() : assistantServices.getGroups()),
+    "تحميل المجموعات",
+  );
 
 export const fetchGroupDetails = (groupId) =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [group, stats] = await Promise.all([
+        mockStore.mockGetGroupById(groupId),
+        mockStore.mockGetGroupStats(groupId),
+      ]);
+      return { group, stats };
+    }
     const [group, stats] = await Promise.all([
       assistantServices.getGroupById(groupId),
       assistantServices.getGroupStats(groupId),
@@ -178,13 +225,13 @@ export const fetchGroupDetails = (groupId) =>
 
 export const fetchGroupFullStats = (groupId) =>
   wrapAction(
-    () => assistantServices.getGroupFullStats(groupId),
+    () => (isDemo() ? mockStore.mockGetGroupStats(groupId) : assistantServices.getGroupFullStats(groupId)),
     "تحميل إحصائيات المجموعة",
   );
 
 export const fetchGroupsByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getGroupsByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetGroupsByGrade(gradeId) : assistantServices.getGroupsByGrade(gradeId)),
     "تحميل مجموعات الصف",
   );
 
@@ -195,20 +242,26 @@ export const findGroupByNameAction = (groupName) =>
   );
 
 export const createNewGroup = (groupData) =>
-  wrapAction(() => assistantServices.createGroup(groupData), "إنشاء المجموعة");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockCreateGroup(groupData) : assistantServices.createGroup(groupData)),
+    "إنشاء المجموعة",
+  );
 
 export const updateGroupInfo = (groupId, groupData) =>
   wrapAction(
-    () => assistantServices.updateGroup(groupId, groupData),
+    () => (isDemo() ? mockStore.mockUpdateGroup(groupId, groupData) : assistantServices.updateGroup(groupId, groupData)),
     "تحديث المجموعة",
   );
 
 export const removeGroup = (groupId) =>
-  wrapAction(() => assistantServices.softDeleteGroup(groupId), "حذف المجموعة");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteGroup(groupId) : assistantServices.softDeleteGroup(groupId)),
+    "حذف المجموعة",
+  );
 
 export const permanentlyRemoveGroup = (groupId) =>
   wrapAction(
-    () => assistantServices.hardDeleteGroup(groupId),
+    () => (isDemo() ? mockStore.mockDeleteGroup(groupId) : assistantServices.hardDeleteGroup(groupId)),
     "حذف المجموعة نهائياً",
   );
 
@@ -224,36 +277,46 @@ export const fetchAllStudents = (
   limit = 20,
 ) =>
   wrapPaginatedAction(
-    () => assistantServices.getStudents(page, search, gradeId, groupId, limit),
+    () =>
+      isDemo()
+        ? mockStore.mockGetStudents(page, search, gradeId, groupId, limit)
+        : assistantServices.getStudents(page, search, gradeId, groupId, limit),
     "تحميل الطلاب",
   );
 
 export const fetchDeletedStudents = (page = 1) =>
   wrapPaginatedAction(
-    () => assistantServices.getDeletedStudents(page),
+    () => (isDemo() ? mockStore.mockGetDeletedStudents(page) : assistantServices.getDeletedStudents(page)),
     "تحميل الطلاب المحذوفين",
   );
 
 export const searchStudentByBarcode = (barcode) =>
   wrapAction(
-    () => assistantServices.searchStudentByBarcode(barcode),
+    () => (isDemo() ? mockStore.mockSearchStudentByBarcode(barcode) : assistantServices.searchStudentByBarcode(barcode)),
     "البحث بالباركود",
   );
 
 export const searchStudentByPhone = (phone) =>
   wrapAction(
-    () => assistantServices.searchStudentByPhone(phone),
+    () => (isDemo() ? mockStore.mockSearchStudentByPhone(phone) : assistantServices.searchStudentByPhone(phone)),
     "البحث بالهاتف",
   );
 
 export const searchStudentsByParentPhoneAction = (parentPhone) =>
   wrapAction(
-    () => assistantServices.searchStudentsByParentPhone(parentPhone),
+    () => (isDemo() ? mockStore.mockSearchStudentsByParentPhone(parentPhone) : assistantServices.searchStudentsByParentPhone(parentPhone)),
     "البحث برقم ولي الأمر",
   );
 
 export const fetchStudentDetails = (studentId) =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [profile, stats] = await Promise.all([
+        mockStore.mockGetStudentProfile(studentId),
+        mockStore.mockGetStudentStats(studentId),
+      ]);
+      return { profile, stats };
+    }
     const [profile, stats] = await Promise.all([
       assistantServices.getStudentProfile(studentId),
       assistantServices.getStudentStats(studentId),
@@ -263,85 +326,85 @@ export const fetchStudentDetails = (studentId) =>
 
 export const fetchStudentFullDetails = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentFullDetails(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentProfile(studentId) : assistantServices.getStudentFullDetails(studentId)),
     "تحميل بيانات الطالب",
   );
 
 export const fetchStudentProfile = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentProfile(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentProfile(studentId) : assistantServices.getStudentProfile(studentId)),
     "تحميل ملف الطالب",
   );
 
 export const fetchStudentStats = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentStats(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentStats(studentId) : assistantServices.getStudentStats(studentId)),
     "تحميل إحصائيات الطالب",
   );
 
 export const fetchStudentAttendanceHistory = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentAttendanceHistory(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentAttendanceHistory(studentId) : assistantServices.getStudentAttendanceHistory(studentId)),
     "تحميل سجل الحضور",
   );
 
 export const fetchStudentMonthlyAttendance = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentMonthlyAttendance(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentAttendanceHistory(studentId) : assistantServices.getStudentMonthlyAttendance(studentId)),
     "تحميل حضور الشهر",
   );
 
 export const fetchStudentTotalAttendance = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentTotalAttendance(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentStats(studentId) : assistantServices.getStudentTotalAttendance(studentId)),
     "تحميل إجمالي الحضور",
   );
 
 export const fetchStudentConsecutiveAbsences = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentConsecutiveAbsences(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentConsecutiveAbsences(studentId) : assistantServices.getStudentConsecutiveAbsences(studentId)),
     "تحميل الغيابات المتتالية",
   );
 
 export const fetchStudentPayments = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentPayments(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentPayments(studentId) : assistantServices.getStudentPayments(studentId)),
     "تحميل مدفوعات الطالب",
   );
 
 export const fetchStudentPaymentsBalance = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentPaymentsBalance(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentStats(studentId) : assistantServices.getStudentPaymentsBalance(studentId)),
     "تحميل رصيد الطالب",
   );
 
 export const fetchStudentCurrentSubscription = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentCurrentSubscription(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentCurrentSubscription(studentId) : assistantServices.getStudentCurrentSubscription(studentId)),
     "تحميل الاشتراك الحالي",
   );
 
 export const fetchStudentPaperExams = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentPaperExams(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentPaperExams(studentId) : assistantServices.getStudentPaperExams(studentId)),
     "تحميل الامتحانات الورقية",
   );
 
 export const fetchStudentPaperExamById = (studentId, examId) =>
   wrapAction(
-    () => assistantServices.getStudentPaperExamById(studentId, examId),
+    () => (isDemo() ? mockStore.mockGetExamById(examId) : assistantServices.getStudentPaperExamById(studentId, examId)),
     "تحميل تفاصيل الامتحان",
   );
 
 export const fetchStudentExamResults = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentExamResults(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentPaperExams(studentId) : assistantServices.getStudentExamResults(studentId)),
     "تحميل النتائج",
   );
 
 export const fetchStudentOnlineExams = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentOnlineExams(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentOnlineExams(studentId) : assistantServices.getStudentOnlineExams(studentId)),
     "تحميل امتحانات الأونلاين",
   );
 
@@ -353,7 +416,7 @@ export const fetchStudentOnlineExamById = (studentId, attemptId) =>
 
 export const fetchStudentAssignments = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentAssignments(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentAssignments(studentId) : assistantServices.getStudentAssignments(studentId)),
     "تحميل الواجبات",
   );
 
@@ -365,7 +428,7 @@ export const fetchStudentAssignmentById = (studentId, assignmentId) =>
 
 export const fetchStudentSubmissions = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentSubmissions(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentSubmissions(studentId) : assistantServices.getStudentSubmissions(studentId)),
     "تحميل التسليمات",
   );
 
@@ -377,43 +440,43 @@ export const fetchStudentSubmissionById = (studentId, submissionId) =>
 
 export const fetchStudentPlaylists = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentPlaylists(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentPlaylists(studentId) : assistantServices.getStudentPlaylists(studentId)),
     "تحميل قوائم التشغيل",
   );
 
 export const fetchStudentsByGroup = (groupId) =>
   wrapAction(
-    () => assistantServices.getStudentsByGroup(groupId),
+    () => (isDemo() ? mockStore.mockGetStudentsByGroup(groupId) : assistantServices.getStudentsByGroup(groupId)),
     "تحميل طلاب المجموعة",
   );
 
 export const createNewStudent = (studentData) =>
   wrapAction(
-    () => assistantServices.createStudent(studentData),
+    () => (isDemo() ? mockStore.mockCreateStudent(studentData) : assistantServices.createStudent(studentData)),
     "إنشاء الطالب",
   );
 
 export const updateStudentInfo = (studentId, studentData) =>
   wrapAction(
-    () => assistantServices.updateStudent(studentId, studentData),
+    () => (isDemo() ? mockStore.mockUpdateStudent(studentId, studentData) : assistantServices.updateStudent(studentId, studentData)),
     "تحديث الطالب",
   );
 
 export const removeStudent = (studentId) =>
   wrapAction(
-    () => assistantServices.softDeleteStudent(studentId),
+    () => (isDemo() ? mockStore.mockSoftDeleteStudent(studentId) : assistantServices.softDeleteStudent(studentId)),
     "حذف الطالب",
   );
 
 export const permanentlyRemoveStudent = (studentId) =>
   wrapAction(
-    () => assistantServices.hardDeleteStudent(studentId),
+    () => (isDemo() ? mockStore.mockHardDeleteStudent(studentId) : assistantServices.hardDeleteStudent(studentId)),
     "حذف الطالب نهائياً",
   );
 
 export const restoreStudentAction = (studentId) =>
   wrapAction(
-    () => assistantServices.restoreStudent(studentId),
+    () => (isDemo() ? mockStore.mockRestoreStudent(studentId) : assistantServices.restoreStudent(studentId)),
     "استرجاع الطالب",
   );
 
@@ -426,7 +489,7 @@ export const restoreStudent = restoreStudentAction;
 
 export const startNewAttendanceSession = (sessionData) =>
   wrapAction(
-    () => assistantServices.startAttendanceSession(sessionData),
+    () => (isDemo() ? mockStore.mockStartAttendanceSession(sessionData) : assistantServices.startAttendanceSession(sessionData)),
     "بدء الجلسة",
   );
 
@@ -434,48 +497,51 @@ export const startAttendanceSession = startNewAttendanceSession;
 
 export const fetchActiveSession = (groupId) =>
   wrapAction(
-    () => assistantServices.getActiveSession(groupId),
+    () => (isDemo() ? mockStore.mockGetActiveSession(groupId) : assistantServices.getActiveSession(groupId)),
     "تحميل الجلسة النشطة",
   );
 
 export const toggleSessionMakeupMode = (sessionId) =>
   wrapAction(
-    () => assistantServices.toggleMakeupMode(sessionId),
+    () => (isDemo() ? mockStore.mockToggleMakeupMode(sessionId) : assistantServices.toggleMakeupMode(sessionId)),
     "تبديل الحضور التعويضي",
   );
 
 export const toggleMakeupMode = toggleSessionMakeupMode;
 
 export const scanStudentBarcode = (scanData) =>
-  wrapAction(() => assistantServices.scanBarcode(scanData), "تسجيل الحضور");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockScanBarcode(scanData) : assistantServices.scanBarcode(scanData)),
+    "تسجيل الحضور",
+  );
 
 export const lockAttendanceSession = (sessionId, groupId) =>
   wrapAction(
-    () => assistantServices.lockSession(sessionId, groupId),
+    () => (isDemo() ? mockStore.mockLockSession(sessionId, groupId) : assistantServices.lockSession(sessionId, groupId)),
     "إغلاق الجلسة",
   );
 
 export const createNewAttendance = (attendanceData) =>
   wrapAction(
-    () => assistantServices.createAttendance(attendanceData),
+    () => (isDemo() ? mockStore.mockCreateAttendance(attendanceData) : assistantServices.createAttendance(attendanceData)),
     "تسجيل الحضور",
   );
 
 export const fetchAttendanceById = (attendanceId) =>
   wrapAction(
-    () => assistantServices.getAttendanceById(attendanceId),
+    () => (isDemo() ? mockStore.mockGetAttendanceById(attendanceId) : assistantServices.getAttendanceById(attendanceId)),
     "تحميل سجل الحضور",
   );
 
 export const updateAttendanceInfo = (attendanceId, attendanceData) =>
   wrapAction(
-    () => assistantServices.updateAttendance(attendanceId, attendanceData),
+    () => (isDemo() ? mockStore.mockUpdateAttendance(attendanceId, attendanceData) : assistantServices.updateAttendance(attendanceId, attendanceData)),
     "تحديث الحضور",
   );
 
 export const removeAttendance = (attendanceId) =>
   wrapAction(
-    () => assistantServices.deleteAttendance(attendanceId),
+    () => (isDemo() ? mockStore.mockDeleteAttendance(attendanceId) : assistantServices.deleteAttendance(attendanceId)),
     "حذف الحضور",
   );
 
@@ -485,12 +551,19 @@ export const removeAttendance = (attendanceId) =>
 
 export const fetchAttendanceDashboard = (groupId = null) =>
   wrapAction(
-    () => assistantServices.getAttendanceDashboard(groupId),
+    () => (isDemo() ? mockStore.mockGetAttendanceDashboard(groupId) : assistantServices.getAttendanceDashboard(groupId)),
     "تحميل لوحة الحضور",
   );
 
 export const fetchAttendanceOverview = () =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [overall, consecutiveAbsences] = await Promise.all([
+        mockStore.mockGetAttendanceOverall(),
+        mockStore.mockGetConsecutiveAbsences(),
+      ]);
+      return { overall, consecutiveAbsences };
+    }
     const [overall, consecutiveAbsences] = await Promise.all([
       assistantServices.getAttendanceOverall(),
       assistantServices.getConsecutiveAbsences(),
@@ -500,31 +573,31 @@ export const fetchAttendanceOverview = () =>
 
 export const fetchGradeAttendance = (gradeId) =>
   wrapAction(
-    () => assistantServices.getGradeAttendance(gradeId),
+    () => (isDemo() ? mockStore.mockGetGradeAttendance(gradeId) : assistantServices.getGradeAttendance(gradeId)),
     "تحميل حضور الصف",
   );
 
 export const fetchGroupAttendanceByDate = (groupId, date) =>
   wrapAction(
-    () => assistantServices.getGroupAttendanceByDate(groupId, date),
+    () => (isDemo() ? mockStore.mockGetGroupAttendanceByDate(groupId, date) : assistantServices.getGroupAttendanceByDate(groupId, date)),
     "تحميل حضور اليوم",
   );
 
 export const fetchGroupAttendanceByMonth = (groupId, month) =>
   wrapAction(
-    () => assistantServices.getGroupAttendanceByMonth(groupId, month),
+    () => (isDemo() ? mockStore.mockGetGroupAttendanceByMonth(groupId, month) : assistantServices.getGroupAttendanceByMonth(groupId, month)),
     "تحميل حضور الشهر",
   );
 
 export const fetchAttendanceSummary = (groupId, date) =>
   wrapAction(
-    () => assistantServices.getAttendanceSummary(groupId, date),
+    () => (isDemo() ? mockStore.mockGetAttendanceSummary(groupId, date) : assistantServices.getAttendanceSummary(groupId, date)),
     "تحميل ملخص الحضور",
   );
 
 export const fetchAbsentByDate = (date) =>
   wrapAction(
-    () => assistantServices.getAbsentByDate(date),
+    () => (isDemo() ? mockStore.mockGetAbsentByDate(date) : assistantServices.getAbsentByDate(date)),
     "تحميل الغائبين اليوم",
   );
 
@@ -539,54 +612,71 @@ export const fetchAllPayments = (
   groupId = "",
 ) =>
   wrapPaginatedAction(
-    () => assistantServices.getPayments(page, search, gradeId, groupId),
+    () =>
+      isDemo()
+        ? mockStore.mockGetPayments(page, search, gradeId, groupId)
+        : assistantServices.getPayments(page, search, gradeId, groupId),
     "تحميل المدفوعات",
   );
 
 export const fetchPaymentById = (paymentId) =>
-  wrapAction(() => assistantServices.getPaymentById(paymentId), "تحميل الدفعة");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetPaymentById(paymentId) : assistantServices.getPaymentById(paymentId)),
+    "تحميل الدفعة",
+  );
 
 export const createNewPayment = (paymentData) =>
   wrapAction(
-    () => assistantServices.createPayment(paymentData),
+    () => (isDemo() ? mockStore.mockCreatePayment(paymentData) : assistantServices.createPayment(paymentData)),
     "تسجيل الدفعة",
   );
 
 export const updatePaymentInfo = (paymentId, paymentData) =>
   wrapAction(
-    () => assistantServices.updatePayment(paymentId, paymentData),
+    () => (isDemo() ? mockStore.mockUpdatePayment(paymentId, paymentData) : assistantServices.updatePayment(paymentId, paymentData)),
     "تحديث الدفعة",
   );
 
 export const removePayment = (paymentId) =>
-  wrapAction(() => assistantServices.deletePayment(paymentId), "حذف الدفعة");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeletePayment(paymentId) : assistantServices.deletePayment(paymentId)),
+    "حذف الدفعة",
+  );
 
 export const fetchPaymentCollections = () =>
   wrapAction(
-    () => assistantServices.getPaymentCollections(),
+    () => (isDemo() ? mockStore.mockGetPaymentCollections() : assistantServices.getPaymentCollections()),
     "تحميل التحصيلات",
   );
 
 export const fetchUnpaidStudents = () =>
   wrapAction(
-    () => assistantServices.getUnpaidStudents(),
+    () => (isDemo() ? mockStore.mockGetUnpaidStudents() : assistantServices.getUnpaidStudents()),
     "تحميل الطلاب غير المدفوعين",
   );
 
 export const fetchPaymentOverall = () =>
   wrapAction(
-    () => assistantServices.getPaymentOverall(),
+    () => (isDemo() ? mockStore.mockGetPaymentOverall() : assistantServices.getPaymentOverall()),
     "تحميل إحصائيات المدفوعات",
   );
 
-export const fetchStudentsPaymentStatus = () =>
+export const fetchStudentsPaymentStatus = (gradeId, groupId, month, search, page = 1, limit = 20) =>
   wrapAction(
-    () => assistantServices.getStudentsPaymentStatus(),
+    () => (isDemo() ? mockStore.mockGetStudentsPaymentStatus(gradeId, groupId, month, search, page, limit) : assistantServices.getStudentsPaymentStatus(gradeId, groupId, month, search, page, limit)),
     "تحميل حالة الطلاب",
   );
 
 export const fetchPaymentOverview = () =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [collections, unpaid, overall] = await Promise.all([
+        mockStore.mockGetPaymentCollections(),
+        mockStore.mockGetUnpaidStudents(),
+        mockStore.mockGetPaymentOverall(),
+      ]);
+      return { collections, unpaid, overall };
+    }
     const [collections, unpaid, overall] = await Promise.all([
       assistantServices.getPaymentCollections(),
       assistantServices.getUnpaidStudents(),
@@ -625,12 +715,19 @@ export const fetchPaymentsByGroupAndMonth = (groupId, month) =>
 
 export const createNewSubscription = (subscriptionData) =>
   wrapAction(
-    () => assistantServices.createSubscription(subscriptionData),
+    () => (isDemo() ? mockStore.mockCreateSubscription(subscriptionData) : assistantServices.createSubscription(subscriptionData)),
     "إنشاء الاشتراك",
   );
 
 export const fetchSubscriptionOverview = () =>
   wrapAction(async () => {
+    if (isDemo()) {
+      const [withoutSubscription, overall] = await Promise.all([
+        mockStore.mockGetUnpaidStudents(),
+        mockStore.mockGetSubscriptionOverall(),
+      ]);
+      return { withoutSubscription, overall };
+    }
     const [withoutSubscription, overall] = await Promise.all([
       assistantServices.getStudentsWithoutSubscription(),
       assistantServices.getSubscriptionOverall(),
@@ -640,7 +737,7 @@ export const fetchSubscriptionOverview = () =>
 
 export const fetchStudentSubscriptions = (studentId) =>
   wrapAction(
-    () => assistantServices.getStudentSubscriptions(studentId),
+    () => (isDemo() ? mockStore.mockGetStudentPayments(studentId) : assistantServices.getStudentSubscriptions(studentId)),
     "تحميل اشتراكات الطالب",
   );
 
@@ -683,19 +780,19 @@ export const removeSubscription = (subscriptionId) =>
 
 export const fetchAllExams = (page = 1) =>
   wrapPaginatedAction(
-    () => assistantServices.getExams(page),
+    () => (isDemo() ? mockStore.mockGetExams(page) : assistantServices.getExams(page)),
     "تحميل الامتحانات",
   );
 
 export const fetchExamsByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getExamsByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetExamsByGrade(gradeId) : assistantServices.getExamsByGrade(gradeId)),
     "تحميل امتحانات الصف",
   );
 
 export const fetchExamsByGroup = (groupId) =>
   wrapAction(
-    () => assistantServices.getExamsByGroup(groupId),
+    () => (isDemo() ? mockStore.mockGetExamsByGroup(groupId) : assistantServices.getExamsByGroup(groupId)),
     "تحميل امتحانات المجموعة",
   );
 
@@ -706,29 +803,38 @@ export const fetchGradeExamStats = (gradeId) =>
   );
 
 export const fetchExamById = (examId) =>
-  wrapAction(() => assistantServices.getExamById(examId), "تحميل الامتحان");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetExamById(examId) : assistantServices.getExamById(examId)),
+    "تحميل الامتحان",
+  );
 
 export const fetchExamStats = (examId) =>
   wrapAction(
-    () => assistantServices.getExamStats(examId),
+    () => (isDemo() ? mockStore.mockGetExamStats(examId) : assistantServices.getExamStats(examId)),
     "تحميل إحصائيات الامتحان",
   );
 
 export const createNewExam = (examData) =>
-  wrapAction(() => assistantServices.createExam(examData), "إنشاء الامتحان");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockCreateExam(examData) : assistantServices.createExam(examData)),
+    "إنشاء الامتحان",
+  );
 
 export const updateExamInfo = (examId, examData) =>
   wrapAction(
-    () => assistantServices.updateExam(examId, examData),
+    () => (isDemo() ? mockStore.mockUpdateExam(examId, examData) : assistantServices.updateExam(examId, examData)),
     "تحديث الامتحان",
   );
 
 export const removeExam = (examId) =>
-  wrapAction(() => assistantServices.softDeleteExam(examId), "حذف الامتحان");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteExam(examId) : assistantServices.softDeleteExam(examId)),
+    "حذف الامتحان",
+  );
 
 export const permanentlyRemoveExam = (examId) =>
   wrapAction(
-    () => assistantServices.hardDeleteExam(examId),
+    () => (isDemo() ? mockStore.mockDeleteExam(examId) : assistantServices.hardDeleteExam(examId)),
     "حذف الامتحان نهائياً",
   );
 
@@ -738,37 +844,43 @@ export const permanentlyRemoveExam = (examId) =>
 
 export const createExamResultAction = (resultData) =>
   wrapAction(
-    () => assistantServices.createExamResult(resultData),
+    () => (isDemo() ? mockStore.mockUpsertExamResult(resultData) : assistantServices.createExamResult(resultData)),
     "تسجيل النتيجة",
   );
 
 export const upsertExamResultAction = (resultData) =>
   wrapAction(
-    () => assistantServices.upsertExamResult(resultData),
+    () => (isDemo() ? mockStore.mockUpsertExamResult(resultData) : assistantServices.upsertExamResult(resultData)),
     "حفظ النتيجة",
   );
 
 export const upsertBatchExamResultsAction = (examId, records) =>
   wrapAction(
-    () => assistantServices.upsertBatchExamResults(examId, records),
+    () => (isDemo() ? mockStore.mockUpsertBatchExamResults(examId, records) : assistantServices.upsertBatchExamResults(examId, records)),
     "حفظ النتائج",
   );
 
 export const updateExamResultAction = (resultId, resultData) =>
   wrapAction(
-    () => assistantServices.updateExamResult(resultId, resultData),
+    () => (isDemo() ? mockStore.mockUpsertExamResult(resultData) : assistantServices.updateExamResult(resultId, resultData)),
     "تحديث النتيجة",
   );
 
 export const removeExamResult = (resultId) =>
-  wrapAction(() => assistantServices.deleteExamResult(resultId), "حذف النتيجة");
+  wrapAction(
+    () => (isDemo() ? Promise.resolve({ success: true }) : assistantServices.deleteExamResult(resultId)),
+    "حذف النتيجة",
+  );
 
 export const fetchExamResults = (examId) =>
-  wrapAction(() => assistantServices.getExamResults(examId), "تحميل النتائج");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetExamResults(examId) : assistantServices.getExamResults(examId)),
+    "تحميل النتائج",
+  );
 
 export const fetchExamResultStats = (examId) =>
   wrapAction(
-    () => assistantServices.getExamResultStats(examId),
+    () => (isDemo() ? mockStore.mockGetExamResultStats(examId) : assistantServices.getExamResultStats(examId)),
     "تحميل إحصائيات النتائج",
   );
 
@@ -785,78 +897,79 @@ export const fetchGroupExamResultsStats = (groupId) =>
   );
 
 // ============================================
+// ============================================
 // ONLINE EXAMS
 // ============================================
 
 export const fetchAllOnlineExams = () =>
   wrapAction(
-    () => assistantServices.getOnlineExams(),
+    () => (isDemo() ? mockStore.mockGetOnlineExams() : assistantServices.getOnlineExams()),
     "تحميل الامتحانات الإلكترونية",
   );
 
 export const fetchAvailableOnlineExams = () =>
   wrapAction(
-    () => assistantServices.getAvailableOnlineExams(),
+    () => (isDemo() ? mockStore.mockGetAvailableOnlineExams() : assistantServices.getAvailableOnlineExams()),
     "تحميل الامتحانات المتاحة",
   );
 
 export const fetchExpiredOnlineExams = () =>
   wrapAction(
-    () => assistantServices.getExpiredOnlineExams(),
+    () => (isDemo() ? mockStore.mockGetExpiredOnlineExams() : assistantServices.getExpiredOnlineExams()),
     "تحميل الامتحانات المنتهية",
   );
 
 export const fetchOnlineExamsByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getOnlineExamsByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetOnlineExamsByGrade(gradeId) : assistantServices.getOnlineExamsByGrade(gradeId)),
     "تحميل امتحانات الصف",
   );
 
 export const fetchOnlineExamsByGroup = (groupId) =>
   wrapAction(
-    () => assistantServices.getOnlineExamsByGroup(groupId),
+    () => (isDemo() ? mockStore.mockGetOnlineExamsByGroup(groupId) : assistantServices.getOnlineExamsByGroup(groupId)),
     "تحميل امتحانات المجموعة",
   );
 
 export const fetchGradeOnlineExamStats = (gradeId) =>
   wrapAction(
-    () => assistantServices.getGradeOnlineExamStats(gradeId),
+    () => (isDemo() ? mockStore.mockGetGradeOnlineExamStats(gradeId) : assistantServices.getGradeOnlineExamStats(gradeId)),
     "تحميل إحصائيات الصف",
   );
 
 export const fetchOnlineExamStats = (examId) =>
   wrapAction(
-    () => assistantServices.getOnlineExamStats(examId),
+    () => (isDemo() ? mockStore.mockGetOnlineExamStats(examId) : assistantServices.getOnlineExamStats(examId)),
     "تحميل إحصائيات الامتحان",
   );
 
 export const fetchOnlineExamById = (examId) =>
   wrapAction(
-    () => assistantServices.getOnlineExamById(examId),
+    () => (isDemo() ? mockStore.mockGetOnlineExamById(examId) : assistantServices.getOnlineExamById(examId)),
     "تحميل الامتحان",
   );
 
 export const createNewOnlineExam = (examData) =>
   wrapAction(
-    () => assistantServices.createOnlineExam(examData),
+    () => (isDemo() ? mockStore.mockCreateOnlineExam(examData) : assistantServices.createOnlineExam(examData)),
     "إنشاء الامتحان",
   );
 
 export const updateOnlineExamInfo = (examId, examData) =>
   wrapAction(
-    () => assistantServices.updateOnlineExam(examId, examData),
+    () => (isDemo() ? mockStore.mockUpdateOnlineExam(examId, examData) : assistantServices.updateOnlineExam(examId, examData)),
     "تحديث الامتحان",
   );
 
 export const removeOnlineExam = (examId) =>
   wrapAction(
-    () => assistantServices.softDeleteOnlineExam(examId),
+    () => (isDemo() ? mockStore.mockDeleteOnlineExam(examId) : assistantServices.softDeleteOnlineExam(examId)),
     "حذف الامتحان",
   );
 
 export const permanentlyRemoveOnlineExam = (examId) =>
   wrapAction(
-    () => assistantServices.hardDeleteOnlineExam(examId),
+    () => (isDemo() ? mockStore.mockDeleteOnlineExam(examId) : assistantServices.hardDeleteOnlineExam(examId)),
     "حذف الامتحان نهائياً",
   );
 
@@ -866,47 +979,55 @@ export const permanentlyRemoveOnlineExam = (examId) =>
 
 export const fetchQuestionsByExam = (examId) =>
   wrapAction(
-    () => assistantServices.getQuestionsByExam(examId),
+    () => (isDemo() ? mockStore.mockGetQuestionsByExam(examId) : assistantServices.getQuestionsByExam(examId)),
     "تحميل الأسئلة",
   );
 
 export const fetchQuestionById = (questionId) =>
   wrapAction(
-    () => assistantServices.getQuestionById(questionId),
+    () => (isDemo() ? mockStore.mockGetQuestionById(questionId) : assistantServices.getQuestionById(questionId)),
     "تحميل السؤال",
   );
 
 export const createNewQuestion = (questionData) =>
   wrapAction(
-    () => assistantServices.createQuestion(questionData),
+    () => (isDemo() ? mockStore.mockCreateQuestion(questionData) : assistantServices.createQuestion(questionData)),
     "إنشاء السؤال",
   );
 
 export const createNewQuestionWithFile = (questionData, file) =>
   wrapAction(
-    () => assistantServices.createQuestionWithFile(questionData, file),
+    () => (isDemo() ? mockStore.mockCreateQuestionWithFile(questionData, file) : assistantServices.createQuestionWithFile(questionData, file)),
     "إنشاء السؤال",
   );
 
 export const updateQuestionInfo = (questionId, questionData) =>
   wrapAction(
-    () => assistantServices.updateQuestion(questionId, questionData),
+    () => (isDemo() ? mockStore.mockUpdateQuestion(questionId, questionData) : assistantServices.updateQuestion(questionId, questionData)),
     "تحديث السؤال",
   );
 
 export const updateQuestionInfoWithFile = (questionId, questionData, file) =>
   wrapAction(
     () =>
-      assistantServices.updateQuestionWithFile(questionId, questionData, file),
+      isDemo()
+        ? mockStore.mockUpdateQuestionWithFile(questionId, questionData, file)
+        : assistantServices.updateQuestionWithFile(questionId, questionData, file),
     "تحديث السؤال",
   );
 
 export const removeQuestion = (questionId) =>
-  wrapAction(() => assistantServices.deleteQuestion(questionId), "حذف السؤال");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteQuestion(questionId) : assistantServices.deleteQuestion(questionId)),
+    "حذف السؤال",
+  );
 
 export const downloadQuestionFileAction = (questionId) =>
   wrapAction(
-    () => assistantServices.downloadQuestionFile(questionId),
+    () =>
+      isDemo()
+        ? Promise.resolve({ success: true, url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" })
+        : assistantServices.downloadQuestionFile(questionId),
     "تحميل الملف",
   );
 
@@ -928,27 +1049,33 @@ export const downloadQuestionFileDirect = (
 
 export const fetchOptionsByQuestion = (questionId) =>
   wrapAction(
-    () => assistantServices.getOptionsByQuestion(questionId),
+    () => (isDemo() ? mockStore.mockGetOptionsByQuestion(questionId) : assistantServices.getOptionsByQuestion(questionId)),
     "تحميل الاختيارات",
   );
 
 export const fetchOptionById = (optionId) =>
-  wrapAction(() => assistantServices.getOptionById(optionId), "تحميل الاختيار");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetOptionById(optionId) : assistantServices.getOptionById(optionId)),
+    "تحميل الاختيار",
+  );
 
 export const createNewOption = (optionData) =>
   wrapAction(
-    () => assistantServices.createOption(optionData),
+    () => (isDemo() ? mockStore.mockCreateOption(optionData) : assistantServices.createOption(optionData)),
     "إنشاء الاختيار",
   );
 
 export const updateOptionInfo = (optionId, optionData) =>
   wrapAction(
-    () => assistantServices.updateOption(optionId, optionData),
+    () => (isDemo() ? mockStore.mockUpdateOption(optionId, optionData) : assistantServices.updateOption(optionId, optionData)),
     "تحديث الاختيار",
   );
 
 export const removeOption = (optionId) =>
-  wrapAction(() => assistantServices.deleteOption(optionId), "حذف الاختيار");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteOption(optionId) : assistantServices.deleteOption(optionId)),
+    "حذف الاختيار",
+  );
 
 // ============================================
 // STUDENT ANSWERS / ESSAY GRADING
@@ -956,19 +1083,19 @@ export const removeOption = (optionId) =>
 
 export const fetchPendingEssayAnswers = () =>
   wrapAction(
-    () => assistantServices.getPendingEssayAnswers(),
+    () => (isDemo() ? mockStore.mockGetPendingEssayAnswers() : assistantServices.getPendingEssayAnswers()),
     "تحميل الإجابات المعلقة",
   );
 
 export const fetchEssayAnswersByExam = (examId) =>
   wrapAction(
-    () => assistantServices.getEssayAnswersByExam(examId),
+    () => (isDemo() ? mockStore.mockGetEssayAnswersByExam(examId) : assistantServices.getEssayAnswersByExam(examId)),
     "تحميل الإجابات",
   );
 
 export const gradeEssayAnswerAction = (answerId, isCorrect) =>
   wrapAction(
-    () => assistantServices.gradeEssayAnswer(answerId, isCorrect),
+    () => (isDemo() ? mockStore.mockGradeEssayAnswer(answerId, isCorrect) : assistantServices.gradeEssayAnswer(answerId, isCorrect)),
     "تصحيح الإجابة",
   );
 
@@ -987,25 +1114,25 @@ export const downloadAnswerFileDirect = (answerId, fileName = "answer-file") =>
 
 export const fetchStudentExams = (examId) =>
   wrapAction(
-    () => assistantServices.getStudentExams(examId),
+    () => (isDemo() ? mockStore.mockGetStudentExams(examId) : assistantServices.getStudentExams(examId)),
     "تحميل محاولات الطلاب",
   );
 
 export const fetchStudentExamStats = (examId) =>
   wrapAction(
-    () => assistantServices.getStudentExamStats(examId),
+    () => (isDemo() ? mockStore.mockGetStudentExamStats(examId) : assistantServices.getStudentExamStats(examId)),
     "تحميل إحصائيات المحاولات",
   );
 
 export const fetchGradeStudentExamStats = (gradeId) =>
   wrapAction(
-    () => assistantServices.getGradeStudentExamStats(gradeId),
+    () => (isDemo() ? mockStore.mockGetGradeOnlineExamStats(gradeId) : assistantServices.getGradeStudentExamStats(gradeId)),
     "تحميل إحصائيات الصف",
   );
 
 export const fetchGroupStudentExamStats = (groupId) =>
   wrapAction(
-    () => assistantServices.getGroupStudentExamStats(groupId),
+    () => (isDemo() ? mockStore.mockGetGroupStudentExamStats(groupId) : assistantServices.getGroupStudentExamStats(groupId)),
     "تحميل إحصائيات المجموعة",
   );
 
@@ -1015,13 +1142,13 @@ export const fetchGroupStudentExamStats = (groupId) =>
 
 export const fetchQuestionAnswerStats = (questionId) =>
   wrapAction(
-    () => assistantServices.getQuestionAnswerStats(questionId),
+    () => (isDemo() ? mockStore.mockGetQuestionAnswerStats(questionId) : assistantServices.getQuestionAnswerStats(questionId)),
     "تحميل إحصائيات السؤال",
   );
 
 export const fetchQuestionMostSelectedOptions = (questionId) =>
   wrapAction(
-    () => assistantServices.getQuestionMostSelectedOptions(questionId),
+    () => (isDemo() ? mockStore.mockGetQuestionMostSelectedOptions(questionId) : assistantServices.getQuestionMostSelectedOptions(questionId)),
     "تحميل الاختيارات الأكثر اختياراً",
   );
 
@@ -1030,53 +1157,59 @@ export const fetchQuestionMostSelectedOptions = (questionId) =>
 // ============================================
 
 export const fetchAllAssignments = () =>
-  wrapAction(() => assistantServices.getAssignments(), "تحميل الواجبات");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetAssignments() : assistantServices.getAssignments()),
+    "تحميل الواجبات",
+  );
 
 export const fetchAssignmentsByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getAssignmentsByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetAssignmentsByGrade(gradeId) : assistantServices.getAssignmentsByGrade(gradeId)),
     "تحميل واجبات الصف",
   );
 
 export const fetchAssignmentsByGroup = (groupId) =>
   wrapAction(
-    () => assistantServices.getAssignmentsByGroup(groupId),
+    () => (isDemo() ? mockStore.mockGetAssignmentsByGroup(groupId) : assistantServices.getAssignmentsByGroup(groupId)),
     "تحميل واجبات المجموعة",
   );
 
 export const downloadAssignmentAction = (assignmentId) =>
   wrapAction(
-    () => assistantServices.downloadAssignment(assignmentId),
+    () =>
+      isDemo()
+        ? Promise.resolve({ success: true, url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" })
+        : assistantServices.downloadAssignment(assignmentId),
     "تحميل الواجب",
   );
 
 export const fetchAssignmentById = (assignmentId) =>
   wrapAction(
-    () => assistantServices.getAssignmentById(assignmentId),
+    () => (isDemo() ? mockStore.mockGetAssignmentById(assignmentId) : assistantServices.getAssignmentById(assignmentId)),
     "تحميل الواجب",
   );
 
 export const createNewAssignment = (formData) =>
   wrapAction(
-    () => assistantServices.createAssignment(formData),
+    () => (isDemo() ? mockStore.mockCreateAssignment(formData) : assistantServices.createAssignment(formData)),
     "إنشاء الواجب",
   );
 
 export const updateAssignmentInfo = (assignmentId, formData) =>
   wrapAction(
-    () => assistantServices.updateAssignment(assignmentId, formData),
+    () => (isDemo() ? mockStore.mockUpdateAssignment(assignmentId, formData) : assistantServices.updateAssignment(assignmentId, formData)),
     "تحديث الواجب",
   );
 
 export const removeAssignment = (assignmentId) =>
   wrapAction(
-    () => assistantServices.softDeleteAssignment(assignmentId),
+    () => (isDemo() ? mockStore.mockDeleteAssignment(assignmentId) : assistantServices.softDeleteAssignment(assignmentId)),
     "حذف الواجب",
   );
 
 export const permanentlyRemoveAssignment = (assignmentId) =>
   wrapAction(
-    () => assistantServices.hardDeleteAssignment(assignmentId),
+    () => (isDemo() ? mockStore.mockDeleteAssignment(assignmentId) : assistantServices.hardDeleteAssignment(assignmentId)),
     "حذف الواجب نهائياً",
   );
 
@@ -1086,49 +1219,49 @@ export const permanentlyRemoveAssignment = (assignmentId) =>
 
 export const fetchGradeSubmissionStats = (gradeId) =>
   wrapAction(
-    () => assistantServices.getGradeSubmissionStats(gradeId),
+    () => (isDemo() ? mockStore.mockGetGradeSubmissionStats(gradeId) : assistantServices.getGradeSubmissionStats(gradeId)),
     "تحميل إحصائيات الصف",
   );
 
 export const fetchGroupSubmissionStats = (groupId) =>
   wrapAction(
-    () => assistantServices.getGroupSubmissionStats(groupId),
+    () => (isDemo() ? mockStore.mockGetGroupSubmissionStats(groupId) : assistantServices.getGroupSubmissionStats(groupId)),
     "تحميل إحصائيات المجموعة",
   );
 
 export const fetchSubmissions = (assignmentId) =>
   wrapAction(
-    () => assistantServices.getSubmissions(assignmentId),
+    () => (isDemo() ? mockStore.mockGetSubmissions(assignmentId) : assistantServices.getSubmissions(assignmentId)),
     "تحميل التسليمات",
   );
 
 export const fetchStudentSubmission = (assignmentId, studentId) =>
   wrapAction(
-    () => assistantServices.getStudentSubmission(assignmentId, studentId),
+    () => (isDemo() ? mockStore.mockGetStudentSubmission(assignmentId, studentId) : assistantServices.getStudentSubmission(assignmentId, studentId)),
     "تحميل التسليم",
   );
 
 export const fetchSubmittedStudents = (assignmentId) =>
   wrapAction(
-    () => assistantServices.getSubmittedStudents(assignmentId),
+    () => (isDemo() ? mockStore.mockGetSubmittedStudents(assignmentId) : assistantServices.getSubmittedStudents(assignmentId)),
     "تحميل الطلاب المسلّمين",
   );
 
 export const fetchNotSubmittedStudents = (assignmentId) =>
   wrapAction(
-    () => assistantServices.getNotSubmittedStudents(assignmentId),
+    () => (isDemo() ? mockStore.mockGetNotSubmittedStudents(assignmentId) : assistantServices.getNotSubmittedStudents(assignmentId)),
     "تحميل الطلاب غير المسلّمين",
   );
 
 export const fetchSubmissionStats = (assignmentId) =>
   wrapAction(
-    () => assistantServices.getSubmissionStats(assignmentId),
+    () => (isDemo() ? mockStore.mockGetSubmissionStats(assignmentId) : assistantServices.getSubmissionStats(assignmentId)),
     "تحميل إحصائيات التسليمات",
   );
 
 export const gradeStudentSubmission = (submissionId, score, feedback) =>
   wrapAction(
-    () => assistantServices.gradeSubmission(submissionId, score, feedback),
+    () => (isDemo() ? mockStore.mockGradeStudentSubmission(submissionId, score, feedback) : assistantServices.gradeSubmission(submissionId, score, feedback)),
     "تصحيح التسليم",
   );
 
@@ -1137,90 +1270,108 @@ export const gradeStudentSubmission = (submissionId, score, feedback) =>
 // ============================================
 
 export const fetchAllVideos = () =>
-  wrapAction(() => assistantServices.getVideos(), "تحميل الفيديوهات");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetVideos() : assistantServices.getVideos()),
+    "تحميل الفيديوهات",
+  );
 
 export const fetchVideosByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getVideosByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetVideosByGrade(gradeId) : assistantServices.getVideosByGrade(gradeId)),
     "تحميل فيديوهات الصف",
   );
 
 export const downloadVideoFileAction = (videoId) =>
   wrapAction(
-    () => assistantServices.downloadVideoFile(videoId),
+    () =>
+      isDemo()
+        ? Promise.resolve({ success: true, url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" })
+        : assistantServices.downloadVideoFile(videoId),
     "تحميل الفيديو",
   );
 
 export const fetchVideoById = (videoId) =>
-  wrapAction(() => assistantServices.getVideoById(videoId), "تحميل الفيديو");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetVideoById(videoId) : assistantServices.getVideoById(videoId)),
+    "تحميل الفيديو",
+  );
 
 export const previewVideoFileAction = (videoId) =>
   previewFile(`${apiUrl}/assistant/videos/${videoId}/preview`);
 
 export const createNewVideo = (formData) =>
-  wrapAction(() => assistantServices.createVideo(formData), "إنشاء الفيديو");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockCreateVideo(formData) : assistantServices.createVideo(formData)),
+    "إنشاء الفيديو",
+  );
 
 export const updateVideoInfo = (videoId, formData) =>
   wrapAction(
-    () => assistantServices.updateVideo(videoId, formData),
+    () => (isDemo() ? mockStore.mockUpdateVideo(videoId, formData) : assistantServices.updateVideo(videoId, formData)),
     "تحديث الفيديو",
   );
 
 export const removeVideo = (videoId) =>
-  wrapAction(() => assistantServices.deleteVideo(videoId), "حذف الفيديو");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDeleteVideo(videoId) : assistantServices.deleteVideo(videoId)),
+    "حذف الفيديو",
+  );
 
 // ============================================
 // PLAYLISTS
 // ============================================
 
 export const fetchAllPlaylists = () =>
-  wrapAction(() => assistantServices.getPlaylists(), "تحميل قوائم التشغيل");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockGetPlaylists() : assistantServices.getPlaylists()),
+    "تحميل قوائم التشغيل",
+  );
 
 export const fetchPlaylistsByGrade = (gradeId) =>
   wrapAction(
-    () => assistantServices.getPlaylistsByGrade(gradeId),
+    () => (isDemo() ? mockStore.mockGetPlaylistsByGrade(gradeId) : assistantServices.getPlaylistsByGrade(gradeId)),
     "تحميل قوائم الصف",
   );
 
 export const fetchPlaylistById = (playlistId) =>
   wrapAction(
-    () => assistantServices.getPlaylistById(playlistId),
+    () => (isDemo() ? mockStore.mockGetPlaylistById(playlistId) : assistantServices.getPlaylistById(playlistId)),
     "تحميل قائمة التشغيل",
   );
 
 export const createNewPlaylist = (formData) =>
   wrapAction(
-    () => assistantServices.createPlaylist(formData),
+    () => (isDemo() ? mockStore.mockCreatePlaylist(formData) : assistantServices.createPlaylist(formData)),
     "إنشاء قائمة التشغيل",
   );
 
 export const updatePlaylistInfo = (playlistId, formData) =>
   wrapAction(
-    () => assistantServices.updatePlaylist(playlistId, formData),
+    () => (isDemo() ? mockStore.mockUpdatePlaylist(playlistId, formData) : assistantServices.updatePlaylist(playlistId, formData)),
     "تحديث قائمة التشغيل",
   );
 
 export const removePlaylist = (playlistId) =>
   wrapAction(
-    () => assistantServices.deletePlaylist(playlistId),
+    () => (isDemo() ? mockStore.mockDeletePlaylist(playlistId) : assistantServices.deletePlaylist(playlistId)),
     "حذف قائمة التشغيل",
   );
 
 export const fetchPlaylistVideos = (playlistId) =>
   wrapAction(
-    () => assistantServices.getPlaylistVideos(playlistId),
+    () => (isDemo() ? mockStore.mockGetPlaylistVideos(playlistId) : assistantServices.getPlaylistVideos(playlistId)),
     "تحميل فيديوهات القائمة",
   );
 
 export const addVideoToPlaylistAction = (playlistId, videoId) =>
   wrapAction(
-    () => assistantServices.addVideoToPlaylist(playlistId, videoId),
+    () => (isDemo() ? mockStore.mockAddVideoToPlaylist(playlistId, videoId) : assistantServices.addVideoToPlaylist(playlistId, videoId)),
     "إضافة الفيديو للقائمة",
   );
 
 export const removeVideoFromPlaylistAction = (id) =>
   wrapAction(
-    () => assistantServices.removeVideoFromPlaylist(id),
+    () => (isDemo() ? mockStore.mockRemoveVideoFromPlaylist(id) : assistantServices.removeVideoFromPlaylist(id)),
     "حذف الفيديو من القائمة",
   );
 
@@ -1325,40 +1476,49 @@ export const updateWhatsappSettingsAction = (settingsData) =>
 
 export const downloadStudentsTemplateAction = () =>
   wrapAction(
-    () => assistantServices.downloadStudentsTemplate(),
+    () => (isDemo() ? mockStore.mockDownloadStudentsTemplate() : assistantServices.downloadStudentsTemplate()),
     "تحميل القالب",
   );
 
 export const downloadGradesTemplateAction = () =>
-  wrapAction(() => assistantServices.downloadGradesTemplate(), "تحميل القالب");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDownloadGradesTemplate() : assistantServices.downloadGradesTemplate()),
+    "تحميل القالب",
+  );
 
 export const downloadGroupsTemplateAction = () =>
-  wrapAction(() => assistantServices.downloadGroupsTemplate(), "تحميل القالب");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockDownloadGroupsTemplate() : assistantServices.downloadGroupsTemplate()),
+    "تحميل القالب",
+  );
 
 export const downloadExamResultsTemplateAction = () =>
   wrapAction(
-    () => assistantServices.downloadExamResultsTemplate(),
+    () => (isDemo() ? mockStore.mockDownloadExamResultsTemplate() : assistantServices.downloadExamResultsTemplate()),
     "تحميل القالب",
   );
 
 export const bulkUploadStudentsAction = (formData) =>
   wrapAction(
-    () => assistantServices.bulkUploadStudents(formData),
+    () => (isDemo() ? mockStore.mockBulkUploadStudents(formData) : assistantServices.bulkUploadStudents(formData)),
     "رفع الطلاب",
   );
 
 export const bulkUploadGradesAction = (formData) =>
-  wrapAction(() => assistantServices.bulkUploadGrades(formData), "رفع الصفوف");
+  wrapAction(
+    () => (isDemo() ? mockStore.mockBulkUploadGrades(formData) : assistantServices.bulkUploadGrades(formData)),
+    "رفع الصفوف",
+  );
 
 export const bulkUploadGroupsAction = (formData) =>
   wrapAction(
-    () => assistantServices.bulkUploadGroups(formData),
+    () => (isDemo() ? mockStore.mockBulkUploadGroups(formData) : assistantServices.bulkUploadGroups(formData)),
     "رفع المجموعات",
   );
 
 export const bulkUploadExamResultsAction = (examId, formData) =>
   wrapAction(
-    () => assistantServices.bulkUploadExamResults(examId, formData),
+    () => (isDemo() ? mockStore.mockBulkUploadExamResults(examId, formData) : assistantServices.bulkUploadExamResults(examId, formData)),
     "رفع النتائج",
   );
 

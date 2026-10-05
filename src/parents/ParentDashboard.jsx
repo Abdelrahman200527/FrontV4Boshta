@@ -446,6 +446,27 @@ const ParentDashboard = () => {
           </motion.div>
         )}
 
+        {/* Prominent Deactivation Alert Banner if student is inactive */}
+        {(student?.deleted === 1 || student?.is_active === false) && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-center gap-3.5 shadow-sm text-right"
+          >
+            <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+              <AlertCircle size={24} />
+            </div>
+            <div className="flex-1">
+              <span className="font-extrabold text-sm sm:text-base text-red-800 block">
+                تنبيه هام لولي الأمر: حساب الطالب معلّق مؤقتاً (غير مفعل)
+              </span>
+              <p className="text-xs text-red-700 leading-relaxed font-medium mt-0.5">
+                <strong>سبب عدم التفعيل: </strong>
+                {student?.deactivation_reason || student?.delete_reason || "يرجى مراجعة إدارة السنتر لتسوية المصروفات وتفعيل الحساب."}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Student Hero Header Card */}
         <motion.div
           variants={itemVariants}
@@ -603,7 +624,7 @@ const ParentDashboard = () => {
               </div>
 
               {(student?.deleted === 1 || student?.is_active === false) && (
-                <div className="col-span-2 sm:col-span-5 bg-red-50/50 border border-red-100 rounded-2xl p-3.5 shadow-2xs text-right mt-1">
+                <div className="col-span-2 sm:col-span-4 bg-red-50/50 border border-red-100 rounded-2xl p-3.5 shadow-2xs text-right mt-1">
                   <span className="text-red-500 block text-[11px] font-bold mb-1">
                     سبب الحذف / الإيقاف
                   </span>

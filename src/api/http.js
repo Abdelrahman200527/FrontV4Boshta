@@ -36,7 +36,23 @@ function getHeaders(isFormData = false) {
   return headers;
 }
 
+import { handleDemoRequest } from "../demo/mockApi";
+
 async function httpRequest(path, options = {}) {
+  // --- DEMO MODE INTERCEPTOR ---
+  if (localStorage.getItem("is_demo") === "true") {
+    const mockResponse = await handleDemoRequest(path, options);
+    const data = await mockResponse.json().catch(() => null);
+    if (!mockResponse.ok) {
+      const error = new Error(data?.message || "خطأ في الاتصال (ديمو)");
+      error.status = mockResponse.status;
+      error.data = data;
+      throw error;
+    }
+    return data;
+  }
+  // -----------------------------
+
   const url = `${apiUrl}${path}`;
 
   try {

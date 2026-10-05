@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout.jsx";
 import Login from "./pages/Login.jsx";
 import LandingPage from "./landing/LandingPage.jsx";
+import DemoSelector from './pages/DemoSelector.jsx';
+import StudentDemo from "./demo/student/StudentDemo.jsx";
+
 import ParentDashboard from "./parents/ParentDashboard.jsx";
 
 import AuthMiddleware from "./middlewares/auth.middleware.jsx";
@@ -69,6 +72,8 @@ import LoginSystem from "./pages/LoginSystem.jsx";
 import StudentActivation from "./pages/StudentActivation.jsx";
 
 export const router = createBrowserRouter([
+  { path: '/demo', element: <DemoSelector /> },
+  { path: '/demo/student', element: <StudentDemo /> },
   {
     path: "/",
     Component: () => (

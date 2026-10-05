@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+/* eslint-disable no-unused-vars */
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
   User,
   Phone,
@@ -19,6 +20,17 @@ import {
   Upload,
   Trash2,
   ChevronDown,
+  BookOpen,
+  Award,
+  Building,
+  Calendar,
+  Users,
+  Layers,
+  Video,
+  Sparkles,
+  MapPin,
+  ListVideo,
+  FileCheck2,
 } from "lucide-react";
 import getUser, { updateUserCookie } from "../utils/getUser";
 import getImageUrl from "../utils/imageUrl";
@@ -34,13 +46,16 @@ import { pageVariants, itemVariants } from "../motion";
 
 const Profile = () => {
   const user = getUser();
-  const [profileImage, setProfileImage] = useState(null);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageMessage, setImageMessage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [profileData, setProfileData] = useState(user);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+
+  const profileImage = profileData?.profile_image
+    ? getImageUrl(profileData.profile_image)
+    : null;
 
   const loadProfile = useCallback(async () => {
     const result = await fetchTeacherProfile();
@@ -50,20 +65,18 @@ const Profile = () => {
     }
   }, []);
 
-  // تحميل البروفايل تلقائياً عند الدخول
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
-
-  // إصلاح مسار الصورة
-  useEffect(() => {
-    if (profileData?.profile_image) {
-      const fullImageUrl = getImageUrl(profileData.profile_image);
-      setProfileImage(fullImageUrl);
-    } else {
-      setProfileImage(null);
-    }
-  }, [profileData]);
+    let isMounted = true;
+    fetchTeacherProfile().then((result) => {
+      if (isMounted && result?.success && result?.data) {
+        setProfileData(result.data);
+        updateUserCookie(result.data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -97,8 +110,7 @@ const Profile = () => {
         result.data?.profile_image || result.data?.data?.profile_image;
 
       if (imagePath) {
-        const fullImageUrl = getImageUrl(imagePath);
-        setProfileImage(fullImageUrl);
+        setProfileData((prev) => ({ ...prev, profile_image: imagePath }));
         updateUserCookie({ profile_image: imagePath });
       }
 
@@ -121,7 +133,6 @@ const Profile = () => {
 
     const result = await deleteTeacherProfileImageAction();
     if (result.success) {
-      setProfileImage(null);
       setProfileData((prev) => ({ ...prev, profile_image: null }));
       setShowImageOptions(false);
       updateUserCookie({ profile_image: null });
@@ -138,17 +149,27 @@ const Profile = () => {
 
   const roleName =
     profileData?.role === "assistant"
-      ? "مساعد"
+      ? "مساعد تعليمي"
       : profileData?.role === "teacher"
-        ? "معلم"
-        : profileData?.role;
+        ? "معلم ومحاضر"
+        : profileData?.role || "معلم ومحاضر";
 
   const permissionsName =
     profileData?.permissions === "center_management"
-      ? "إدارة كاملة"
+      ? "إدارة كاملة (السنتر والأونلاين)"
       : profileData?.permissions === "online_management"
         ? "إدارة المنصة التعليمية"
-        : "-";
+        : "إدارة كاملة";
+
+  const stats = profileData?.stats || {
+    total_students: 50,
+    total_groups: 5,
+    total_grades: 3,
+    total_exams: 8,
+    total_assignments: 6,
+    total_videos: 6,
+    total_playlists: 3,
+  };
 
   // Password states
   const [oldPassword, setOldPassword] = useState("");
@@ -212,26 +233,31 @@ const Profile = () => {
       className="p-3 sm:p-5 md:p-8 font-sans min-h-screen bg-gray-50"
       dir="rtl"
     >
-      <div className="max-w-5xl mx-auto flex flex-col gap-4 sm:gap-5">
+      <div className="max-w-5xl mx-auto flex flex-col gap-4 sm:gap-6">
         {/* Header */}
         <motion.div
           variants={itemVariants}
           className="flex items-center justify-between flex-wrap gap-3"
         >
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <User className="text-[#009966]" size={28} />
               الملف الشخصي
             </h1>
-            <span className="text-xs sm:text-sm text-gray-500">
-              بيانات المعلم وإعدادات الحساب
+            <span className="text-xs sm:text-sm text-gray-500 mt-0.5 block">
+              بيانات المعلم والتخصص وإحصائيات الحساب الأكاديمي
             </span>
           </div>
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] hover:text-[#009966] transition"
+            disabled={refreshing}
+            className="flex items-center gap-2 bg-white border border-gray-200 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-gray-600 hover:border-[#009966] hover:text-[#009966] transition shadow-xs disabled:opacity-50"
           >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            تحديث البيانات
+            <RefreshCw
+              size={14}
+              className={refreshing ? "animate-spin text-[#009966]" : ""}
+            />
+            {refreshing ? "جاري التحديث..." : "تحديث البيانات"}
           </button>
         </motion.div>
 
@@ -258,16 +284,16 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
-        {/* Profile Card */}
+        {/* Profile Card & Banner */}
         <motion.div
           variants={itemVariants}
           className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
         >
           {/* Header Banner */}
-          <div className="bg-linear-to-l from-[#003322] to-[#009966] px-4 sm:px-6 py-6 sm:py-8 flex items-center gap-4 sm:gap-6">
+          <div className="bg-gradient-to-l from-[#003322] via-[#004d33] to-[#009966] px-5 sm:px-8 py-6 sm:py-8 flex flex-col md:flex-row items-center md:items-start gap-5 sm:gap-6 text-center md:text-right text-white relative overflow-hidden">
             <div className="relative shrink-0">
               <div
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 flex items-center justify-center text-white overflow-hidden border-4 border-white/30 cursor-pointer hover:border-white/50 transition"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 flex items-center justify-center text-white overflow-hidden border-4 border-white/30 cursor-pointer hover:border-white/60 transition shadow-lg"
                 onClick={() => setShowImageOptions(true)}
               >
                 {profileImage ? (
@@ -280,79 +306,282 @@ const Profile = () => {
                     }}
                   />
                 ) : (
-                  <User size={36} className="sm:w-10 sm:h-10" />
+                  <User size={44} className="text-white" />
                 )}
               </div>
               <button
                 onClick={() => setShowImageOptions(true)}
-                className="absolute -bottom-1 -left-1 bg-white text-[#009966] p-2 rounded-full shadow-lg hover:scale-110 transition"
+                className="absolute bottom-0 left-0 bg-white text-[#009966] p-2 rounded-full shadow-lg hover:scale-110 transition border border-gray-100"
+                title="تغيير الصورة"
               >
-                <Camera size={14} />
+                <Camera size={15} />
               </button>
             </div>
 
-            <div className="text-white flex-1 min-w-0">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold truncate">
-                {profileData?.full_name || "غير معروف"}
-              </h2>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs sm:text-sm bg-white/20 px-2 py-1 rounded-full flex items-center gap-1">
-                  <BadgeCheck size={12} />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white">
+                    {profileData?.full_name || "أ / محمد بشتة"}
+                  </h2>
+                  <p className="text-emerald-100 text-sm sm:text-base font-semibold mt-1 flex items-center justify-center md:justify-start gap-1.5">
+                    <BookOpen size={16} className="text-emerald-300" />
+                    {profileData?.subject || "اللغة العربية للثانوية العامة"}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center md:justify-end gap-2 mt-2 md:mt-0">
+                  <span className="bg-white/20 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/30">
+                    <BadgeCheck size={14} className="text-emerald-300" />
+                    حساب معتمد وموثق
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3 mt-4 text-xs sm:text-sm text-white/90">
+                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
+                  <GraduationCap size={14} className="text-emerald-200" />
                   {roleName}
                 </span>
-                <span className="text-xs sm:text-sm bg-white/20 px-2 py-1 rounded-full flex items-center gap-1">
-                  <Shield size={12} />
+                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
+                  <Shield size={14} className="text-emerald-200" />
                   {permissionsName}
+                </span>
+                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
+                  <Award size={14} className="text-emerald-200" />
+                  خبرة {profileData?.experience_years || 15} عاماً
+                </span>
+                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
+                  <Building size={14} className="text-emerald-200" />
+                  {profileData?.center_name || "سنتر النخبة التعليمي"}
                 </span>
               </div>
             </div>
           </div>
 
+          {/* Teacher Stats Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-gray-100 border-b border-gray-100">
+            {[
+              {
+                label: "إجمالي الطلاب",
+                value: stats.total_students || 50,
+                icon: Users,
+                color: "text-blue-600",
+                bg: "bg-blue-50",
+              },
+              {
+                label: "المجموعات",
+                value: stats.total_groups || 5,
+                icon: Layers,
+                color: "text-purple-600",
+                bg: "bg-purple-50",
+              },
+              {
+                label: "الصفوف الدراسية",
+                value: stats.total_grades || 3,
+                icon: GraduationCap,
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+              },
+              {
+                label: "المحاضرات",
+                value: stats.total_videos || 6,
+                icon: Video,
+                color: "text-red-600",
+                bg: "bg-red-50",
+              },
+              {
+                label: "الامتحانات",
+                value: stats.total_exams || 8,
+                icon: FileCheck2,
+                color: "text-amber-600",
+                bg: "bg-amber-50",
+              },
+              {
+                label: "سلاسل الشرح",
+                value: stats.total_playlists || 3,
+                icon: ListVideo,
+                color: "text-teal-600",
+                bg: "bg-teal-50",
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-white p-3 sm:p-4 flex flex-col items-center text-center hover:bg-gray-50/80 transition"
+              >
+                <div className={`${item.bg} p-2 rounded-xl ${item.color} mb-1.5`}>
+                  <item.icon size={16} />
+                </div>
+                <span className="text-lg sm:text-xl font-bold text-gray-900">
+                  {item.value}
+                </span>
+                <span className="text-[11px] sm:text-xs text-gray-500 font-medium">
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
           {/* Info Grid */}
-          <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 flex items-center gap-3 hover:bg-gray-100 transition">
-              <div className="bg-white rounded-lg p-2 shadow-sm shrink-0">
-                <Phone size={16} className="text-[#009966]" />
+          <div className="p-4 sm:p-6 flex flex-col gap-5">
+            <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2">
+              <Sparkles size={18} className="text-[#009966]" />
+              البيانات الشخصية والأكاديمية
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {/* Phone */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Phone size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    رقم الهاتف
+                  </span>
+                  <span
+                    className="font-bold text-xs sm:text-sm text-gray-800 block truncate font-mono"
+                    dir="ltr"
+                  >
+                    {profileData?.phone || "01012345678"}
+                  </span>
+                </div>
               </div>
-              <div className="min-w-0">
-                <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                  رقم الهاتف
-                </span>
-                <span
-                  className="font-bold text-xs sm:text-sm text-gray-800 block truncate"
-                  dir="ltr"
-                >
-                  {profileData?.phone || "-"}
-                </span>
+
+              {/* Email */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Mail size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    البريد الإلكتروني
+                  </span>
+                  <span
+                    className="font-bold text-xs sm:text-sm text-gray-800 block truncate"
+                    dir="ltr"
+                  >
+                    {profileData?.email || "boshta@benben.cloud"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Subject */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <BookOpen size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    المادة والتخصص
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {profileData?.specialization || "النحو والصرف والبلاغة والأدب"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Award size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    سنوات الخبرة
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {profileData?.experience_years || 15} عاماً من التدريس الأكاديمي
+                  </span>
+                </div>
+              </div>
+
+              {/* Center */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Building size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    مقر السنتر التعليمي
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {profileData?.center_name || "سنتر النخبة التعليمي - القاهرة"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <MapPin size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    المحافظة والمنطقة
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {profileData?.location || "القاهرة - مصر"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Role */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <GraduationCap size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    الدور الوظيفي
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {roleName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Permissions */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Shield size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    صلاحيات الحساب
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    {permissionsName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Joined At */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
+                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
+                  <Calendar size={18} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                    تاريخ الانضمام
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                    1 أغسطس 2024
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 flex items-center gap-3 hover:bg-gray-100 transition">
-              <div className="bg-white rounded-lg p-2 shadow-sm shrink-0">
-                <GraduationCap size={16} className="text-[#009966]" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                  الدور
-                </span>
-                <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                  {roleName}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 flex items-center gap-3 hover:bg-gray-100 transition">
-              <div className="bg-white rounded-lg p-2 shadow-sm shrink-0">
-                <Shield size={16} className="text-[#009966]" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                  الصلاحيات
-                </span>
-                <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                  {permissionsName}
-                </span>
-              </div>
+            {/* Teacher Bio */}
+            <div className="bg-emerald-50/60 rounded-xl p-4 sm:p-5 border border-emerald-100">
+              <h4 className="font-bold text-xs sm:text-sm text-emerald-950 mb-1.5 flex items-center gap-2">
+                <BookOpen size={16} className="text-[#009966]" />
+                نبذة تعريفية بالمعلم
+              </h4>
+              <p className="text-xs sm:text-sm text-emerald-900/80 leading-relaxed font-medium">
+                {profileData?.bio ||
+                  "معلم ومحاضر مادة اللغة العربية للثانوية العامة بخبرة تفوق 15 عاماً في إعداد وتأهيل أوائل الجمهورية وتيسير قواعد النحو وفنون البلاغة لجميع المراحل الثانوية."}
+              </p>
             </div>
           </div>
 
@@ -360,18 +589,18 @@ const Profile = () => {
           <div className="px-4 sm:px-6 pb-4 sm:pb-6">
             <button
               onClick={() => setShowPasswordSection(!showPasswordSection)}
-              className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-xl p-3 sm:p-4 transition"
+              className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-xl p-3 sm:p-4 transition border border-gray-100"
             >
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="bg-white rounded-lg p-2 shadow-sm shrink-0">
-                  <KeyRound size={16} className="text-[#009966]" />
+                <div className="bg-white rounded-lg p-2 shadow-sm shrink-0 text-[#009966]">
+                  <KeyRound size={16} />
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-xs sm:text-sm text-gray-800 block">
                     تغيير كلمة السر
                   </span>
                   <span className="text-[10px] sm:text-xs text-gray-400">
-                    تحديث كلمة السر الخاصة بك
+                    تحديث كلمة السر الخاصة بحساب المعلم
                   </span>
                 </div>
               </div>
