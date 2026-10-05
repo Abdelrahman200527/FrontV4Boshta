@@ -11,7 +11,10 @@ const ResponsiveTable = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full overflow-x-auto overflow-y-auto custom-scrollbar ${maxHeight} ${className}`}
+      className={`w-full overflow-x-auto overflow-y-auto custom-scrollbar touch-scroll overscroll-x-contain ${maxHeight} ${className}`}
+      style={{
+        WebkitOverflowScrolling: "touch",
+      }}
     >
       <div style={{ minWidth: `${minWidth}px` }} className="w-full">
         {children}

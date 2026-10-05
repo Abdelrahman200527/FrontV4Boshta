@@ -119,41 +119,49 @@ export default function DemoSelector() {
 
   return (
     <div
-      className="min-h-screen bg-gray-50 flex flex-col items-center p-6"
+      className="min-h-screen bg-gray-50 flex flex-col items-center p-3.5 sm:p-6 overflow-x-hidden"
       dir="rtl"
     >
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8 mt-10"
+        className="text-center mb-6 sm:mb-8 mt-6 sm:mt-10 px-2"
       >
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 text-[#009966] rounded-full mb-4 shadow-sm border border-green-200">
-          <PlayCircle size={40} />
+        <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-green-100 text-[#009966] rounded-full mb-3 sm:mb-4 shadow-sm border border-green-200">
+          <PlayCircle size={36} className="sm:w-10 sm:h-10" />
         </div>
-        <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">
+        <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2 sm:mb-4 tracking-tight break-words">
           منصة <span className="text-[#009966]">BenBen</span> التعليمية
         </h1>
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto font-medium">
+        <p className="text-gray-600 text-sm sm:text-lg max-w-2xl mx-auto font-medium leading-relaxed">
           المنصة الأقوى والأكثر تكاملاً لإدارة السناتر والدروس الأونلاين. اكتشف
           التجربة الآن.
         </p>
       </motion.div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-4 mb-12 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+      <div className="flex w-full max-w-md items-center justify-center gap-1.5 sm:gap-2 mb-8 sm:mb-12 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100">
         <button
           onClick={() => setActiveTab("demos")}
-          className={`px-8 py-3 rounded-xl font-bold transition-all ${activeTab === "demos" ? "bg-[#009966] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
+          className={`flex-1 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-base transition-all text-center cursor-pointer ${
+            activeTab === "demos"
+              ? "bg-[#009966] text-white shadow-md"
+              : "text-gray-500 hover:bg-gray-50"
+          }`}
         >
           التجربة الحية (Demo)
         </button>
         <button
           onClick={() => setActiveTab("details")}
-          className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${activeTab === "details" ? "bg-[#009966] text-white shadow-md" : "text-gray-500 hover:bg-gray-50"}`}
+          className={`flex-1 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-base transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-center cursor-pointer ${
+            activeTab === "details"
+              ? "bg-[#009966] text-white shadow-md"
+              : "text-gray-500 hover:bg-gray-50"
+          }`}
         >
-          <Info size={18} />
-          عن المنصة ومميزاتها
+          <Info size={16} className="shrink-0" />
+          <span>عن المنصة ومميزاتها</span>
         </button>
       </div>
 
@@ -164,7 +172,7 @@ export default function DemoSelector() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full max-w-7xl"
           >
             {roles.map((role, idx) => (
               <motion.div
@@ -173,20 +181,20 @@ export default function DemoSelector() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
                 onClick={() => handleDemoLogin(role.id)}
-                className={`bg-gradient-to-br ${role.color} rounded-3xl p-6 text-white cursor-pointer transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 shadow-xl ${role.shadow} relative overflow-hidden group`}
+                className={`bg-gradient-to-br ${role.color} rounded-3xl p-5 sm:p-6 text-white cursor-pointer transform hover:-translate-y-2 hover:scale-105 transition-all duration-300 shadow-xl ${role.shadow} relative overflow-hidden group`}
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
 
                 <div className="flex flex-col h-full relative z-10">
-                  <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10">
+                  <div className="bg-white/20 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 backdrop-blur-sm border border-white/10">
                     {role.icon}
                   </div>
-                  <h2 className="text-2xl font-bold mb-3">{role.title}</h2>
-                  <p className="text-white/90 text-sm leading-relaxed mb-6 flex-grow font-medium">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">{role.title}</h2>
+                  <p className="text-white/90 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 flex-grow font-medium">
                     {role.desc}
                   </p>
 
-                  <div className="mt-auto flex items-center text-sm font-bold bg-white/10 hover:bg-white/20 py-2.5 px-5 rounded-xl w-fit transition-colors border border-white/10">
+                  <div className="mt-auto flex items-center text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 py-2 sm:py-2.5 px-4 sm:px-5 rounded-xl w-fit transition-colors border border-white/10">
                     دخول وتجربة النظام
                   </div>
                 </div>
@@ -199,20 +207,20 @@ export default function DemoSelector() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-6xl flex flex-col gap-10 text-right"
+            className="w-full max-w-6xl flex flex-col gap-6 sm:gap-10 text-right px-1"
           >
             {/* Header Hero Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a5d1a] via-[#144714] to-[#0f380f] p-8 md:p-12 text-white shadow-2xl border border-emerald-700/40">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a5d1a] via-[#144714] to-[#0f380f] p-5 sm:p-8 md:p-12 text-white shadow-2xl border border-emerald-700/40">
               <div className="absolute top-0 left-0 -mt-8 -ml-8 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="absolute bottom-0 right-0 -mb-8 -mr-8 w-64 h-64 bg-[#D4B45C]/15 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="relative z-10 flex flex-col gap-4 max-w-4xl">
-                <div className="inline-flex items-center gap-2 bg-[#D4B45C]/20 border border-[#D4B45C]/40 text-[#f6d788] px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold w-fit">
-                  <Flame size={16} className="text-[#f6d788]" />
-                  <span>السيستم اللي هيعملك هيبة ويكبّر اسمك ودخلك</span>
+              <div className="relative z-10 flex flex-col gap-3 sm:gap-4 max-w-4xl">
+                <div className="inline-flex items-center gap-2 bg-[#D4B45C]/20 border border-[#D4B45C]/40 text-[#f6d788] px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold w-fit">
+                  <Flame size={15} className="text-[#f6d788] shrink-0" />
+                  <span className="truncate">السيستم اللي هيعملك هيبة ويكبّر اسمك ودخلك</span>
                 </div>
 
-                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight break-words">
                   مش مجرد منصة تعليمية.. <br />
                   <span className="text-[#D4B45C]">
                     دي إمبراطوريتك وبراندك الخاص
@@ -220,22 +228,22 @@ export default function DemoSelector() {
                   اللي هيريّح بالك ويضاعف أرباحك!
                 </h2>
 
-                <p className="text-white/85 text-base sm:text-lg leading-relaxed font-medium mt-2">
+                <p className="text-white/85 text-sm sm:text-lg leading-relaxed font-medium mt-1 sm:mt-2">
                   لو زهقت من لخبطة الدفاتر، وتعب رصد الدرجات، ومكالمات أولياء
                   الأمور اللي مابتخلصش.. بنقدملك الحل اللي اتفصّل مخصوص على مقاس
                   المدرس الشاطر. إدارة سنترك في جيبك، وانطلاقة حقيقية للأونلاين
                   بدون أي وجع قلب!
                 </p>
 
-                <div className="flex flex-wrap items-center gap-3 pt-4">
+                <div className="flex flex-wrap items-center gap-3 pt-3 sm:pt-4">
                   <button
                     onClick={() => setActiveTab("demos")}
-                    className="bg-[#D4B45C] hover:bg-[#e0c36b] text-gray-950 font-black px-6 py-3 rounded-xl transition-all shadow-lg hover:scale-105 flex items-center gap-2 cursor-pointer text-sm sm:text-base"
+                    className="bg-[#D4B45C] hover:bg-[#e0c36b] text-gray-950 font-black px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl transition-all shadow-lg hover:scale-105 flex items-center gap-2 cursor-pointer text-xs sm:text-base"
                   >
                     <span>جرّب المنصة لايف دلوقتي</span>
-                    <ArrowLeft size={18} />
+                    <ArrowLeft size={16} />
                   </button>
-                  <span className="text-xs sm:text-sm text-white/70 font-medium">
+                  <span className="text-[11px] sm:text-sm text-white/70 font-medium">
                     بدون أي خطوات تسجيل معقدة — ادخل وجرّب بنفسك!
                   </span>
                 </div>
@@ -243,7 +251,7 @@ export default function DemoSelector() {
             </div>
 
             {/* Impact Numbers Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center text-center hover:shadow-md transition">
                 <span className="text-3xl sm:text-4xl font-black text-[#009966] mb-1">
                   +200%

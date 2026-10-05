@@ -775,7 +775,7 @@ const ParentDashboard = () => {
         </motion.div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1.5 bg-white p-1.5 rounded-2xl shadow-xs border border-gray-200/80 overflow-x-auto sticky top-16 z-20">
+        <div className="flex gap-1.5 bg-white p-1.5 rounded-2xl shadow-xs border border-gray-200/80 overflow-x-auto touch-scroll no-scrollbar sticky top-16 z-20">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

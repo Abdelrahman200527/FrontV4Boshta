@@ -91,6 +91,10 @@ export const router = createBrowserRouter([
       </GuestMiddleware>
     ),
   },
+  {
+    path: "/student-activation",
+    element: <Navigate to="/activate" replace />,
+  },
 
   {
     path: "/login",

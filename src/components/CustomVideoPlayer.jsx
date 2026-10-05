@@ -13,6 +13,8 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import getImageUrl from "../utils/imageUrl";
+import VideoWatermark from "./VideoWatermark";
 
 /**
  * Helper: Extract YouTube Video ID from any URL format
@@ -79,6 +81,11 @@ const loadYouTubeIframeApi = () => {
 export default function CustomVideoPlayer({
   videoUrl,
   title = "",
+  thumbnail,
+  thumbnailUrl,
+  poster,
+  watermarkStudentId,
+  watermarkStudentName,
   className = "",
   onEnded,
 }) {
@@ -89,6 +96,8 @@ export default function CustomVideoPlayer({
   const playerElementId = useRef(`yt-player-${Math.random().toString(36).substring(2, 9)}`);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(100);
@@ -101,6 +110,14 @@ export default function CustomVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const [isSpeedMenuOpen, setIsSpeedMenuOpen] = useState(false);
   const [isObscured, setIsObscured] = useState(false);
+
+  const rawThumbnail = thumbnail || thumbnailUrl || poster;
+  const resolvedThumbnail = !thumbnailError && rawThumbnail ? getImageUrl(rawThumbnail) : null;
+
+  useEffect(() => {
+    setHasStartedPlaying(false);
+    setThumbnailError(false);
+  }, [videoUrl, rawThumbnail]);
 
   const youtubeId = extractYouTubeId(videoUrl);
   const driveEmbedUrl = !youtubeId ? extractDrivePreviewUrl(videoUrl) : null;
@@ -259,10 +276,12 @@ export default function CustomVideoPlayer({
             if (event.data === YT.PlayerState.PLAYING) {
               setIsPlaying(true);
               setIsLoading(false);
+              setHasStartedPlaying(true);
             } else if (event.data === YT.PlayerState.PAUSED) {
               setIsPlaying(false);
             } else if (event.data === YT.PlayerState.ENDED) {
               setIsPlaying(false);
+              setHasStartedPlaying(false);
               if (typeof onEnded === "function") onEnded();
             } else if (event.data === YT.PlayerState.BUFFERING) {
               setIsLoading(true);
@@ -469,9 +488,27 @@ export default function CustomVideoPlayer({
       `}</style>
 
       {/* =========================================================================
+          CUSTOM THUMBNAIL / POSTER OVERLAY
+         ========================================================================= */}
+      {resolvedThumbnail && !hasStartedPlaying && (
+        <div
+          onClick={togglePlay}
+          className="absolute inset-0 z-10 bg-black flex items-center justify-center overflow-hidden cursor-pointer"
+        >
+          <img
+            src={resolvedThumbnail}
+            alt={title || "غلاف المحاضرة"}
+            className="w-full h-full object-cover select-none"
+            onError={() => setThumbnailError(true)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-black/40 pointer-events-none" />
+        </div>
+      )}
+
+      {/* =========================================================================
           LOADING SPINNER
          ========================================================================= */}
-      {isLoading && (
+      {isLoading && (!resolvedThumbnail || hasStartedPlaying) && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-xs text-white pointer-events-none transition-opacity duration-300">
           <Loader2 size={42} className="animate-spin text-[#009966] mb-3" />
           <p className="text-sm font-bold text-gray-200">جاري تجهيز المشغل الآمن...</p>
@@ -515,18 +552,23 @@ export default function CustomVideoPlayer({
 
         {/* Big Center Play / Pause Floating Button */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-[#1a5d1a]/90 hover:bg-[#1a5d1a] text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all duration-200 backdrop-blur-md border border-white/20"
-            title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
-          >
-            {isPlaying ? (
-              <Pause size={24} className="text-white sm:w-[28px] sm:h-[28px]" />
-            ) : (
-              <Play size={24} className="text-white translate-x-0.5 sm:w-[28px] sm:h-[28px]" />
-            )}
-          </button>
+          <div className="relative flex items-center justify-center">
+            {/* Dark & emerald halo guaranteeing 100% full coverage of any native background player logo */}
+            <div className="absolute w-[98px] h-[98px] sm:w-[116px] sm:h-[116px] rounded-full bg-black/60 shadow-[0_0_30px_rgba(0,153,102,0.45)] pointer-events-none" />
+
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="relative w-[86px] h-[86px] sm:w-[102px] sm:h-[102px] rounded-full bg-[#1a5d1a] hover:bg-[#124212] text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white/25 cursor-pointer backdrop-blur-xs"
+              title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
+            >
+              {isPlaying ? (
+                <Pause size={32} className="text-white sm:w-[38px] sm:h-[38px]" />
+              ) : (
+                <Play size={34} className="text-white translate-x-1 sm:w-[40px] sm:h-[40px] drop-shadow-md" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Bottom Controls Bar */}
@@ -665,6 +707,14 @@ export default function CustomVideoPlayer({
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          DYNAMIC FORENSIC WATERMARK (Permanent floating anti-piracy identity)
+         ========================================================================= */}
+      <VideoWatermark
+        studentId={watermarkStudentId}
+        studentName={watermarkStudentName}
+      />
     </div>
   );
 }

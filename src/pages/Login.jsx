@@ -283,14 +283,29 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#1a5d1a] hover:bg-green-800 text-white py-3 font-semibold hover:opacity-90 transition disabled:opacity-50"
+                className="w-full rounded-xl bg-[#1a5d1a] hover:bg-green-800 text-white py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "جاري الدخول..." : "تسجيل الدخول"}
               </button>
 
+              {role === "الطالب" && (
+                <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3 text-center w-full">
+                  <span className="text-xs text-emerald-900 block font-medium">
+                    معاك كارت السنتر ولسة مفعّلتش حسابك؟
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/activate")}
+                    className="text-xs text-[#1a5d1a] font-bold underline mt-1 hover:text-emerald-800 cursor-pointer"
+                  >
+                    اضغط هنا لتفعيل حسابك بباركود الكارت
+                  </button>
+                </div>
+              )}
+
               <div>
-                <span className="text-sm text-gray-500">
-                  لانشاء حساب جديد يرجي التواصل مع مدير النظام
+                <span className="text-xs sm:text-sm text-gray-500">
+                  لإنشاء حساب جديد يرجى التواصل مع إدارة السنتر
                 </span>
               </div>
             </motion.form>

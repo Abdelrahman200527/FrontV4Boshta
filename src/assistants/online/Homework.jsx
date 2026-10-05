@@ -215,20 +215,20 @@ const Homeworks = () => {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-6 min-h-screen"
+      className="flex flex-col gap-6 min-h-screen pb-28 sm:pb-32"
       dir="rtl"
     >
-      <header className="w-full flex flex-col gap-3 lg:flex-row lg:justify-between lg:items-center">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <header className="w-full flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             الواجبات المنزلية
           </h1>
-          <span className="text-base text-gray-500">
+          <span className="text-sm sm:text-base text-gray-500">
             متابعة وإدارة الواجبات ({assignments.length})
           </span>
         </div>
         <button
-          className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-full text-sm font-bold hover:bg-primary/90 transition shadow-md"
+          className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-full text-sm font-bold hover:bg-primary/90 transition shadow-md shrink-0 w-full sm:w-auto"
           onClick={() => {
             setEditingAssignment(null);
             setGroups([]);
@@ -246,7 +246,7 @@ const Homeworks = () => {
           <p className="text-sm">لا توجد واجبات</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
           {assignments.map((assignment) => {
             const status = getStatusBadge(assignment);
 
@@ -254,34 +254,34 @@ const Homeworks = () => {
               <motion.div
                 key={assignment.id}
                 variants={itemVariants}
-                className="bg-white w-full flex flex-col gap-4 border-2 border-transparent hover:border-[#009966] hover:translate-y-1 hover:shadow-[8px_5px_0_#009966] transition-all duration-100 rounded-2xl p-5 shadow-[5px_2px_0_#009966]"
+                className="bg-white w-full flex flex-col gap-4 border border-gray-200 hover:border-[#009966] hover:shadow-md transition-all duration-200 rounded-2xl p-4 sm:p-5 shadow-sm"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-xl font-bold text-gray-900 truncate">
+                <div className="flex justify-between items-start gap-3 w-full">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 break-words line-clamp-2">
                       {assignment.title}
                     </h3>
-                    <p className="text-sm text-gray-500 truncate">
+                    <p className="text-xs sm:text-sm text-gray-500 break-words line-clamp-2">
                       {assignment.description || "-"}
                     </p>
-                    <span className="text-xs text-gray-400 mt-1">
+                    <span className="text-[11px] sm:text-xs text-gray-400 mt-1">
                       {assignment.grade_name || "-"}
                     </span>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold ${status.bg}`}
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${status.bg}`}
                   >
                     {status.text}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-xs sm:text-sm">
                     <span className="text-gray-500 flex items-center gap-1">
-                      <Clock size={14} />
+                      <Clock size={14} className="shrink-0" />
                       آخر موعد: {formatDate(assignment.deadline)}
                     </span>
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-gray-800 shrink-0">
                       {assignment.full_mark} درجة
                     </span>
                   </div>
@@ -290,19 +290,19 @@ const Homeworks = () => {
                 <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
                   <button
                     onClick={() => openSubmissions(assignment)}
-                    className="flex-1 flex items-center justify-center gap-1 text-sm font-semibold text-[#009966] hover:bg-green-50 rounded-lg py-2 transition"
+                    className="flex-1 flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold text-[#009966] hover:bg-green-50 rounded-lg py-2 transition"
                   >
                     <Eye size={14} /> التسليمات
                   </button>
                   <button
                     onClick={() => handleEdit(assignment)}
-                    className="flex-1 flex items-center justify-center gap-1 text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg py-2 transition"
+                    className="flex-1 flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold text-blue-600 hover:bg-blue-50 rounded-lg py-2 transition"
                   >
                     <Pencil size={14} /> تعديل
                   </button>
                   <button
                     onClick={() => handleDelete(assignment.id)}
-                    className="flex-1 flex items-center justify-center gap-1 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg py-2 transition"
+                    className="flex-1 flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg py-2 transition"
                   >
                     <Trash2 size={14} /> حذف
                   </button>

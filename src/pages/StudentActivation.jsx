@@ -1,24 +1,44 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight, 
   Camera, 
   Lock, 
-  UserCircle,
-  Hash,
-  Phone,
-  CheckCircle2,
-  AlertCircle,
-  X
+  UserCircle, 
+  Phone, 
+  CheckCircle2, 
+  AlertCircle, 
+  X,
+  CreditCard
 } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { BarcodeDetector, prepareZXingModule } from "barcode-detector/ponyfill";
+import wasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url";
 import { verifyStudentActivation, completeStudentActivation } from "../api/auth/services";
 
 // Assets
 import MrBoshta from "../assets/Mr-Boshta-removebg.png";
 import Background from "../assets/background.png";
 import { isValidEgyptianPhone, normalizePhone } from "../utils/validators";
+
+// Initialize ZXing WebAssembly C++ engine for high-speed & high-accuracy 1D barcode scanning on iOS & Android
+try {
+  prepareZXingModule({
+    overrides: {
+      locateFile: (path, prefix) => {
+        if (path.endsWith(".wasm")) {
+          return wasmUrl;
+        }
+        return prefix + path;
+      },
+    },
+  });
+  // Polyfill global BarcodeDetector with the WASM engine so Html5Qrcode uses it on all browsers (including iOS Safari)
+  globalThis.BarcodeDetector = BarcodeDetector;
+} catch (e) {
+  console.warn("WASM BarcodeDetector init:", e);
+}
 
 const StudentActivation = () => {
   const navigate = useNavigate();
@@ -30,9 +50,9 @@ const StudentActivation = () => {
   const [barcode, setBarcode] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   
-  const scannerRef = React.useRef(null);
+  const scannerRef = useRef(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [cameraError, setCameraError] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
   // Step 2 Data
   const [password, setPassword] = useState("");
@@ -61,43 +81,132 @@ const StudentActivation = () => {
 
   const startScanner = async () => {
     try {
-      setCameraError(false);
+      setCameraError(null);
       setIsScanning(true);
       
       // Delay slightly to let React display the #reader container so it has dimensions
       setTimeout(async () => {
         try {
-          if (!scannerRef.current) {
-            scannerRef.current = new Html5Qrcode("reader");
+          const readerEl = document.getElementById("reader");
+          if (!readerEl) {
+            setIsScanning(false);
+            setCameraError("عنصر الكاميرا غير جاهز. يرجى المحاولة مرة أخرى.");
+            return;
           }
-          await scannerRef.current.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            (decodedText) => {
-              setBarcode(decodedText);
-              stopScanner();
+
+          if (scannerRef.current) {
+            try {
+              if (scannerRef.current.isScanning) {
+                await scannerRef.current.stop();
+              }
+              scannerRef.current.clear();
+            } catch (_) {}
+            scannerRef.current = null;
+          }
+
+          // Full barcode format support across iOS, Android, and PC
+          const formatsToSupport = [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.QR_CODE,
+          ];
+
+          // Use BarcodeDetector powered by WebAssembly ZXing C++
+          scannerRef.current = new Html5Qrcode("reader", {
+            formatsToSupport,
+            verbose: false,
+            useBarCodeDetectorIfSupported: true,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true,
             },
-            (errorMessage) => {
-              // Ignore
+          });
+
+          // Camera selection:
+          // On iPhone multi-camera devices (iPhone 11 to 16 Pro), avoid the Ultra-Wide 0.5x fixed focus lens
+          let cameraConfig = { facingMode: "environment" };
+          try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras && cameras.length > 0) {
+              const backCameras = cameras.filter((c) =>
+                /back|rear|environment|خلف/i.test(c.label || "")
+              );
+              if (backCameras.length > 0) {
+                const standardBackCam =
+                  backCameras.find((c) => !/ultra|0\.5|macro|tele/i.test(c.label || "")) ||
+                  backCameras[0];
+                cameraConfig = standardBackCam.id;
+              }
+            }
+          } catch (_) {
+            cameraConfig = { facingMode: "environment" };
+          }
+
+          // Scan options:
+          // Wide rectangular box matches horizontal 1D barcodes on cards
+          const scanOptions = {
+            fps: 15,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const width = Math.min(Math.floor(viewfinderWidth * 0.88), 340);
+              const height = Math.min(Math.floor(viewfinderHeight * 0.44), 160);
+              return { width, height };
+            },
+            aspectRatio: 1.333333,
+            videoConstraints: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 },
+            },
+          };
+
+          await scannerRef.current.start(
+            cameraConfig,
+            scanOptions,
+            (decodedText) => {
+              if (decodedText) {
+                setBarcode(decodedText.trim());
+                if (navigator.vibrate) {
+                  try {
+                    navigator.vibrate(100);
+                  } catch (_) {}
+                }
+                stopScanner();
+              }
+            },
+            () => {
+              // ignore frame decode failures
             }
           );
         } catch (err) {
           console.error("Camera Error Inner: ", err);
           setIsScanning(false);
-          setCameraError(true);
+          const errStr = String(err?.message || err || "");
+          if (/permission|denied|notallowed/i.test(errStr)) {
+            setCameraError("تم رفض إذن الكاميرا. يرجى السماح بالوصول للكاميرا من إعدادات المتصفح لمسح الكارت.");
+          } else {
+            setCameraError("تعذر تشغيل الكاميرا المباشرة على هذا الجهاز. يرجى التأكد من توصيل الكاميرا وإعطاء الصلاحية.");
+          }
         }
-      }, 100);
+      }, 200);
     } catch (err) {
       console.error("Camera Error Outer: ", err);
       setIsScanning(false);
-      setCameraError(true);
+      setCameraError("تعذر فتح الكاميرا. يرجى التأكد من صلاحية الكاميرا بالمتصفح.");
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
         scannerRef.current.clear();
       } catch (err) {
         console.error(err);
@@ -108,8 +217,12 @@ const StudentActivation = () => {
 
   useEffect(() => {
     return () => {
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(console.error);
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            scannerRef.current.stop().catch(() => {});
+          }
+        } catch (_) {}
       }
     };
   }, []);
@@ -247,77 +360,102 @@ const StudentActivation = () => {
                 className="space-y-5"
               >
                 <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                  قم بمسح الباركود الخاص بك باستخدام الكاميرا، ثم أدخل رقم هاتف ولي الأمر المسجل للتحقق من هويتك وتفعيل الحساب.
+                  قم بمسح الباركود المطبوع على كارتك الخاص باستخدام الكاميرا، ثم أدخل رقم هاتف ولي الأمر المسجل للتحقق من هويتك وتفعيل الحساب.
                 </p>
 
                 <div className="space-y-3">
                   <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                    <Hash size={16} className="text-[#1a5d1a]" />
-                    مسح الباركود
+                    <CreditCard size={16} className="text-[#1a5d1a]" />
+                    مسح كارت الطالب
                   </label>
-                  
-                  {!barcode ? (
-                    <div className="rounded-2xl overflow-hidden border-2 border-dashed border-[#1a5d1a]/30 bg-slate-50 flex flex-col items-center justify-center relative min-h-[250px]">
+
+                  {/* Scanner Active State */}
+                  {isScanning && (
+                    <div className="rounded-2xl overflow-hidden border-2 border-emerald-500 bg-black flex flex-col items-center justify-center relative min-h-[320px] shadow-lg animate-in fade-in duration-200">
+                      <div id="reader" className="w-full min-h-[300px]"></div>
                       
-                      {/* Scanner Container - Always mounted but hidden when not scanning */}
-                      <div className={`w-full h-full absolute inset-0 bg-black ${isScanning ? "block" : "hidden"}`}>
-                        <div id="reader" className="w-full h-full"></div>
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
-                          <button
-                            type="button"
-                            onClick={stopScanner}
-                            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full font-bold shadow-lg transition-all flex items-center gap-2 text-sm"
-                          >
-                            <X size={16} />
-                            إلغاء المسح
-                          </button>
+                      {/* Visual Viewfinder Overlay for user guidance */}
+                      <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4">
+                        <div className="w-[88%] max-w-[320px] h-36 border-2 border-emerald-400/90 rounded-2xl relative shadow-[0_0_20px_rgba(16,185,129,0.3)] bg-emerald-500/5">
+                          {/* Animated laser line */}
+                          <div className="absolute left-2 right-2 h-0.5 bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse top-1/2 -translate-y-1/2"></div>
+                          {/* Corner indicators */}
+                          <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-amber-400"></div>
+                          <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-amber-400"></div>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-amber-400"></div>
+                          <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-amber-400"></div>
                         </div>
+                        <p className="mt-3 text-xs font-bold text-white bg-black/75 backdrop-blur-sm px-3.5 py-1.5 rounded-full text-center max-w-xs shadow">
+                          وجّه الخط الأحمر على باركود الكارت • مسافة 15-20 سم
+                        </p>
                       </div>
 
-                      {!isScanning && (
-                        <div className="text-center p-6 flex flex-col items-center gap-4 z-10">
-                          <div className="w-16 h-16 bg-emerald-100 text-[#1a5d1a] rounded-full flex items-center justify-center mb-2">
+                      <div className="absolute bottom-3 left-0 right-0 flex justify-center z-20">
+                        <button
+                          type="button"
+                          onClick={stopScanner}
+                          className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full font-bold shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                        >
+                          <X size={16} />
+                          إلغاء المسح
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Normal / Captured State */}
+                  {!isScanning && (
+                    <div className="space-y-3">
+                      {barcode ? (
+                        <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-50 border border-emerald-200 p-4 rounded-xl gap-3">
+                          <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="w-10 h-10 bg-emerald-100 text-[#1a5d1a] rounded-full flex items-center justify-center shrink-0">
+                              <CheckCircle2 size={24} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-emerald-800">تم التقاط الباركود بنجاح</p>
+                              <p className="text-sm text-emerald-950 font-mono font-bold mt-0.5 truncate" dir="ltr">
+                                {barcode}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBarcode("");
+                              startScanner();
+                            }}
+                            className="text-xs sm:text-sm text-emerald-700 hover:text-emerald-800 font-bold bg-emerald-100 hover:bg-emerald-200 px-4 py-2 rounded-lg transition-colors cursor-pointer w-full sm:w-auto text-center"
+                          >
+                            إعادة المسح بالكاميرا
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border-2 border-dashed border-[#1a5d1a]/30 bg-slate-50 p-6 flex flex-col items-center text-center gap-3">
+                          <div className="w-16 h-16 bg-emerald-100 text-[#1a5d1a] rounded-full flex items-center justify-center mb-1">
                             <Camera size={32} />
                           </div>
+                          <p className="text-sm font-semibold text-gray-800">
+                            امسح باركود الكارت بالكاميرا لتفعيل الحساب
+                          </p>
+                          <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
+                            أبرز كارت الطالب الخاص بك وقم بتوجيه الكاميرا مباشرة نحو الباركود
+                          </p>
                           {cameraError && (
-                            <p className="text-xs text-red-500 font-medium mb-1">
-                              تعذر الوصول للكاميرا. يرجى التأكد من إعطاء الصلاحية.
-                            </p>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 text-xs text-red-600 max-w-sm leading-relaxed">
+                              {cameraError}
+                            </div>
                           )}
                           <button
                             type="button"
                             onClick={startScanner}
-                            className="bg-[#1a5d1a] hover:bg-[#124112] text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md flex items-center gap-2"
+                            className="bg-[#1a5d1a] hover:bg-[#124112] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md flex items-center justify-center gap-2 text-sm cursor-pointer hover:scale-102 mt-1"
                           >
                             <Camera size={18} />
                             افتح الكاميرا لمسح الكارت
                           </button>
                         </div>
                       )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-50 border border-emerald-200 p-4 rounded-xl gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 text-[#1a5d1a] rounded-full flex items-center justify-center shrink-0">
-                          <CheckCircle2 size={24} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-emerald-800">تم التقاط الباركود بنجاح</p>
-                          <p className="text-xs text-emerald-600 font-mono mt-0.5" dir="ltr">
-                            الباركود: <span className="font-bold text-lg text-[#1a5d1a] ml-1">{barcode}</span>
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBarcode("");
-                          startScanner();
-                        }}
-                        className="text-xs sm:text-sm text-emerald-700 hover:text-emerald-800 font-bold bg-emerald-100 hover:bg-emerald-200 px-4 py-2 rounded-lg transition-colors shrink-0"
-                      >
-                        إعادة المسح بالكاميرا
-                      </button>
                     </div>
                   )}
                 </div>
@@ -331,7 +469,7 @@ const StudentActivation = () => {
                     type="tel"
                     value={parentPhone}
                     onChange={(e) => setParentPhone(e.target.value)}
-                    placeholder="رقم الهاتف المسجل بالسنتر"
+                    placeholder="رقم الهاتف المسجل بالسنتر (مثال: 01012345678)"
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#1a5d1a] focus:bg-white transition-all text-left"
                     dir="ltr"
                   />

@@ -195,7 +195,7 @@ const Homeworks = () => {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen p-3 sm:p-5 bg-gray-50"
+      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen p-3 sm:p-5 bg-gray-50 pb-28 sm:pb-32"
       dir="rtl"
     >
       {/* Header */}
@@ -357,8 +357,8 @@ const Homeworks = () => {
                     <div className="bg-blue-50 rounded-lg p-2 shrink-0 group-hover:bg-blue-100 transition">
                       <FileText size={18} className="text-blue-600" />
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate group-hover:text-[#009966] transition">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 break-words line-clamp-2 group-hover:text-[#009966] transition">
                         {assignment.title}
                       </h3>
                       <span className="text-[10px] sm:text-xs text-gray-400 flex items-center gap-1 mt-0.5">

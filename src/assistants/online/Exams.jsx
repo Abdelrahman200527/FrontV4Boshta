@@ -802,7 +802,7 @@ const Exams = () => {
   }
 
   return (
-    <section className="flex flex-col gap-4 w-full min-h-screen" dir="rtl">
+    <section className="flex flex-col gap-4 w-full min-h-screen pb-28 sm:pb-32" dir="rtl">
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">

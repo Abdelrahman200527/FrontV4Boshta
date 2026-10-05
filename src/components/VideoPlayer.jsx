@@ -102,7 +102,7 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="min-h-screen"
+      className="min-h-screen relative"
       dir="rtl"
     >
       <motion.div
@@ -128,6 +128,7 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
             <CustomVideoPlayer
               videoUrl={video.video_url}
               title={video.title}
+              thumbnail={video.thumbnail_url || video.thumbnail || video.thumbnail_path || video.image}
             />
 
             <div className="mt-3 flex flex-col gap-3">

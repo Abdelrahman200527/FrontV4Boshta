@@ -172,7 +172,7 @@ const WatchVideo = () => {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen p-3 sm:p-5 md:p-6 bg-linear-to-b from-gray-50 to-gray-100"
+      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen p-3 sm:p-5 md:p-6 bg-linear-to-b from-gray-50 to-gray-100 relative"
       dir="rtl"
     >
       {/* Header */}
@@ -204,6 +204,7 @@ const WatchVideo = () => {
           <CustomVideoPlayer
             videoUrl={currentVideo.video_url}
             title={currentVideo.title}
+            thumbnail={currentVideo.thumbnail_url || currentVideo.thumbnail || currentVideo.thumbnail_path || currentVideo.image}
           />
 
           {/* Video Info */}

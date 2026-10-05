@@ -378,7 +378,7 @@ const Videos = () => {
       variants={pageVariants}
       initial="hidden"
       animate="show"
-      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen"
+      className="flex flex-col gap-4 sm:gap-5 w-full min-h-screen pb-28 sm:pb-32"
       dir="rtl"
     >
       <motion.header

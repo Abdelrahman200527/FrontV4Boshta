@@ -535,7 +535,7 @@ const Payments = () => {
             </div>
 
             {/* Dropdowns */}
-            <div className="grid grid-cols-3 gap-2 flex-wrap items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center w-full lg:w-auto">
               {/* Grade */}
               <select
                 value={selectedGrade}
@@ -590,8 +590,8 @@ const Payments = () => {
                 <p className="text-sm font-bold">لا يوجد طلاب يطابقون شروط البحث</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right border-collapse">
+              <div className="overflow-x-auto touch-scroll">
+                <table className="w-full min-w-[700px] text-right border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100 text-[11px] sm:text-xs text-gray-500 font-bold">
                       <th className="p-3.5 pr-4">#</th>
