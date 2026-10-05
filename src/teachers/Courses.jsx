@@ -22,6 +22,7 @@ import {
   downloadVideoFileAction,
   previewVideoFileAction,
 } from "../api/teacher/actions";
+import { getGrades } from "../api/teacher/services";
 import PlaylistCard from "../components/PlaylistCard";
 import VideoCard from "../components/VideoCard";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,25 +49,37 @@ const Courses = () => {
     setLoading(true);
     setError(null);
     const result = await fetchCourses();
-    if (result.success) {
-      setVideos(result.data.videos || []);
-      setPlaylists(result.data.playlists || []);
+    if (result.success && result.data) {
+      const vids = Array.isArray(result.data.videos) ? result.data.videos : [];
+      const pls = Array.isArray(result.data.playlists) ? result.data.playlists : [];
+      setVideos(vids);
+      setPlaylists(pls);
       
       // ✅ استخراج الصفوف الفريدة من الفيديوهات والقوائم
       const allGrades = new Map();
       
-      [...(result.data.videos || []), ...(result.data.playlists || [])].forEach(
-        (item) => {
-          if (item.grade_id && item.grade_name) {
-            allGrades.set(item.grade_id, {
-              id: item.grade_id,
-              name: item.grade_name,
-            });
-          }
-        },
-      );
+      [...vids, ...pls].forEach((item) => {
+        const gId = item.grade_id || item.grade?.id;
+        const gName = item.grade_name || item.grade?.name || item.grade?.grade_name;
+        if (gId && gName) {
+          allGrades.set(gId, {
+            id: gId,
+            name: gName,
+          });
+        }
+      });
       
-      setGrades(Array.from(allGrades.values()));
+      if (allGrades.size > 0) {
+        setGrades(Array.from(allGrades.values()));
+      } else {
+        try {
+          const gradesRes = await getGrades();
+          const list = Array.isArray(gradesRes) ? gradesRes : (Array.isArray(gradesRes?.data) ? gradesRes.data : []);
+          setGrades(list);
+        } catch {
+          // ignore
+        }
+      }
     } else {
       setError(result.error || "فشل تحميل المحاضرات");
     }
@@ -84,6 +97,7 @@ const Courses = () => {
   };
 
   const filterBySearch = (items) => {
+    if (!Array.isArray(items)) return [];
     if (searchQuery.trim() === "") return items;
     return items.filter(
       (item) =>
@@ -94,6 +108,7 @@ const Courses = () => {
   };
 
   const filterByGrade = (items) => {
+    if (!Array.isArray(items)) return [];
     if (selectedGrade === "all") return items;
     return items.filter(
       (item) => String(item.grade_id) === String(selectedGrade),
@@ -102,6 +117,7 @@ const Courses = () => {
 
   const filteredVideos = filterByGrade(filterBySearch(videos));
   const filteredPlaylists = filterByGrade(filterBySearch(playlists));
+  const filteredPlaylistVideos = filterBySearch(playlistVideos);
 
   const getPlaylistId = (playlist) => playlist?.playlist_id || playlist?.id;
   const getVideoId = (video) => video?.video_id || video?.id;
@@ -120,10 +136,13 @@ const Courses = () => {
 
     const result = await fetchPlaylistDetails(playlistId);
 
-    if (result.success) {
-      setPlaylistVideos(
-        filterByGrade(result.data.videos || []),
-      );
+    if (result.success && result.data) {
+      const vids = result.data.videos || playlist.videos || [];
+      setPlaylistVideos(Array.isArray(vids) ? vids : []);
+    } else if (Array.isArray(playlist.videos) && playlist.videos.length > 0) {
+      setPlaylistVideos(playlist.videos);
+    } else {
+      setError(result.error || "فشل تحميل فيديوهات القائمة");
     }
 
     setLoadingPlaylist(false);
@@ -416,12 +435,14 @@ const Courses = () => {
               <div
                 className={`grid gap-3 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
               >
-                {playlistVideos.length === 0 ? (
+                {filteredPlaylistVideos.length === 0 ? (
                   <div className="col-span-full text-center py-16 text-gray-400">
-                    <p className="text-sm">هذه القائمة فارغة</p>
+                    <p className="text-sm">
+                      {searchQuery ? "لا توجد نتائج مطابقة" : "هذه القائمة فارغة"}
+                    </p>
                   </div>
                 ) : (
-                  playlistVideos.map((video) => (
+                  filteredPlaylistVideos.map((video) => (
                     <motion.div
                       key={getVideoId(video)}
                       whileHover={{ y: -3 }}

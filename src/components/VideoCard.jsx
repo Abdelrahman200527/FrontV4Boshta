@@ -27,12 +27,19 @@ const VideoCard = ({
     return match ? match[1] : null;
   };
 
+  const targetUrl = video?.video_url || video?.url || "";
   const isYouTube = (url) => !!getYouTubeId(url);
   const isDrive = (url) => url?.includes("drive.google.com");
 
-  const thumbnailUrl = video.thumbnail_url
-    ? getImageUrl(video.thumbnail_url)
-    : null;
+  const rawThumbnail =
+    video?.thumbnail_url ||
+    video?.thumbnail ||
+    video?.thumbnail_path ||
+    video?.image ||
+    video?.cover_image;
+  const thumbnailUrl = rawThumbnail ? getImageUrl(rawThumbnail) : null;
+  const gradeName =
+    video?.grade_name || video?.grade?.name || video?.grade?.grade_name;
 
   return (
     <motion.div
@@ -60,9 +67,9 @@ const VideoCard = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-200">
-            {isYouTube(video.video_url) ? (
+            {isYouTube(targetUrl) ? (
               <Youtube size={40} className="text-red-500" />
-            ) : isDrive(video.video_url) ? (
+            ) : isDrive(targetUrl) ? (
               <FileVideo size={40} className="text-blue-500" />
             ) : (
               <FileVideo size={40} className="text-gray-400" />
@@ -88,9 +95,9 @@ const VideoCard = ({
         <h3 className="font-bold text-xs sm:text-sm line-clamp-2 leading-snug">
           {video.title}
         </h3>
-        {video.grade_name && (
+        {gradeName && (
           <span className="text-[10px] sm:text-xs text-gray-500 block mt-0.5">
-            {video.grade_name}
+            {gradeName}
           </span>
         )}
 

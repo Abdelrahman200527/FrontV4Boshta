@@ -682,39 +682,39 @@ const getSubmissionStats = async (assignmentId) => {
 
 const getVideos = async () => {
   const response = await httpGet("/teacher/videos");
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getVideosByGrade = async (gradeId) => {
   const response = await httpGet(`/teacher/videos/grade/${gradeId}`);
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getVideoById = async (videoId) => {
   const response = await httpGet(`/teacher/videos/${videoId}`);
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getPlaylists = async () => {
   const response = await httpGet("/teacher/playlists");
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getPlaylistsByGrade = async (gradeId) => {
   const response = await httpGet(`/teacher/playlists/grade/${gradeId}`);
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getPlaylistById = async (playlistId) => {
   const response = await httpGet(`/teacher/playlists/${playlistId}`);
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getPlaylistVideos = async (playlistId) => {
   const response = await httpGet(
     `/teacher/playlist-videos/playlist/${playlistId}`,
   );
-  return response.data;
+  return response?.data ?? response;
 };
 
 // ============================================

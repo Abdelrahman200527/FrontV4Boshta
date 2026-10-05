@@ -230,14 +230,19 @@ const downloadSubmissionFile = async (assignmentId) => {
 };
 
 // Videos & Playlists
-const getPlaylists = async () => {
-  const response = await httpGet("/student/playlists");
-  return response.data;
+const getPlaylists = async (page = 1) => {
+  const response = await httpGet(`/student/playlists?page=${page}`);
+  return response?.data ?? response;
 };
 
 const getPlaylistVideos = async (playlistId) => {
   const response = await httpGet(`/student/playlists/${playlistId}/videos`);
-  return response.data;
+  return response?.data ?? response;
+};
+
+const getVideoById = async (videoId) => {
+  const response = await httpGet(`/student/videos/${videoId}`);
+  return response?.data ?? response;
 };
 
 // Payments
@@ -298,6 +303,7 @@ export {
   downloadSubmissionFile,
   getPlaylists,
   getPlaylistVideos,
+  getVideoById,
   getPaymentHistory,
   getRemainingBalance,
   getCurrentSubscription,

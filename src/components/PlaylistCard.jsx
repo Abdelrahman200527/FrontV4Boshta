@@ -12,7 +12,19 @@ const PlaylistCard = ({
   canDelete = false,
   canEdit = false,
 }) => {
-  const thumbnailUrl = getImageUrl(playlist.thumbnail_url);
+  const rawThumbnail =
+    playlist?.thumbnail_url ||
+    playlist?.thumbnail ||
+    playlist?.cover_image ||
+    playlist?.image ||
+    playlist?.thumbnail_path;
+  const thumbnailUrl = getImageUrl(rawThumbnail);
+  const videoCount =
+    playlist?.videos_count ??
+    playlist?.video_count ??
+    (Array.isArray(playlist?.videos) ? playlist.videos.length : 0);
+  const gradeName =
+    playlist?.grade_name || playlist?.grade?.name || playlist?.grade?.grade_name;
 
   return (
     <motion.div
@@ -57,7 +69,7 @@ const PlaylistCard = ({
         </div>
 
         <div className="absolute bottom-2 left-2 bg-black/80 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded">
-          {playlist.videos_count || 0} فيديو
+          {videoCount} فيديو
         </div>
       </motion.div>
 
@@ -65,9 +77,9 @@ const PlaylistCard = ({
         <h3 className="font-bold text-xs sm:text-sm truncate">
           {playlist.title}
         </h3>
-        {playlist.grade_name && (
+        {gradeName && (
           <span className="text-[10px] sm:text-xs text-gray-500 block mt-0.5">
-            {playlist.grade_name}
+            {gradeName}
           </span>
         )}
 

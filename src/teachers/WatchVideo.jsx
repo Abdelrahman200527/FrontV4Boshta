@@ -24,6 +24,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchVideoById,
   fetchVideosByGrade,
+  fetchCourses,
   downloadVideoFileAction,
   previewVideoFileAction,
 } from "../api/teacher/actions";
@@ -46,22 +47,51 @@ const WatchVideo = () => {
   const [activeVideoId, setActiveVideoId] = useState(null);
 
   const loadData = useCallback(async () => {
+    if (!videoId || videoId === "undefined") {
+      setError("الفيديو غير موجود");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const videoResult = await fetchVideoById(videoId);
+      let videoResult = await fetchVideoById(videoId);
 
-      if (videoResult.success) {
+      if (!videoResult.success || !videoResult.data) {
+        // Fallback: search in courses/playlists/videos
+        const coursesResult = await fetchCourses();
+        if (coursesResult.success && coursesResult.data) {
+          const allVids = [
+            ...(coursesResult.data.videos || []),
+            ...(coursesResult.data.playlists || []).flatMap((p) => p.videos || [])
+          ];
+          const found = allVids.find((v) => String(v.id || v.video_id) === String(videoId));
+          if (found) {
+            videoResult = { success: true, data: found };
+          }
+        }
+      }
+
+      if (videoResult.success && videoResult.data) {
         const video = videoResult.data;
-        setCurrentVideo(video);
-        setActiveVideoId(video.id);
+        const resolvedVideoUrl = video.video_url || video.url;
+        setCurrentVideo({
+          ...video,
+          id: video.id || video.video_id,
+          video_url: resolvedVideoUrl,
+          embed_url: getSafeEmbedUrl(resolvedVideoUrl),
+          thumbnail: video.thumbnail_url || video.thumbnail || video.thumbnail_path || video.cover_image || video.image,
+        });
+        setActiveVideoId(video.id || video.video_id);
 
-        if (video && video.grade_id) {
-          const relatedResult = await fetchVideosByGrade(video.grade_id);
+        const gId = video.grade_id || video.grade?.id;
+        if (gId) {
+          const relatedResult = await fetchVideosByGrade(gId);
           if (relatedResult.success) {
-            const allVideos = relatedResult.data || [];
+            const allVideos = Array.isArray(relatedResult.data) ? relatedResult.data : [];
             const related = allVideos
-              .filter((v) => v.id !== video.id)
+              .filter((v) => String(v.id || v.video_id) !== String(video.id || video.video_id))
               .slice(0, 6);
             setRelatedVideos(related);
           }
@@ -202,9 +232,9 @@ const WatchVideo = () => {
         >
           {/* Video Player */}
           <CustomVideoPlayer
-            videoUrl={currentVideo.video_url}
+            videoUrl={currentVideo.video_url || currentVideo.url || currentVideo.embed_url}
             title={currentVideo.title}
-            thumbnail={currentVideo.thumbnail_url || currentVideo.thumbnail || currentVideo.thumbnail_path || currentVideo.image}
+            thumbnail={currentVideo.thumbnail_url || currentVideo.thumbnail || currentVideo.thumbnail_path || currentVideo.cover_image || currentVideo.image}
           />
 
           {/* Video Info */}

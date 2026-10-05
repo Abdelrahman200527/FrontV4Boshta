@@ -126,9 +126,9 @@ const VideoPlayer = ({ video, onBack, relatedVideos = [], onRelatedClick }) => {
         <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px] gap-4 sm:gap-5">
           <div>
             <CustomVideoPlayer
-              videoUrl={video.video_url}
+              videoUrl={video.video_url || video.url}
               title={video.title}
-              thumbnail={video.thumbnail_url || video.thumbnail || video.thumbnail_path || video.image}
+              thumbnail={video.thumbnail_url || video.thumbnail || video.thumbnail_path || video.cover_image || video.image}
             />
 
             <div className="mt-3 flex flex-col gap-3">

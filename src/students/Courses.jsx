@@ -73,8 +73,12 @@ const Courses = () => {
 
     const result = await fetchPlaylistVideos(playlistId);
 
-    if (result.success) {
-      setPlaylistVideos(result.data || []);
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      setPlaylistVideos(result.data);
+    } else if (Array.isArray(playlist.videos) && playlist.videos.length > 0) {
+      setPlaylistVideos(playlist.videos);
+    } else if (result.success && Array.isArray(result.data)) {
+      setPlaylistVideos(result.data);
     } else {
       setError(result.error || "فشل تحميل الفيديوهات");
     }

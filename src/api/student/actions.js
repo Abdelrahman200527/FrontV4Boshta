@@ -1,6 +1,47 @@
 import * as studentServices from "./services";
 
-const unwrapApiData = (response) => response?.data ?? response;
+const unwrapApiData = (response) => {
+  if (!response) return { data: [] };
+  if (Array.isArray(response)) return { data: response };
+  if (Array.isArray(response?.data)) {
+    return { data: response.data, pagination: response.pagination ?? null };
+  }
+  if (Array.isArray(response?.playlists)) {
+    return { data: response.playlists, pagination: response.pagination ?? null };
+  }
+  if (Array.isArray(response?.videos)) {
+    return { data: response.videos, pagination: response.pagination ?? null };
+  }
+  if (response?.data && typeof response.data === "object") {
+    if (Array.isArray(response.data.data)) {
+      return { data: response.data.data, pagination: response.data.pagination ?? response.pagination ?? null };
+    }
+    if (Array.isArray(response.data.playlists)) {
+      return { data: response.data.playlists, pagination: response.data.pagination ?? response.pagination ?? null };
+    }
+    if (Array.isArray(response.data.videos)) {
+      return { data: response.data.videos, pagination: response.data.pagination ?? response.pagination ?? null };
+    }
+    return { data: response.data, pagination: response.pagination ?? null };
+  }
+  return { data: response };
+};
+
+const extractArray = (res) => {
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.playlists)) return res.playlists;
+  if (Array.isArray(res?.videos)) return res.videos;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  if (Array.isArray(res?.data?.playlists)) return res.data.playlists;
+  if (Array.isArray(res?.data?.videos)) return res.data.videos;
+  if (res && typeof res === "object") {
+    const vals = Object.values(res).filter(v => v && typeof v === "object" && (v.id || v.video_id || v.playlist_id || v.title));
+    if (vals.length > 0) return vals;
+  }
+  return [];
+};
 
 const isDemo = () => localStorage.getItem("is_demo") === "true";
 
@@ -912,7 +953,12 @@ export const fetchPlaylists = async (page = 1) => {
       pagination: mockData.playlists.pagination
     };
   }
-  try { return { success: true, ...unwrapApiData(await studentServices.getPlaylists(page)) }; }
+  try {
+    const raw = await studentServices.getPlaylists(page);
+    const unwrapped = unwrapApiData(raw);
+    const list = Array.isArray(unwrapped.data) ? unwrapped.data : extractArray(raw);
+    return { success: true, data: list, pagination: unwrapped.pagination };
+  }
   catch (error) { return { success: false, error: error.message }; }
 };
 
@@ -921,7 +967,12 @@ export const fetchPlaylistVideos = async (id) => {
     const pl = mockData.playlists.data.find(p => p.playlist_id == id || p.id == id) || mockData.playlists.data[0];
     return { success: true, data: pl.videos || [] };
   }
-  try { return { success: true, data: await studentServices.getPlaylistVideos(id) }; }
+  try {
+    const raw = await studentServices.getPlaylistVideos(id);
+    const unwrapped = unwrapApiData(raw);
+    const list = Array.isArray(unwrapped.data) ? unwrapped.data : extractArray(raw);
+    return { success: true, data: list };
+  }
   catch (error) { return { success: false, error: error.message }; }
 };
 

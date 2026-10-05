@@ -5,6 +5,22 @@ import { downloadFile } from "../../utils/fileHandler";
 const { apiUrl } = config;
 const isDemo = () => localStorage.getItem("is_demo") === "true";
 
+const extractArray = (res) => {
+  if (!res) return [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.playlists)) return res.playlists;
+  if (Array.isArray(res?.videos)) return res.videos;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  if (Array.isArray(res?.data?.playlists)) return res.data.playlists;
+  if (Array.isArray(res?.data?.videos)) return res.data.videos;
+  if (res && typeof res === "object") {
+    const vals = Object.values(res).filter(v => v && typeof v === "object" && (v.id || v.video_id || v.playlist_id || v.title));
+    if (vals.length > 0) return vals;
+  }
+  return [];
+};
+
 // ============================================================
 // COMPREHENSIVE TEACHER DEMO DATA (50 STUDENTS - FULL SEMESTER)
 // ============================================================
@@ -1300,7 +1316,7 @@ const fetchVideosByGrade = async (gradeId) => {
   }
   try {
     const data = await teacherServices.getVideosByGrade(gradeId);
-    return { success: true, data };
+    return { success: true, data: extractArray(data) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1313,7 +1329,7 @@ const fetchPlaylistsByGrade = async (gradeId) => {
   }
   try {
     const data = await teacherServices.getPlaylistsByGrade(gradeId);
-    return { success: true, data };
+    return { success: true, data: extractArray(data) };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1562,8 +1578,27 @@ const fetchCourses = async () => {
     };
   }
   try {
-    const data = await teacherServices.getVideos();
-    return { success: true, data };
+    const [videosRes, playlistsRes] = await Promise.all([
+      teacherServices.getVideos().catch((err) => {
+        console.warn("Failed to fetch teacher videos:", err);
+        return [];
+      }),
+      teacherServices.getPlaylists().catch((err) => {
+        console.warn("Failed to fetch teacher playlists:", err);
+        return [];
+      }),
+    ]);
+
+    const videos = extractArray(videosRes);
+    const playlists = extractArray(playlistsRes);
+
+    return {
+      success: true,
+      data: {
+        videos,
+        playlists
+      }
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1578,8 +1613,25 @@ const fetchPlaylistDetails = async (playlistId) => {
     };
   }
   try {
-    const data = await teacherServices.getPlaylistById(playlistId);
-    return { success: true, data };
+    const [playlistRes, playlistVideosRes] = await Promise.all([
+      teacherServices.getPlaylistById(playlistId).catch(() => null),
+      teacherServices.getPlaylistVideos(playlistId).catch(() => null),
+    ]);
+
+    let playlist = playlistRes?.data ?? playlistRes;
+    if (!playlist || typeof playlist !== "object" || Array.isArray(playlist)) {
+      playlist = { id: playlistId };
+    }
+
+    const fetchedVideos = extractArray(playlistVideosRes);
+    const existingVideos = extractArray(playlist.videos);
+
+    playlist.videos = fetchedVideos.length > 0 ? fetchedVideos : existingVideos;
+
+    return {
+      success: true,
+      data: playlist
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1594,7 +1646,14 @@ const fetchVideoById = async (videoId) => {
     };
   }
   try {
-    const data = await teacherServices.getVideoById(videoId);
+    const res = await teacherServices.getVideoById(videoId);
+    let data = res?.data ?? res;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return { success: true, data };
+    }
+    if (Array.isArray(data) && data.length > 0) {
+      return { success: true, data: data[0] };
+    }
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error.message };

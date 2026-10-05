@@ -92,18 +92,25 @@ const WatchVideo = () => {
       const playlistsResult = await fetchPlaylists();
 
       if (playlistsResult.success) {
-        const playlists = playlistsResult.data || [];
+        const playlists = Array.isArray(playlistsResult.data) ? playlistsResult.data : [];
         let foundVideo = null;
         let foundPlaylist = null;
 
         const results = await Promise.all(
           playlists.map(async (playlist) => {
             const playlistId = playlist.playlist_id || playlist.id;
+            if (Array.isArray(playlist.videos) && playlist.videos.length > 0) {
+              return {
+                playlist,
+                playlistId,
+                videos: playlist.videos,
+              };
+            }
             const res = await fetchPlaylistVideos(playlistId);
             return {
               playlist,
               playlistId,
-              videos: res.success ? res.data || [] : [],
+              videos: res.success && Array.isArray(res.data) ? res.data : [],
             };
           }),
         );
@@ -125,11 +132,14 @@ const WatchVideo = () => {
         }
 
         if (foundVideo) {
+          const resolvedVideoUrl = foundVideo.video_url || foundVideo.url;
           setCurrentVideo({
             ...foundVideo,
             id: foundVideo.video_id || foundVideo.id,
             playlist_title: foundPlaylist?.title || "",
-            embed_url: getSafeEmbedUrl(foundVideo.video_url),
+            video_url: resolvedVideoUrl,
+            embed_url: getSafeEmbedUrl(resolvedVideoUrl),
+            thumbnail: foundVideo.thumbnail_url || foundVideo.thumbnail || foundVideo.thumbnail_path || foundVideo.cover_image || foundVideo.image,
           });
         } else {
           setError("الفيديو غير موجود");
@@ -256,9 +266,9 @@ const WatchVideo = () => {
         >
           {/* Video Player */}
           <CustomVideoPlayer
-            videoUrl={currentVideo.video_url || currentVideo.embed_url}
+            videoUrl={currentVideo.video_url || currentVideo.url || currentVideo.embed_url}
             title={currentVideo.title}
-            thumbnail={currentVideo.thumbnail_url || currentVideo.thumbnail || currentVideo.thumbnail_path || currentVideo.image}
+            thumbnail={currentVideo.thumbnail_url || currentVideo.thumbnail || currentVideo.thumbnail_path || currentVideo.cover_image || currentVideo.image}
           />
 
           {/* Video Info */}
