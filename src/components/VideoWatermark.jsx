@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import getUser from "../utils/getUser";
+import { isDemoMode } from "../utils/demo";
 
 /**
  * Dynamic Forensic Watermark Component
@@ -23,8 +24,7 @@ export default function VideoWatermark({
 
   // Resolve Student Info from Props, Auth Cookie, or Demo Storage
   const user = getUser();
-  const isDemo =
-    typeof window !== "undefined" && localStorage.getItem("is_demo") === "true";
+  const isDemo = isDemoMode();
 
   const rawBarcode =
     propBarcode ||

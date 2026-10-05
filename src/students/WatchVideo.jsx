@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchPlaylists, fetchPlaylistVideos } from "../api/student/actions";
+import { fetchPlaylists, fetchPlaylistVideos, fetchVideoById } from "../api/student/actions";
 import getImageUrl from "../utils/imageUrl";
 import { downloadFile, previewFile } from "../utils/fileHandler";
 import { motion } from "framer-motion";
@@ -131,12 +131,19 @@ const WatchVideo = () => {
           }
         }
 
+        if (!foundVideo) {
+          const directRes = await fetchVideoById(videoId);
+          if (directRes.success && directRes.data) {
+            foundVideo = directRes.data;
+          }
+        }
+
         if (foundVideo) {
           const resolvedVideoUrl = foundVideo.video_url || foundVideo.url;
           setCurrentVideo({
             ...foundVideo,
             id: foundVideo.video_id || foundVideo.id,
-            playlist_title: foundPlaylist?.title || "",
+            playlist_title: foundPlaylist?.title || foundVideo.playlist_title || "",
             video_url: resolvedVideoUrl,
             embed_url: getSafeEmbedUrl(resolvedVideoUrl),
             thumbnail: foundVideo.thumbnail_url || foundVideo.thumbnail || foundVideo.thumbnail_path || foundVideo.cover_image || foundVideo.image,

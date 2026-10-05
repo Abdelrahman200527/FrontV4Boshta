@@ -2,7 +2,7 @@ import { CiLocationOn } from "react-icons/ci";
 import { SiPerforce } from "react-icons/si";
 import { CiStar } from "react-icons/ci";
 import { TbMath } from "react-icons/tb";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, User, UserRoundPen, UsersRound } from "lucide-react";
@@ -15,6 +15,7 @@ import Background from "../assets/background.png";
 // Auth Context
 import { authenticate } from "../api/auth/actions";
 import { isValidEgyptianPhone, normalizePhone } from "../utils/validators";
+import { clearDemoState } from "../utils/demo";
 
 const Badge = ({ title, subtitle, style, rotate = "0" }) => (
   <div className="absolute z-20" style={style}>
@@ -41,6 +42,10 @@ const LoginSystem = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPasswords, setShowPasswords] = useState(false);
+
+  useEffect(() => {
+    clearDemoState();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

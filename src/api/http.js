@@ -37,10 +37,16 @@ function getHeaders(isFormData = false) {
 }
 
 import { handleDemoRequest } from "../demo/mockApi";
+import { isDemoMode, clearDemoState } from "../utils/demo";
 
 async function httpRequest(path, options = {}) {
+  // If requesting real authentication routes, ALWAYS purge demo state and call real backend
+  if (path.startsWith("/auth/")) {
+    clearDemoState();
+  }
+
   // --- DEMO MODE INTERCEPTOR ---
-  if (localStorage.getItem("is_demo") === "true") {
+  if (!path.startsWith("/auth/") && isDemoMode()) {
     const mockResponse = await handleDemoRequest(path, options);
     const data = await mockResponse.json().catch(() => null);
     if (!mockResponse.ok) {

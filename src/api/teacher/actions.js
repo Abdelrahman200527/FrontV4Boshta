@@ -2,8 +2,10 @@ import * as teacherServices from "./services";
 import config from "../../config";
 import { downloadFile } from "../../utils/fileHandler";
 
+import { isDemoMode } from "../../utils/demo";
+
 const { apiUrl } = config;
-const isDemo = () => localStorage.getItem("is_demo") === "true";
+const isDemo = () => isDemoMode();
 
 const extractArray = (res) => {
   if (!res) return [];

@@ -1,7 +1,9 @@
 import { loginUser, loginStudent, logout as logoutService } from "./services";
 import { getCookie } from "../../utils/cookies";
+import { clearDemoState } from "../../utils/demo";
 
 const authenticate = async (role, phone, password) => {
+  clearDemoState();
   try {
     const response =
       role === "student"

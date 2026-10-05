@@ -60,7 +60,9 @@ const getAssistantById = async (assistantId) => {
   return response.data;
 };
 
-const isDemo = () => localStorage.getItem("is_demo") === "true";
+import { isDemoMode } from "../../utils/demo";
+
+const isDemo = () => isDemoMode();
 
 const getGrades = async () => {
   if (isDemo()) {
@@ -71,7 +73,7 @@ const getGrades = async () => {
     ];
   }
   const response = await httpGet("/teacher/grades");
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getGradesWithGroupsCount = async () => {
@@ -136,7 +138,7 @@ const getGroupsByGrade = async (gradeId) => {
     return allGroups.filter(g => !gradeId || String(g.grade_id) === String(gradeId));
   }
   const response = await httpGet(`/teacher/groups/grade/${gradeId}`);
-  return response.data;
+  return response?.data ?? response;
 };
 
 const getGroupById = async (groupId) => {

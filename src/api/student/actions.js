@@ -43,7 +43,9 @@ const extractArray = (res) => {
   return [];
 };
 
-const isDemo = () => localStorage.getItem("is_demo") === "true";
+import { isDemoMode } from "../../utils/demo";
+
+const isDemo = () => isDemoMode();
 
 // ============================================================
 // COMPREHENSIVE HARDCODED SEMESTER DEMO DATA (ARABIC - UTF-8 CLEAN)
@@ -976,18 +978,53 @@ export const fetchPlaylistVideos = async (id) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
+export const fetchVideoById = async (id) => {
+  if (isDemo()) {
+    for (const pl of mockData.playlists.data) {
+      const v = (pl.videos || []).find(x => String(x.id) === String(id) || String(x.video_id) === String(id));
+      if (v) return { success: true, data: v };
+    }
+    return { success: true, data: mockData.playlists.data[0]?.videos[0] };
+  }
+  try {
+    const raw = await studentServices.getVideoById(id);
+    const unwrapped = unwrapApiData(raw);
+    const data = unwrapped.data ?? raw;
+    return { success: true, data: Array.isArray(data) ? data[0] : data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 // 7. Finance & Payments
-export const fetchPaymentHistory = async () => {
+export const fetchPaymentHistory = async (month = "", page = 1) => {
   if (isDemo()) return { success: true, data: mockData.payments };
-  return { success: true, data: [] };
+  try {
+    const raw = await studentServices.getPaymentHistory(month, page);
+    const unwrapped = unwrapApiData(raw);
+    const list = Array.isArray(unwrapped.data) ? unwrapped.data : extractArray(raw);
+    return { success: true, data: list, pagination: unwrapped.pagination };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const fetchRemainingBalance = async () => {
   if (isDemo()) return { success: true, data: { amount: 0 } };
-  return { success: true, data: null };
+  try {
+    const data = await studentServices.getRemainingBalance();
+    return { success: true, data: data?.data ?? data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 export const fetchCurrentSubscription = async () => {
   if (isDemo()) return { success: true, data: { status: "active", plan: "اشتراك شهري كامل (شامل السنتر والأونلاين)" } };
-  return { success: true, data: null };
+  try {
+    const data = await studentServices.getCurrentSubscription();
+    return { success: true, data: data?.data ?? data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };

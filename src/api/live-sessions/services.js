@@ -1,9 +1,11 @@
 import { httpGet, httpPost, httpPut, httpDelete, httpPostFormData, httpPutFormData } from "../http";
 import config from "../../config";
 
+import { isDemoMode } from "../../utils/demo";
+
 const { apiUrl } = config;
 
-const isDemo = () => localStorage.getItem("is_demo") === "true";
+const isDemo = () => isDemoMode();
 
 const mockLiveSessions = [
   {

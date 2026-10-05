@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { LogOut, ArrowRight, Sparkles, ChevronDown, ChevronUp, Layers } from "lucide-react";
 import { clearAllAuthCookies } from "../utils/cookies";
+import { isDemoMode, clearDemoState } from "../utils/demo";
 
 export default function DemoBadge() {
-  const [isDemo, setIsDemo] = useState(() => {
-    return typeof window !== "undefined" && localStorage.getItem("is_demo") === "true";
-  });
+  const [isDemo, setIsDemo] = useState(() => isDemoMode());
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsDemo(localStorage.getItem("is_demo") === "true");
+      setIsDemo(isDemoMode());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -18,8 +17,7 @@ export default function DemoBadge() {
   if (!isDemo) return null;
 
   const exitDemo = () => {
-    localStorage.removeItem("is_demo");
-    localStorage.removeItem("demo_role");
+    clearDemoState();
     clearAllAuthCookies();
     window.location.href = "/";
   };

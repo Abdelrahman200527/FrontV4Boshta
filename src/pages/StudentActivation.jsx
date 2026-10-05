@@ -16,6 +16,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { BarcodeDetector, prepareZXingModule } from "barcode-detector/ponyfill";
 import wasmUrl from "zxing-wasm/reader/zxing_reader.wasm?url";
 import { verifyStudentActivation, completeStudentActivation } from "../api/auth/services";
+import { clearDemoState } from "../utils/demo";
 
 // Assets
 import MrBoshta from "../assets/Mr-Boshta-removebg.png";
@@ -59,6 +60,10 @@ const StudentActivation = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [activationToken, setActivationToken] = useState(null);
   const [studentInfo, setStudentInfo] = useState(null);
+
+  useEffect(() => {
+    clearDemoState();
+  }, []);
 
   // Error mapping helper to provide friendly arabic messages without emojis
   const handleVerifyError = (err) => {

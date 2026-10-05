@@ -1,6 +1,7 @@
 import { getParentData, getParentDataByToken } from "./services";
+import { isDemoMode } from "../../utils/demo";
 
-const isDemo = () => localStorage.getItem("is_demo") === "true";
+const isDemo = () => isDemoMode();
 
 const nowMs = Date.now();
 const oneDayMs = 86400000;

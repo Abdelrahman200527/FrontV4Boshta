@@ -3,10 +3,12 @@ import * as mockStore from "./mockAssistantData";
 import config from "../../config";
 import { previewFile, downloadFile } from "../../utils/fileHandler";
 
+import { isDemoMode } from "../../utils/demo";
+
 const { apiUrl } = config;
 const BASE_URL = apiUrl.replace(/\/api\/?$/, "");
 
-const isDemo = () => typeof window !== "undefined" && localStorage.getItem("is_demo") === "true";
+const isDemo = () => isDemoMode();
 
 const wrapAction = async (fn, context = "العملية") => {
   try {
