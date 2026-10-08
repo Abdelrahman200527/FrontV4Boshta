@@ -13,9 +13,9 @@ import {
   ChevronUp,
   RefreshCw,
   GraduationCap,
-  Youtube,
+  Video,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   fetchCourses,
@@ -24,9 +24,12 @@ import {
   previewVideoFileAction,
 } from "../api/teacher/actions";
 import { getGrades } from "../api/teacher/services";
-import PlaylistCard from "../components/PlaylistCard";
 import VideoCard from "../components/VideoCard";
+import PlaylistCard from "../components/PlaylistCard";
 import UploadVideoModal from "../components/UploadVideoModal";
+import UploadingVideoCard from "../components/UploadingVideoCard";
+import FloatingUploadDock from "../components/FloatingUploadDock";
+import { useUploadManager } from "../utils/uploadManager";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -89,6 +92,9 @@ const Courses = () => {
     setLoading(false);
   }, []);
 
+  const currentUpload = useUploadManager();
+  const lastFinishedVidRef = useRef(null);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -98,6 +104,27 @@ const Courses = () => {
     await loadData();
     setRefreshing(false);
   };
+
+  // Auto-refresh when background upload completes
+  useEffect(() => {
+    if (currentUpload.stage === "done" && currentUpload.createdVideo) {
+      const vidId =
+        currentUpload.createdVideo.id || currentUpload.createdVideo.video_url;
+      if (lastFinishedVidRef.current !== vidId) {
+        lastFinishedVidRef.current = vidId;
+        handleRefresh();
+      }
+    }
+  }, [currentUpload.stage, currentUpload.createdVideo]);
+
+  // Global event listener for refresh-videos
+  useEffect(() => {
+    const handleAutoRefresh = () => {
+      handleRefresh();
+    };
+    window.addEventListener("refresh-videos", handleAutoRefresh);
+    return () => window.removeEventListener("refresh-videos", handleAutoRefresh);
+  }, []);
 
   const filterBySearch = (items) => {
     if (!Array.isArray(items)) return [];
@@ -229,7 +256,7 @@ const Courses = () => {
               onClick={() => setShowUploadModal(true)}
               className="flex items-center gap-1.5 bg-[#009966] hover:bg-[#007a52] text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-xs transition cursor-pointer"
             >
-              <Youtube size={15} />
+              <Video size={15} />
               <span>إضافة فيديو</span>
             </button>
             <button
@@ -359,6 +386,7 @@ const Courses = () => {
             exit={{ opacity: 0, y: -10 }}
             className={`grid gap-3 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"}`}
           >
+            <UploadingVideoCard />
             {filteredVideos.length === 0 ? (
               <div className="col-span-full text-center py-16 text-gray-400">
                 <PlayCircle size={48} className="text-gray-200 mx-auto mb-2" />
@@ -488,7 +516,7 @@ const Courses = () => {
         )}
       </AnimatePresence>
 
-      {/* Zero-Bandwidth Direct YouTube Upload Modal */}
+      {/* Video Upload Modal */}
       <UploadVideoModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
@@ -499,6 +527,9 @@ const Courses = () => {
         playlists={playlists}
         role="teacher"
       />
+
+      {/* Floating Background Upload Dock */}
+      <FloatingUploadDock onExpandModal={() => setShowUploadModal(true)} />
     </motion.section>
   );
 };

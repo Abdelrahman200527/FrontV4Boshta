@@ -1718,23 +1718,27 @@ const initTeacherYoutubeUploadAction = async (payload) => {
 
 const confirmTeacherYoutubeUploadAction = async (payload) => {
   if (isDemo()) {
+    const isFd = typeof FormData !== "undefined" && payload instanceof FormData;
+    const title = isFd ? payload.get("title") : payload?.title;
+    const description = isFd ? payload.get("description") : payload?.description;
+    const grade_id = isFd ? Number(payload.get("grade_id")) : payload?.grade_id;
+    const youtube_video_id = isFd ? payload.get("youtube_video_id") : payload?.youtube_video_id;
+    const playlist_id = isFd ? payload.get("playlist_id") : payload?.playlist_id;
     const newVid = {
       id: Date.now(),
-      title: payload.title,
-      description: payload.description,
-      grade_id: payload.grade_id,
-      video_url: `https://www.youtube.com/watch?v=${payload.youtube_video_id}`,
-      thumbnail:
-        payload.thumbnail_url ||
-        `https://img.youtube.com/vi/${payload.youtube_video_id}/hqdefault.jpg`,
+      title,
+      description,
+      grade_id,
+      video_url: `https://www.youtube.com/watch?v=${youtube_video_id}`,
+      thumbnail: `https://img.youtube.com/vi/${youtube_video_id}/hqdefault.jpg`,
       created_at: new Date().toISOString(),
     };
     return {
       success: true,
       data: {
         video: newVid,
-        playlist_attached: !!payload.playlist_id,
-        youtube_video_id: payload.youtube_video_id,
+        playlist_attached: !!playlist_id,
+        youtube_video_id,
       },
     };
   }
@@ -1746,15 +1750,44 @@ const confirmTeacherYoutubeUploadAction = async (payload) => {
   }
 };
 
+const createTeacherVideoAction = async (formData) => {
+  if (isDemo()) {
+    const isFd = typeof FormData !== "undefined" && formData instanceof FormData;
+    const title = isFd ? formData.get("title") : formData?.title;
+    const grade_id = isFd ? Number(formData.get("grade_id")) : formData?.grade_id;
+    const video_url = isFd ? formData.get("video_url") : formData?.video_url;
+    const description = isFd ? formData.get("description") : formData?.description;
+    const newVideo = {
+      id: Date.now(),
+      title,
+      grade_id,
+      video_url,
+      description,
+      thumbnail: null,
+      created_at: new Date().toISOString(),
+    };
+    return { success: true, data: newVideo };
+  }
+  try {
+    const data = await teacherServices.createVideo(formData);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message || "فشل إضافة الفيديو" };
+  }
+};
+
 const teacherUploadVideoDirectToYoutubeAction = async ({
   videoFile,
   title,
   description = "",
   gradeId,
   playlistId = null,
+  thumbnailFile = null,
+  materialFile = null,
   thumbnailUrl = null,
   fileUrl = null,
   onProgress = null,
+  controller = null,
 }) => {
   try {
     if (!videoFile) {
@@ -1787,37 +1820,53 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
 
     const { upload_url } = initRes.data;
 
-    // Step 2: Direct Upload to Google Cloud (0% -> 100%)
+    // Step 2: Direct Upload to Cloud (0% -> 100%)
     const googleRes = await uploadFileToGoogleWithProgress(
       upload_url,
       videoFile,
       onProgress,
+      controller,
     );
 
     const youtubeVideoId = googleRes?.id || "gbst-g9OMdw";
     if (!youtubeVideoId) {
       return {
         success: false,
-        error: "اكتمل الرفع لكن لم يتم استلام معرّف الفيديو من Google",
+        error: "اكتمل الرفع لكن لم يتم استلام معرّف الفيديو من السيرفر",
       };
     }
 
     // Step 3: Confirm with platform backend
-    const confirmRes = await confirmTeacherYoutubeUploadAction({
-      youtube_video_id: youtubeVideoId,
-      title: title.trim(),
-      description: (description || "").trim(),
-      grade_id: Number(gradeId),
-      playlist_id: playlistId ? Number(playlistId) : null,
-      thumbnail_url: thumbnailUrl || null,
-      file_url: fileUrl || null,
-    });
+    let confirmPayload;
+    if (thumbnailFile || materialFile) {
+      const fd = new FormData();
+      fd.append("youtube_video_id", youtubeVideoId);
+      fd.append("title", title.trim());
+      if (description?.trim()) fd.append("description", description.trim());
+      fd.append("grade_id", String(gradeId));
+      if (playlistId) fd.append("playlist_id", String(playlistId));
+      if (thumbnailFile) fd.append("thumbnail", thumbnailFile);
+      if (materialFile) fd.append("file", materialFile);
+      confirmPayload = fd;
+    } else {
+      confirmPayload = {
+        youtube_video_id: youtubeVideoId,
+        title: title.trim(),
+        description: (description || "").trim(),
+        grade_id: Number(gradeId),
+        playlist_id: playlistId ? Number(playlistId) : null,
+        thumbnail_url: thumbnailUrl || null,
+        file_url: fileUrl || null,
+      };
+    }
+
+    const confirmRes = await confirmTeacherYoutubeUploadAction(confirmPayload);
 
     return confirmRes;
   } catch (error) {
     return {
       success: false,
-      error: error.message || "حدث خطأ أثناء رفع الفيديو إلى YouTube",
+      error: error.message || "حدث خطأ أثناء رفع الفيديو",
     };
   }
 };
@@ -2162,4 +2211,5 @@ export {
   initTeacherYoutubeUploadAction,
   confirmTeacherYoutubeUploadAction,
   teacherUploadVideoDirectToYoutubeAction,
+  createTeacherVideoAction,
 };

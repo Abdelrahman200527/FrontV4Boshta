@@ -1252,7 +1252,10 @@ const initYoutubeUpload = async (payload) => {
 };
 
 const confirmYoutubeUpload = async (payload) => {
-  const response = await httpPost("/assistant/youtube/confirm-upload", payload);
+  const isForm = typeof FormData !== "undefined" && payload instanceof FormData;
+  const response = isForm
+    ? await httpPostFormData("/assistant/youtube/confirm-upload", payload)
+    : await httpPost("/assistant/youtube/confirm-upload", payload);
   return response?.data ?? response;
 };
 

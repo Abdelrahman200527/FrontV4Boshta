@@ -1,4 +1,4 @@
-import { httpGet, httpPut, httpDelete, httpPutFormData } from "../http";
+import { httpGet, httpPost, httpPut, httpDelete, httpPutFormData, httpPostFormData } from "../http";
 import config from "../../config";
 
 const { apiUrl } = config;
@@ -719,6 +719,11 @@ const getPlaylistVideos = async (playlistId) => {
   return response?.data ?? response;
 };
 
+const createVideo = async (formData) => {
+  const response = await httpPostFormData("/teacher/videos", formData);
+  return response?.data ?? response;
+};
+
 // ============================================
 // YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
 // ============================================
@@ -739,7 +744,10 @@ const initYoutubeUpload = async (payload) => {
 };
 
 const confirmYoutubeUpload = async (payload) => {
-  const response = await httpPost("/teacher/youtube/confirm-upload", payload);
+  const isForm = typeof FormData !== "undefined" && payload instanceof FormData;
+  const response = isForm
+    ? await httpPostFormData("/teacher/youtube/confirm-upload", payload)
+    : await httpPost("/teacher/youtube/confirm-upload", payload);
   return response?.data ?? response;
 };
 
@@ -867,6 +875,7 @@ export {
   getVideos,
   getVideosByGrade,
   getVideoById,
+  createVideo,
   getPlaylists,
   getPlaylistsByGrade,
   getPlaylistById,

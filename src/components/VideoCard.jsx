@@ -1,6 +1,5 @@
 import {
   Play,
-  Youtube,
   FileVideo,
   Trash2,
   FileText,
@@ -66,14 +65,8 @@ const VideoCard = ({
             }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-200">
-            {isYouTube(targetUrl) ? (
-              <Youtube size={40} className="text-red-500" />
-            ) : isDrive(targetUrl) ? (
-              <FileVideo size={40} className="text-blue-500" />
-            ) : (
-              <FileVideo size={40} className="text-gray-400" />
-            )}
+          <div className="w-full h-full flex items-center justify-center bg-emerald-50/60">
+            <FileVideo size={38} className="text-[#1a5d1a]/50" />
           </div>
         )}
 

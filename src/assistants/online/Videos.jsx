@@ -9,7 +9,7 @@ import {
 import {
   Plus,
   X,
-  Youtube,
+  Video,
   ListVideo,
   ArrowRight,
   FolderOpen,
@@ -38,6 +38,9 @@ import { validateFileUpload } from "../../utils/validators";
 import VideoCard from "../../components/VideoCard";
 import PlaylistCard from "../../components/PlaylistCard";
 import UploadVideoModal from "../../components/UploadVideoModal";
+import UploadingVideoCard from "../../components/UploadingVideoCard";
+import FloatingUploadDock from "../../components/FloatingUploadDock";
+import { useUploadManager } from "../../utils/uploadManager";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../../motion";
 
@@ -88,22 +91,51 @@ const Videos = () => {
   const VIDEO_FILE_ACCEPT = ".pdf,.doc,.docx,.png,.jpg,.jpeg";
   const THUMBNAIL_ACCEPT = "image/*";
 
+  const currentUpload = useUploadManager();
+  const lastFinishedVidRef = useRef(null);
+
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const [videosRes, playlistsRes, gradesRes] = await Promise.all([
+        fetchAllVideos(),
+        fetchAllPlaylists(),
+        fetchAllGrades(),
+      ]);
+      if (videosRes.success) setVideos(videosRes.data);
+      if (playlistsRes.success) setPlaylists(playlistsRes.data);
+      if (gradesRes.success) setGrades(gradesRes.data);
+    } catch {
+      // ignore
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [videosRes, playlistsRes, gradesRes] = await Promise.all([
-      fetchAllVideos(),
-      fetchAllPlaylists(),
-      fetchAllGrades(),
-    ]);
-    if (videosRes.success) setVideos(videosRes.data);
-    if (playlistsRes.success) setPlaylists(playlistsRes.data);
-    if (gradesRes.success) setGrades(gradesRes.data);
-    setLoading(false);
-  };
+  // Auto-refresh when background upload completes
+  useEffect(() => {
+    if (currentUpload.stage === "done" && currentUpload.createdVideo) {
+      const vidId =
+        currentUpload.createdVideo.id || currentUpload.createdVideo.video_url;
+      if (lastFinishedVidRef.current !== vidId) {
+        lastFinishedVidRef.current = vidId;
+        loadData(true);
+      }
+    }
+  }, [currentUpload.stage, currentUpload.createdVideo]);
+
+  // Global listener for refresh-videos event
+  useEffect(() => {
+    const handleAutoRefresh = () => {
+      loadData(true);
+    };
+    window.addEventListener("refresh-videos", handleAutoRefresh);
+    return () => window.removeEventListener("refresh-videos", handleAutoRefresh);
+  }, []);
 
   const resetVideoForm = () => {
     setVideoForm({
@@ -401,10 +433,10 @@ const Videos = () => {
             onClick={() => {
               setShowUploadModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#009966] hover:bg-[#007a52] text-white rounded-lg text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
           >
-            <Youtube size={15} />
-            <span className="hidden sm:inline">فيديو جديد (يوتيوب)</span>
+            <Video size={15} />
+            <span className="hidden sm:inline">فيديو جديد</span>
           </button>
           <button
             onClick={() => {
@@ -473,9 +505,10 @@ const Videos = () => {
 
       {activeTab === "videos" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+          <UploadingVideoCard />
           {filteredVideos.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-400">
-              <Youtube size={48} className="text-gray-200 mx-auto mb-2" />
+              <Video size={48} className="text-gray-200 mx-auto mb-2" />
               <p className="text-sm">لا توجد فيديوهات</p>
             </div>
           ) : (
@@ -591,7 +624,7 @@ const Videos = () => {
               </select>
               <input
                 type="url"
-                placeholder="رابط الفيديو (يوتيوب أو Drive) *"
+                placeholder="رابط الفيديو *"
                 value={videoForm.videoUrl}
                 onChange={(e) =>
                   setVideoForm({ ...videoForm, videoUrl: e.target.value })
@@ -722,7 +755,7 @@ const Videos = () => {
                 <button
                   type="submit"
                   disabled={savingVideo}
-                  className="flex-1 bg-red-600 text-white py-2.5 rounded-lg text-sm font-bold disabled:opacity-60"
+                  className="flex-1 bg-[#009966] hover:bg-[#007a52] text-white py-2.5 rounded-lg text-sm font-bold disabled:opacity-60 transition cursor-pointer"
                 >
                   {savingVideo
                     ? "جاري الحفظ..."
@@ -875,6 +908,9 @@ const Videos = () => {
         playlists={playlists}
         role="assistant"
       />
+
+      {/* Floating Background Upload Dock */}
+      <FloatingUploadDock onExpandModal={() => setShowUploadModal(true)} />
     </motion.section>
   );
 };
