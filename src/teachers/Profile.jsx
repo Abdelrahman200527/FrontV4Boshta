@@ -160,6 +160,23 @@ const Profile = () => {
   const googleConnected =
     googleStatus?.is_connected === true || googleStatus?.connected === true;
 
+  const resolvedGoogleEmail = useMemo(() => {
+    if (!googleConnected) return null;
+    return (
+      googleStatus?.email ||
+      profileData?.google_email ||
+      profileData?.email ||
+      user?.email ||
+      null
+    );
+  }, [
+    googleConnected,
+    googleStatus?.email,
+    profileData?.google_email,
+    profileData?.email,
+    user?.email,
+  ]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([loadProfile(), loadGoogleStatus()]);
@@ -421,7 +438,7 @@ const Profile = () => {
                   ) : googleConnected ? (
                     <span
                       className="bg-emerald-500/25 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-400/40"
-                      title={googleStatus?.email ? `حساب Google مرتبط: ${googleStatus.email}` : "حساب Google مرتبط"}
+                      title={resolvedGoogleEmail ? `حساب Google مرتبط: ${resolvedGoogleEmail}` : "حساب Google مرتبط"}
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       Google Meet مرتبط
@@ -521,18 +538,18 @@ const Profile = () => {
               بيانات الحساب الأساسية
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Phone */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Phone size={18} />
+              <div className="bg-gray-50/80 rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 border border-gray-100/90 hover:border-[#009966]/30 transition shadow-2xs">
+                <div className="bg-white rounded-xl p-3 shadow-xs shrink-0 text-[#009966] border border-gray-100">
+                  <Phone size={20} />
                 </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs text-gray-500 block mb-1 font-medium">
                     رقم الهاتف
                   </span>
                   <span
-                    className="font-bold text-xs sm:text-sm text-gray-800 block truncate font-mono"
+                    className="font-bold text-sm sm:text-base text-gray-900 block font-mono tracking-wide"
                     dir="ltr"
                   >
                     {profileData?.phone || "01012345678"}
@@ -541,61 +558,78 @@ const Profile = () => {
               </div>
 
               {/* Google Email */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Mail size={18} />
+              <div className="bg-gray-50/80 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 border border-gray-100/90 hover:border-[#009966]/30 transition shadow-2xs">
+                <div className="bg-white rounded-xl p-3 shadow-xs shrink-0 text-[#009966] border border-gray-100 mt-0.5">
+                  <Mail size={20} />
                 </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    البريد الإلكتروني المربوط (Google)
-                  </span>
-                  <span
-                    className={`font-bold text-xs sm:text-sm block truncate ${
-                      googleConnected && googleStatus?.email
-                        ? "text-gray-800 font-mono"
-                        : "text-amber-600"
-                    }`}
-                    dir="ltr"
-                    title={
-                      googleConnected && googleStatus?.email
-                        ? googleStatus.email
-                        : "غير مرتبط بحساب Google"
-                    }
-                  >
-                    {googleLoading
-                      ? "جاري التحقق..."
-                      : googleConnected && googleStatus?.email
-                      ? googleStatus.email
-                      : "غير مرتبط بحساب Google"}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                    <span className="text-xs text-gray-500 font-medium">
+                      البريد الإلكتروني المربوط (Google)
+                    </span>
+                    {googleLoading ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                        <RefreshCw size={10} className="animate-spin text-[#009966]" />
+                        جاري التحقق...
+                      </span>
+                    ) : googleConnected ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-50 text-green-700 border border-green-200">
+                        <CheckCircle2 size={12} className="text-green-600" />
+                        مرتبط
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <AlertCircle size={12} className="text-amber-600" />
+                        غير مرتبط
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    {googleLoading ? (
+                      <span className="text-xs sm:text-sm text-gray-400 font-medium">
+                        جاري التحقق من الحساب...
+                      </span>
+                    ) : googleConnected ? (
+                      <span
+                        className="font-bold text-xs sm:text-sm text-gray-900 block font-mono break-all"
+                        dir="ltr"
+                      >
+                        {resolvedGoogleEmail || "حساب Google معتمد"}
+                      </span>
+                    ) : (
+                      <span className="font-bold text-xs sm:text-sm text-amber-700 block">
+                        غير مرتبط بحساب Google
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Role */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <GraduationCap size={18} />
+              <div className="bg-gray-50/80 rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 border border-gray-100/90 hover:border-[#009966]/30 transition shadow-2xs">
+                <div className="bg-white rounded-xl p-3 shadow-xs shrink-0 text-[#009966] border border-gray-100">
+                  <GraduationCap size={20} />
                 </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs text-gray-500 block mb-1 font-medium">
                     الدور الوظيفي
                   </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                  <span className="font-bold text-sm sm:text-base text-gray-900 block">
                     {roleName}
                   </span>
                 </div>
               </div>
 
               {/* Permissions */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Shield size={18} />
+              <div className="bg-gray-50/80 rounded-2xl p-4 sm:p-5 flex items-center gap-3.5 border border-gray-100/90 hover:border-[#009966]/30 transition shadow-2xs">
+                <div className="bg-white rounded-xl p-3 shadow-xs shrink-0 text-[#009966] border border-gray-100">
+                  <Shield size={20} />
                 </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs text-gray-500 block mb-1 font-medium">
                     صلاحيات الحساب
                   </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
+                  <span className="font-bold text-sm sm:text-base text-gray-900 block leading-snug">
                     {permissionsName}
                   </span>
                 </div>
@@ -634,7 +668,7 @@ const Profile = () => {
                   </div>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
                     {googleConnected
-                      ? `الحساب المرتبط: ${googleStatus?.email || "تم الربط بنجاح"}. يتم استخدام هذا الحساب لإنشاء وجدولة حصص Google Meet للطلاب تلقائياً.`
+                      ? `الحساب المرتبط: ${resolvedGoogleEmail || "حساب Google الخاص بك"}. يتم استخدام هذا الحساب لإنشاء وجدولة حصص Google Meet للطلاب تلقائياً.`
                       : "قم بربط حساب Google الخاص بك لتتمكن من إنشاء وتفعيل حصص البث المباشر (Google Meet) للطلاب."}
                   </p>
                 </div>
