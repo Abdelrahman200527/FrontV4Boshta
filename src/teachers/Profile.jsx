@@ -327,7 +327,7 @@ const Profile = () => {
               الملف الشخصي
             </h1>
             <span className="text-xs sm:text-sm text-gray-500 mt-0.5 block">
-              بيانات المعلم والتخصص وإحصائيات الحساب الأكاديمي
+              بيانات المعلم وإحصائيات الحساب الأكاديمي
             </span>
           </div>
           <button
@@ -406,10 +406,6 @@ const Profile = () => {
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white">
                     {profileData?.full_name || "أ / محمد بشتة"}
                   </h2>
-                  <p className="text-emerald-100 text-sm sm:text-base font-semibold mt-1 flex items-center justify-center md:justify-start gap-1.5">
-                    <BookOpen size={16} className="text-emerald-300" />
-                    {profileData?.subject || "اللغة العربية للثانوية العامة"}
-                  </p>
                 </div>
 
                 <div className="flex items-center justify-center md:justify-end gap-2 mt-2 md:mt-0 flex-wrap">
@@ -450,14 +446,6 @@ const Profile = () => {
                 <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
                   <Shield size={14} className="text-emerald-200" />
                   {permissionsName}
-                </span>
-                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
-                  <Award size={14} className="text-emerald-200" />
-                  خبرة {profileData?.experience_years || 15} عاماً
-                </span>
-                <span className="bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/10">
-                  <Building size={14} className="text-emerald-200" />
-                  {profileData?.center_name || "سنتر النخبة التعليمي"}
                 </span>
               </div>
             </div>
@@ -530,10 +518,10 @@ const Profile = () => {
           <div className="p-4 sm:p-6 flex flex-col gap-5">
             <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center gap-2">
               <Sparkles size={18} className="text-[#009966]" />
-              البيانات الشخصية والأكاديمية
+              بيانات الحساب الأساسية
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Phone */}
               <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
                 <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
@@ -552,80 +540,33 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Google Email */}
               <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
                 <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
                   <Mail size={18} />
                 </div>
                 <div className="min-w-0">
                   <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    البريد الإلكتروني
+                    البريد الإلكتروني المربوط (Google)
                   </span>
                   <span
-                    className="font-bold text-xs sm:text-sm text-gray-800 block truncate"
+                    className={`font-bold text-xs sm:text-sm block truncate ${
+                      googleConnected && googleStatus?.email
+                        ? "text-gray-800 font-mono"
+                        : "text-amber-600"
+                    }`}
                     dir="ltr"
+                    title={
+                      googleConnected && googleStatus?.email
+                        ? googleStatus.email
+                        : "غير مرتبط بحساب Google"
+                    }
                   >
-                    {profileData?.email || "boshta@benben.cloud"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <BookOpen size={18} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    المادة والتخصص
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                    {profileData?.specialization || "النحو والصرف والبلاغة والأدب"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Experience */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Award size={18} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    سنوات الخبرة
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                    {profileData?.experience_years || 15} عاماً من التدريس الأكاديمي
-                  </span>
-                </div>
-              </div>
-
-              {/* Center */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Building size={18} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    مقر السنتر التعليمي
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                    {profileData?.center_name || "سنتر النخبة التعليمي - القاهرة"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <MapPin size={18} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    المحافظة والمنطقة
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                    {profileData?.location || "القاهرة - مصر"}
+                    {googleLoading
+                      ? "جاري التحقق..."
+                      : googleConnected && googleStatus?.email
+                      ? googleStatus.email
+                      : "غير مرتبط بحساب Google"}
                   </span>
                 </div>
               </div>
@@ -659,33 +600,6 @@ const Profile = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Joined At */}
-              <div className="bg-gray-50/80 rounded-xl p-3.5 sm:p-4 flex items-center gap-3 border border-gray-100 hover:border-[#009966]/30 transition">
-                <div className="bg-white rounded-xl p-2.5 shadow-xs shrink-0 text-[#009966]">
-                  <Calendar size={18} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[10px] sm:text-xs text-gray-400 block mb-0.5">
-                    تاريخ الانضمام
-                  </span>
-                  <span className="font-bold text-xs sm:text-sm text-gray-800 block truncate">
-                    1 أغسطس 2024
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Teacher Bio */}
-            <div className="bg-emerald-50/60 rounded-xl p-4 sm:p-5 border border-emerald-100">
-              <h4 className="font-bold text-xs sm:text-sm text-emerald-950 mb-1.5 flex items-center gap-2">
-                <BookOpen size={16} className="text-[#009966]" />
-                نبذة تعريفية بالمعلم
-              </h4>
-              <p className="text-xs sm:text-sm text-emerald-900/80 leading-relaxed font-medium">
-                {profileData?.bio ||
-                  "معلم ومحاضر مادة اللغة العربية للثانوية العامة بخبرة تفوق 15 عاماً في إعداد وتأهيل أوائل الجمهورية وتيسير قواعد النحو وفنون البلاغة لجميع المراحل الثانوية."}
-              </p>
             </div>
           </div>
 
