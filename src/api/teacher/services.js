@@ -720,6 +720,30 @@ const getPlaylistVideos = async (playlistId) => {
 };
 
 // ============================================
+// YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
+// ============================================
+
+const getYoutubeChannelInfo = async () => {
+  const response = await httpGet("/teacher/youtube/channel");
+  return response?.data ?? response;
+};
+
+const validateYoutubeUpload = async (payload) => {
+  const response = await httpPost("/teacher/youtube/validate", payload);
+  return response?.data ?? response;
+};
+
+const initYoutubeUpload = async (payload) => {
+  const response = await httpPost("/teacher/youtube/init-upload", payload);
+  return response?.data ?? response;
+};
+
+const confirmYoutubeUpload = async (payload) => {
+  const response = await httpPost("/teacher/youtube/confirm-upload", payload);
+  return response?.data ?? response;
+};
+
+// ============================================
 // DOWNLOAD & PREVIEW SERVICES (جديد)
 // ============================================
 
@@ -847,6 +871,10 @@ export {
   getPlaylistsByGrade,
   getPlaylistById,
   getPlaylistVideos,
+  getYoutubeChannelInfo,
+  validateYoutubeUpload,
+  initYoutubeUpload,
+  confirmYoutubeUpload,
   getDownloadUrl,
   getPreviewUrl,
 };

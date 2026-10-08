@@ -13,6 +13,7 @@ import {
   ChevronUp,
   RefreshCw,
   GraduationCap,
+  Youtube,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ import {
 import { getGrades } from "../api/teacher/services";
 import PlaylistCard from "../components/PlaylistCard";
 import VideoCard from "../components/VideoCard";
+import UploadVideoModal from "../components/UploadVideoModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -44,6 +46,7 @@ const Courses = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -222,6 +225,13 @@ const Courses = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-1.5 bg-[#009966] hover:bg-[#007a52] text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-xs transition cursor-pointer"
+            >
+              <Youtube size={15} />
+              <span>إضافة فيديو</span>
+            </button>
             <button
               onClick={handleRefresh}
               className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-2 rounded-lg text-sm font-bold text-gray-600 hover:border-[#009966] transition"
@@ -477,6 +487,18 @@ const Courses = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Zero-Bandwidth Direct YouTube Upload Modal */}
+      <UploadVideoModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={() => {
+          loadData();
+        }}
+        grades={grades}
+        playlists={playlists}
+        role="teacher"
+      />
     </motion.section>
   );
 };

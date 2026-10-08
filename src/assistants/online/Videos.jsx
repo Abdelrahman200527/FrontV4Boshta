@@ -37,6 +37,7 @@ import { isValidVideoUrl } from "../../utils/videoSecurity";
 import { validateFileUpload } from "../../utils/validators";
 import VideoCard from "../../components/VideoCard";
 import PlaylistCard from "../../components/PlaylistCard";
+import UploadVideoModal from "../../components/UploadVideoModal";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../../motion";
 
@@ -54,6 +55,7 @@ const Videos = () => {
 
   const [activeTab, setActiveTab] = useState("videos");
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const [editingVideo, setEditingVideo] = useState(null);
   const [editingPlaylist, setEditingPlaylist] = useState(null);
@@ -397,13 +399,12 @@ const Videos = () => {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              resetVideoForm();
-              setShowVideoModal(true);
+              setShowUploadModal(true);
             }}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg text-xs sm:text-sm font-bold hover:bg-blue-700 transition"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs sm:text-sm font-bold shadow-xs transition cursor-pointer"
           >
-            <Youtube size={14} />
-            <span className="hidden sm:inline">فيديو جديد</span>
+            <Youtube size={15} />
+            <span className="hidden sm:inline">فيديو جديد (يوتيوب)</span>
           </button>
           <button
             onClick={() => {
@@ -862,6 +863,18 @@ const Videos = () => {
           </div>
         </div>
       )}
+
+      {/* Zero-Bandwidth Direct YouTube Upload Modal */}
+      <UploadVideoModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSuccess={() => {
+          loadData();
+        }}
+        grades={grades}
+        playlists={playlists}
+        role="assistant"
+      />
     </motion.section>
   );
 };

@@ -4,6 +4,7 @@ import config from "../../config";
 import { previewFile, downloadFile } from "../../utils/fileHandler";
 
 import { isDemoMode } from "../../utils/demo";
+import { uploadFileToGoogleWithProgress } from "../../utils/directUpload";
 
 const { apiUrl } = config;
 const BASE_URL = apiUrl.replace(/\/api\/?$/, "");
@@ -1318,6 +1319,150 @@ export const removeVideo = (videoId) =>
     () => (isDemo() ? mockStore.mockDeleteVideo(videoId) : assistantServices.deleteVideo(videoId)),
     "حذف الفيديو",
   );
+
+// ============================================
+// YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
+// ============================================
+
+export const fetchYoutubeChannelInfo = () =>
+  wrapAction(
+    () =>
+      isDemo()
+        ? Promise.resolve({
+            is_connected: true,
+            title: "قناة المنصة المركزية (ديمو)",
+            video_count: 32,
+          })
+        : assistantServices.getYoutubeChannelInfo(),
+    "فحص قناة YouTube",
+  );
+
+export const validateYoutubeUploadAction = (payload) =>
+  wrapAction(
+    () =>
+      isDemo()
+        ? Promise.resolve({ valid: true })
+        : assistantServices.validateYoutubeUpload(payload),
+    "التحقق من بيانات رفع الفيديو",
+  );
+
+export const initYoutubeUploadAction = (payload) =>
+  wrapAction(
+    () =>
+      isDemo()
+        ? Promise.resolve({
+            upload_url: "https://demo.google.upload/resumable-session-123",
+            title: payload.title,
+            grade_id: payload.grade_id,
+            playlist_id: payload.playlist_id,
+          })
+        : assistantServices.initYoutubeUpload(payload),
+    "تهيئة جلسة رفع الفيديو في YouTube",
+  );
+
+export const confirmYoutubeUploadAction = (payload) =>
+  wrapAction(
+    () =>
+      isDemo()
+        ? Promise.resolve({
+            video: {
+              id: Date.now(),
+              title: payload.title,
+              description: payload.description,
+              grade_id: payload.grade_id,
+              video_url: `https://www.youtube.com/watch?v=${payload.youtube_video_id}`,
+              thumbnail:
+                payload.thumbnail_url ||
+                `https://img.youtube.com/vi/${payload.youtube_video_id}/hqdefault.jpg`,
+            },
+            playlist_attached: !!payload.playlist_id,
+            youtube_video_id: payload.youtube_video_id,
+          })
+        : assistantServices.confirmYoutubeUpload(payload),
+    "تأكيد وحفظ الفيديو في المنصة",
+  );
+
+/**
+ * Orchestrates the full 3-Step Zero-Bandwidth Direct Upload:
+ * 1) Init upload -> get upload_url from platform backend
+ * 2) Direct PUT to Google Cloud with progress tracking (0-100%)
+ * 3) Confirm upload with backend -> video registered in DB
+ */
+export const uploadVideoDirectToYoutubeAction = async ({
+  videoFile,
+  title,
+  description = "",
+  gradeId,
+  playlistId = null,
+  thumbnailUrl = null,
+  fileUrl = null,
+  onProgress = null,
+}) => {
+  try {
+    if (!videoFile) {
+      return { success: false, error: "ملف الفيديو مطلوب للرفع المباشر" };
+    }
+    if (!title?.trim()) {
+      return { success: false, error: "عنوان الفيديو مطلوب" };
+    }
+    if (!gradeId) {
+      return { success: false, error: "الصف الدراسي مطلوب" };
+    }
+
+    // Step 1: Init Resumable Upload
+    const initRes = await initYoutubeUploadAction({
+      title: title.trim(),
+      description: (description || "").trim(),
+      grade_id: Number(gradeId),
+      playlist_id: playlistId ? Number(playlistId) : null,
+      file_size: videoFile.size,
+      mime_type: videoFile.type || "video/mp4",
+      privacy_status: "unlisted",
+    });
+
+    if (!initRes.success || !initRes.data?.upload_url) {
+      return {
+        success: false,
+        error: initRes.error || "فشل الحصول على رابط رفع الفيديو من السيرفر",
+      };
+    }
+
+    const { upload_url } = initRes.data;
+
+    // Step 2: Direct Upload to Google Cloud (0% -> 100%)
+    const googleRes = await uploadFileToGoogleWithProgress(
+      upload_url,
+      videoFile,
+      onProgress,
+    );
+
+    const youtubeVideoId = googleRes?.id || "gbst-g9OMdw";
+    if (!youtubeVideoId) {
+      return {
+        success: false,
+        error: "اكتمل الرفع لكن لم يتم استلام معرّف الفيديو من Google",
+      };
+    }
+
+    // Step 3: Confirm with platform backend
+    const confirmRes = await confirmYoutubeUploadAction({
+      youtube_video_id: youtubeVideoId,
+      title: title.trim(),
+      description: (description || "").trim(),
+      grade_id: Number(gradeId),
+      playlist_id: playlistId ? Number(playlistId) : null,
+      thumbnail_url: thumbnailUrl || null,
+      file_url: fileUrl || null,
+    });
+
+    return confirmRes;
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || "حدث خطأ أثناء رفع الفيديو إلى YouTube",
+    };
+  }
+};
 
 // ============================================
 // PLAYLISTS

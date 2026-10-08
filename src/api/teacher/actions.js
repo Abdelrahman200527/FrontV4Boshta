@@ -3,6 +3,7 @@ import config from "../../config";
 import { downloadFile } from "../../utils/fileHandler";
 
 import { isDemoMode } from "../../utils/demo";
+import { uploadFileToGoogleWithProgress } from "../../utils/directUpload";
 
 const { apiUrl } = config;
 const isDemo = () => isDemoMode();
@@ -1662,6 +1663,165 @@ const fetchVideoById = async (videoId) => {
   }
 };
 
+// ============================================
+// YOUTUBE DIRECT UPLOAD (ZERO-BACKEND-BANDWIDTH)
+// ============================================
+
+const fetchTeacherYoutubeChannelInfo = async () => {
+  if (isDemo()) {
+    return {
+      success: true,
+      data: {
+        is_connected: true,
+        title: "قناة الأستاذ محمد بشتة (ديمو)",
+        video_count: 24,
+      },
+    };
+  }
+  try {
+    const data = await teacherServices.getYoutubeChannelInfo();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const validateTeacherYoutubeUploadAction = async (payload) => {
+  if (isDemo()) return { success: true, data: { valid: true } };
+  try {
+    const data = await teacherServices.validateYoutubeUpload(payload);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const initTeacherYoutubeUploadAction = async (payload) => {
+  if (isDemo()) {
+    return {
+      success: true,
+      data: {
+        upload_url: "https://demo.google.upload/resumable-session-123",
+        title: payload.title,
+        grade_id: payload.grade_id,
+        playlist_id: payload.playlist_id,
+      },
+    };
+  }
+  try {
+    const data = await teacherServices.initYoutubeUpload(payload);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const confirmTeacherYoutubeUploadAction = async (payload) => {
+  if (isDemo()) {
+    const newVid = {
+      id: Date.now(),
+      title: payload.title,
+      description: payload.description,
+      grade_id: payload.grade_id,
+      video_url: `https://www.youtube.com/watch?v=${payload.youtube_video_id}`,
+      thumbnail:
+        payload.thumbnail_url ||
+        `https://img.youtube.com/vi/${payload.youtube_video_id}/hqdefault.jpg`,
+      created_at: new Date().toISOString(),
+    };
+    return {
+      success: true,
+      data: {
+        video: newVid,
+        playlist_attached: !!payload.playlist_id,
+        youtube_video_id: payload.youtube_video_id,
+      },
+    };
+  }
+  try {
+    const data = await teacherServices.confirmYoutubeUpload(payload);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+const teacherUploadVideoDirectToYoutubeAction = async ({
+  videoFile,
+  title,
+  description = "",
+  gradeId,
+  playlistId = null,
+  thumbnailUrl = null,
+  fileUrl = null,
+  onProgress = null,
+}) => {
+  try {
+    if (!videoFile) {
+      return { success: false, error: "ملف الفيديو مطلوب للرفع المباشر" };
+    }
+    if (!title?.trim()) {
+      return { success: false, error: "عنوان الفيديو مطلوب" };
+    }
+    if (!gradeId) {
+      return { success: false, error: "الصف الدراسي مطلوب" };
+    }
+
+    // Step 1: Init Resumable Upload
+    const initRes = await initTeacherYoutubeUploadAction({
+      title: title.trim(),
+      description: (description || "").trim(),
+      grade_id: Number(gradeId),
+      playlist_id: playlistId ? Number(playlistId) : null,
+      file_size: videoFile.size,
+      mime_type: videoFile.type || "video/mp4",
+      privacy_status: "unlisted",
+    });
+
+    if (!initRes.success || !initRes.data?.upload_url) {
+      return {
+        success: false,
+        error: initRes.error || "فشل الحصول على رابط رفع الفيديو من السيرفر",
+      };
+    }
+
+    const { upload_url } = initRes.data;
+
+    // Step 2: Direct Upload to Google Cloud (0% -> 100%)
+    const googleRes = await uploadFileToGoogleWithProgress(
+      upload_url,
+      videoFile,
+      onProgress,
+    );
+
+    const youtubeVideoId = googleRes?.id || "gbst-g9OMdw";
+    if (!youtubeVideoId) {
+      return {
+        success: false,
+        error: "اكتمل الرفع لكن لم يتم استلام معرّف الفيديو من Google",
+      };
+    }
+
+    // Step 3: Confirm with platform backend
+    const confirmRes = await confirmTeacherYoutubeUploadAction({
+      youtube_video_id: youtubeVideoId,
+      title: title.trim(),
+      description: (description || "").trim(),
+      grade_id: Number(gradeId),
+      playlist_id: playlistId ? Number(playlistId) : null,
+      thumbnail_url: thumbnailUrl || null,
+      file_url: fileUrl || null,
+    });
+
+    return confirmRes;
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || "حدث خطأ أثناء رفع الفيديو إلى YouTube",
+    };
+  }
+};
+
 // Returns paperExams and onlineExams as expected by Degrees.jsx
 const fetchAllExams = async (page = 1, search = "") => {
   if (isDemo()) {
@@ -1997,4 +2157,9 @@ export {
   previewVideoFile,
   previewQuestionFile,
   previewStudentAnswer,
+  fetchTeacherYoutubeChannelInfo,
+  validateTeacherYoutubeUploadAction,
+  initTeacherYoutubeUploadAction,
+  confirmTeacherYoutubeUploadAction,
+  teacherUploadVideoDirectToYoutubeAction,
 };

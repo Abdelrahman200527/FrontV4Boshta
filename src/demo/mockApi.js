@@ -141,6 +141,40 @@ export const handleDemoRequest = async (url, options) => {
       });
     }
 
+    if (url.includes("/youtube/init-upload")) {
+      return generateResponse({
+        success: true,
+        message: "تم إنشاء جلسة الرفع المباشر بنجاح (ديمو)",
+        data: {
+          upload_url: "https://demo.google.upload/resumable-session-123",
+          title: "فيديو تجريبي",
+          grade_id: 3,
+        },
+      });
+    }
+
+    if (url.includes("/youtube/confirm-upload")) {
+      const newMockVideo = {
+        id: Date.now(),
+        title: "فيديو جديد (تم رفعه بنجاح)",
+        description: "تم رفع الفيديو مباشرة إلى يوتيوب بنجاح",
+        grade_id: 3,
+        video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
+        thumbnail: "https://picsum.photos/400/225?random=9",
+        created_at: new Date().toISOString(),
+      };
+      mockVideos.unshift(newMockVideo);
+      return generateResponse({
+        success: true,
+        message: "تم تسجيل وحفظ الفيديو في المنصة بنجاح",
+        data: {
+          video: newMockVideo,
+          playlist_attached: true,
+          youtube_video_id: "gbst-g9OMdw",
+        },
+      });
+    }
+
     return generateResponse({
       success: true,
       message: "تمت العملية بنجاح (بيانات تجريبية)",
@@ -149,6 +183,17 @@ export const handleDemoRequest = async (url, options) => {
   }
 
   // Handle GET requests
+  if (url.includes("/youtube/channel")) {
+    return generateResponse({
+      success: true,
+      data: {
+        is_connected: true,
+        channel_id: "UCdemo123456789",
+        title: "قناة المنصة المركزية (ديمو)",
+        video_count: 24,
+      },
+    });
+  }
   if (url.includes("/profile") || url.includes("/me")) {
     return generateResponse({
       success: true,
