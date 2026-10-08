@@ -31,6 +31,7 @@ import {
   MapPin,
   ListVideo,
   FileCheck2,
+  WifiOff,
 } from "lucide-react";
 import getUser, { updateUserCookie } from "../utils/getUser";
 import getImageUrl from "../utils/imageUrl";
@@ -41,6 +42,16 @@ import {
   deleteTeacherProfileImageAction,
   fetchTeacherProfile,
 } from "../api/teacher/actions";
+import {
+  teacherGetGoogleStatus,
+  teacherGetGoogleAuthUrl,
+  teacherDisconnectGoogle,
+} from "../api/live-sessions/services";
+import {
+  notifySuccess,
+  notifyError,
+  notifyInfo,
+} from "../lib/notify";
 import { motion, AnimatePresence } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -78,9 +89,80 @@ const Profile = () => {
     };
   }, []);
 
+  // Google Connection State
+  const [googleStatus, setGoogleStatus] = useState(null);
+  const [googleLoading, setGoogleLoading] = useState(true);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
+
+  const loadGoogleStatus = useCallback(async () => {
+    setGoogleLoading(true);
+    try {
+      const data = await teacherGetGoogleStatus();
+      setGoogleStatus(data);
+    } catch {
+      setGoogleStatus({ connected: false });
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadGoogleStatus();
+  }, [loadGoogleStatus]);
+
+  // Detect google_connected / google_error in URL query
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("google_connected") === "true") {
+      notifySuccess("تم ربط حساب Google بنجاح");
+      loadGoogleStatus();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    const googleErr = params.get("google_error");
+    if (googleErr) {
+      notifyError(decodeURIComponent(googleErr), "فشل ربط حساب Google");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [loadGoogleStatus]);
+
+  const handleConnectGoogle = async () => {
+    setConnectingGoogle(true);
+    try {
+      const data = await teacherGetGoogleAuthUrl();
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        notifyInfo("أكمل ربط الحساب في النافذة الجديدة ثم ارجع هنا");
+      } else {
+        notifyError("لم يتم الحصول على رابط التفويض");
+      }
+    } catch (err) {
+      notifyError(err, "فشل الحصول على رابط Google");
+    } finally {
+      setConnectingGoogle(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    if (!window.confirm("هل تريد بالتأكيد فصل حساب Google؟")) return;
+    setDisconnectingGoogle(true);
+    try {
+      await teacherDisconnectGoogle();
+      notifySuccess("تم فصل حساب Google بنجاح");
+      setGoogleStatus({ connected: false });
+    } catch (err) {
+      notifyError(err, "فشل فصل الحساب");
+    } finally {
+      setDisconnectingGoogle(false);
+    }
+  };
+
+  const googleConnected =
+    googleStatus?.is_connected === true || googleStatus?.connected === true;
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadProfile();
+    await Promise.all([loadProfile(), loadGoogleStatus()]);
     setRefreshing(false);
   };
 
@@ -330,11 +412,33 @@ const Profile = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-center md:justify-end gap-2 mt-2 md:mt-0">
+                <div className="flex items-center justify-center md:justify-end gap-2 mt-2 md:mt-0 flex-wrap">
                   <span className="bg-white/20 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/30">
                     <BadgeCheck size={14} className="text-emerald-300" />
                     حساب معتمد وموثق
                   </span>
+                  {googleLoading ? (
+                    <span className="bg-white/10 backdrop-blur-xs text-white/80 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/20">
+                      <RefreshCw size={12} className="animate-spin text-emerald-200" />
+                      Google...
+                    </span>
+                  ) : googleConnected ? (
+                    <span
+                      className="bg-emerald-500/25 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-400/40"
+                      title={googleStatus?.email ? `حساب Google مرتبط: ${googleStatus.email}` : "حساب Google مرتبط"}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Google Meet مرتبط
+                    </span>
+                  ) : (
+                    <span
+                      className="bg-white/10 backdrop-blur-xs text-white/80 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/20"
+                      title="حساب Google غير مرتبط"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      Google غير مرتبط
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -582,6 +686,75 @@ const Profile = () => {
                 {profileData?.bio ||
                   "معلم ومحاضر مادة اللغة العربية للثانوية العامة بخبرة تفوق 15 عاماً في إعداد وتأهيل أوائل الجمهورية وتيسير قواعد النحو وفنون البلاغة لجميع المراحل الثانوية."}
               </p>
+            </div>
+          </div>
+
+          {/* Google Account Connection Card */}
+          <div className="px-4 sm:px-6 pb-2">
+            <div className="bg-gray-50/90 rounded-2xl border border-gray-200/80 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition hover:border-[#009966]/40">
+              <div className="flex items-start gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center text-[#009966] shrink-0 border border-gray-200 shadow-xs">
+                  <Video size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-bold text-sm sm:text-base text-gray-900">
+                      ربط حساب Google (Google Meet)
+                    </h4>
+                    {googleLoading ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                        <RefreshCw size={11} className="animate-spin text-[#009966]" />
+                        جاري التحقق...
+                      </span>
+                    ) : googleConnected ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                        <CheckCircle2 size={13} className="text-green-600" />
+                        مرتبط
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <AlertCircle size={13} className="text-amber-600" />
+                        غير مرتبط
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    {googleConnected
+                      ? `الحساب المرتبط: ${googleStatus?.email || "تم الربط بنجاح"}. يتم استخدام هذا الحساب لإنشاء وجدولة حصص Google Meet للطلاب تلقائياً.`
+                      : "قم بربط حساب Google الخاص بك لتتمكن من إنشاء وتفعيل حصص البث المباشر (Google Meet) للطلاب."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 w-full sm:w-auto">
+                {googleConnected ? (
+                  <button
+                    onClick={handleDisconnectGoogle}
+                    disabled={disconnectingGoogle}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 rounded-xl text-xs sm:text-sm font-bold transition disabled:opacity-50 cursor-pointer"
+                  >
+                    {disconnectingGoogle ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <WifiOff size={14} />
+                    )}
+                    {disconnectingGoogle ? "جاري الفصل..." : "فصل الحساب"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleConnectGoogle}
+                    disabled={connectingGoogle}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1a5d1a] hover:bg-[#144d14] text-white rounded-xl text-xs sm:text-sm font-bold transition shadow-md shadow-[#1a5d1a]/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {connectingGoogle ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <Video size={14} />
+                    )}
+                    {connectingGoogle ? "جاري التوجيه..." : "ربط حساب Google"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import {
   Video,
   Plus,
@@ -43,8 +43,6 @@ import {
 } from "../motion";
 import {
   teacherGetGoogleStatus,
-  teacherGetGoogleAuthUrl,
-  teacherDisconnectGoogle,
   teacherGetLiveSessions,
   teacherCreateLiveSession,
   teacherUpdateLiveSession,
@@ -948,8 +946,6 @@ const LiveSessions = () => {
   // Google connection state
   const [googleStatus, setGoogleStatus] = useState(null); // null | { connected: bool, email? }
   const [googleLoading, setGoogleLoading] = useState(true);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [connectingGoogle, setConnectingGoogle] = useState(false);
 
   // Sessions state
   const [sessions, setSessions] = useState([]);
@@ -1067,36 +1063,6 @@ const LiveSessions = () => {
     setRefreshing(false);
   };
 
-  const handleConnectGoogle = async () => {
-    setConnectingGoogle(true);
-    try {
-      const data = await teacherGetGoogleAuthUrl();
-      if (data?.url) {
-        window.open(data.url, "_blank", "noopener,noreferrer");
-        notifyInfo("أكمل ربط الحساب في النافذة الجديدة ثم ارجع هنا");
-      } else {
-        notifyError("لم يتم الحصول على رابط التفويض");
-      }
-    } catch (err) {
-      notifyError(err, "فشل الحصول على رابط Google");
-    } finally {
-      setConnectingGoogle(false);
-    }
-  };
-
-  const handleDisconnectGoogle = async () => {
-    if (!window.confirm("هل تريد فصل حساب Google؟")) return;
-    setDisconnecting(true);
-    try {
-      await teacherDisconnectGoogle();
-      notifySuccess("تم فصل حساب Google");
-      setGoogleStatus({ connected: false });
-    } catch (err) {
-      notifyError(err, "فشل فصل الحساب");
-    } finally {
-      setDisconnecting(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteSession) return;
@@ -1135,10 +1101,42 @@ const LiveSessions = () => {
               <Video size={24} className="text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                حصص البث المباشر
-              </h1>
-              <p className="text-xs sm:text-sm text-gray-500">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                  حصص البث المباشر
+                </h1>
+                {/* Google Connection Badge */}
+                {googleLoading ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                    <Loader2 size={12} className="animate-spin text-[#009966]" />
+                    جاري التحقق...
+                  </span>
+                ) : googleConnected ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200 shadow-xs"
+                    title={googleStatus?.email ? `حساب Google مرتبط: ${googleStatus.email}` : "حساب Google مرتبط"}
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                    </span>
+                    Google مرتبط
+                  </span>
+                ) : (
+                  <Link
+                    to="/teacher/profile"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition shadow-xs cursor-pointer group"
+                    title="حساب Google غير مرتبط - اضغط للانتقال إلى الملف الشخصي وربطه"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Google غير مرتبط
+                    <span className="text-[11px] font-normal text-amber-600 underline mr-0.5 group-hover:text-amber-800">
+                      (ربط)
+                    </span>
+                  </Link>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                 إدارة وجدولة حصص Google Meet
               </p>
             </div>
@@ -1150,94 +1148,35 @@ const LiveSessions = () => {
               whileTap={{ scale: 0.97 }}
               onClick={handleRefresh}
               disabled={refreshing}
-              className="p-2.5 bg-white border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition disabled:opacity-60"
+              className="p-2.5 bg-white border-2 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition disabled:opacity-60 cursor-pointer"
               title="تحديث"
             >
               <RotateCcw size={15} className={refreshing ? "animate-spin" : ""} />
             </motion.button>
 
-            {googleConnected && (
+            {googleConnected ? (
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#1a5d1a] text-white rounded-xl text-sm font-medium hover:bg-[#144d14] transition shadow-lg shadow-[#1a5d1a]/30"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#1a5d1a] text-white rounded-xl text-sm font-medium hover:bg-[#144d14] transition shadow-lg shadow-[#1a5d1a]/30 cursor-pointer"
               >
                 <Plus size={16} />
                 إنشاء حصة
               </motion.button>
+            ) : (
+              <Link
+                to="/teacher/profile"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-xl text-sm font-medium transition cursor-pointer"
+                title="قم بربط حساب Google من الملف الشخصي لإنشاء حصص"
+              >
+                <Plus size={16} />
+                إنشاء حصة
+              </Link>
             )}
           </div>
         </div>
       </motion.header>
-
-      {/* ══════════════ GOOGLE BANNER ══════════════ */}
-      <motion.div variants={itemVariants} className="mb-5">
-        {googleLoading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-            <Loader2 size={18} className="animate-spin text-[#009966]" />
-            <span className="text-sm text-gray-500">جاري التحقق من حساب Google...</span>
-          </div>
-        ) : googleConnected ? (
-          <div className="bg-green-50 rounded-2xl border border-green-200 p-4 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-xl">
-                <CheckCircle2 size={18} className="text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-green-800">
-                  حساب Google مرتبط
-                </p>
-                {googleStatus?.email && (
-                  <p className="text-xs text-green-600" dir="ltr">
-                    {googleStatus.email}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={handleDisconnectGoogle}
-              disabled={disconnecting}
-              className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-medium hover:bg-red-200 transition disabled:opacity-60"
-            >
-              {disconnecting ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <WifiOff size={13} />
-              )}
-              فصل الحساب
-            </button>
-          </div>
-        ) : (
-          <div className="bg-amber-50 rounded-2xl border border-amber-200 p-4 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-xl">
-                <AlertCircle size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-amber-800">
-                  حساب Google غير مرتبط
-                </p>
-                <p className="text-xs text-amber-600">
-                  قم بربط حسابك لإنشاء حصص بث مباشر تلقائياً على Google Meet
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleConnectGoogle}
-              disabled={connectingGoogle}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1a5d1a] text-white rounded-xl text-sm font-medium hover:bg-[#144d14] transition disabled:opacity-60 shadow-lg shadow-[#1a5d1a]/20"
-            >
-              {connectingGoogle ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Radio size={14} />
-              )}
-              ربط حساب Google
-            </button>
-          </div>
-        )}
-      </motion.div>
 
       {/* ══════════════ FILTER BAR ══════════════ */}
       <motion.div
