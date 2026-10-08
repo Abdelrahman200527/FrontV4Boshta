@@ -26,6 +26,7 @@ import {
   User,
   BookOpen,
   Layers,
+  Eye,
 } from "lucide-react";
 import {
   notifySuccess,
@@ -38,9 +39,9 @@ import {
   assistantCreateLiveSession,
   assistantUpdateLiveSession,
   assistantDeleteLiveSession,
-  assistantSyncRecording,
   assistantUpdateRecordingUrl,
   assistantGetDownloadMaterialUrl,
+  assistantGetPreviewMaterialUrl,
 } from "../../api/live-sessions/services";
 import { fetchAllGrades, fetchGroupsByGrade } from "../../api/assistant/actions";
 import { pageVariants, itemVariants, modalBackdrop, modalPanel } from "../../motion";
@@ -119,7 +120,6 @@ const LiveSessions = () => {
   // ── Loading ──
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [syncingId, setSyncingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
@@ -318,23 +318,6 @@ const LiveSessions = () => {
   };
 
   // ─────────────────────────────────────────────
-  // Sync Recording
-  // ─────────────────────────────────────────────
-
-  const handleSyncRecording = async (session) => {
-    setSyncingId(session.id);
-    try {
-      await assistantSyncRecording(session.id);
-      notifySuccess("تم مزامنة التسجيل بنجاح");
-      loadSessions();
-    } catch (err) {
-      notifyError(err?.message || "فشل مزامنة التسجيل");
-    } finally {
-      setSyncingId(null);
-    }
-  };
-
-  // ─────────────────────────────────────────────
   // Recording URL Modal
   // ─────────────────────────────────────────────
 
@@ -343,15 +326,12 @@ const LiveSessions = () => {
     setRecordingUrl(session.recording_url || "");
   };
 
-  const handleSaveRecordingUrl = async () => {
-    if (!recordingUrl.trim()) {
-      notifyError("رابط التسجيل مطلوب");
-      return;
-    }
+  const handleSaveRecordingUrl = async (customUrl) => {
+    const val = typeof customUrl === "string" ? customUrl.trim() : recordingUrl.trim();
     setSavingRecording(true);
     try {
-      await assistantUpdateRecordingUrl(recordingModal.id, recordingUrl.trim());
-      notifySuccess("تم حفظ رابط التسجيل");
+      await assistantUpdateRecordingUrl(recordingModal.id, val);
+      notifySuccess(val ? "تم تحديث رابط تسجيل الحصة بنجاح" : "تم حذف رابط التسجيل بنجاح");
       setRecordingModal(null);
       loadSessions();
     } catch (err) {
@@ -361,12 +341,22 @@ const LiveSessions = () => {
     }
   };
 
+  const handleDeleteRecordingUrl = async () => {
+    if (!window.confirm("هل تريد بالتأكيد حذف رابط تسجيل هذه الحصة؟")) return;
+    await handleSaveRecordingUrl("");
+  };
+
   // ─────────────────────────────────────────────
-  // Material Download
+  // Material Download & Preview
   // ─────────────────────────────────────────────
 
   const handleDownloadMaterial = (session) => {
     const url = assistantGetDownloadMaterialUrl(session.id);
+    window.open(url, "_blank");
+  };
+
+  const handlePreviewMaterial = (session) => {
+    const url = assistantGetPreviewMaterialUrl(session.id);
     window.open(url, "_blank");
   };
 
@@ -505,11 +495,10 @@ const LiveSessions = () => {
               session={session}
               onEdit={() => openEdit(session)}
               onDelete={() => handleDelete(session)}
-              onSyncRecording={() => handleSyncRecording(session)}
               onOpenRecordingModal={() => openRecordingModal(session)}
               onDownloadMaterial={() => handleDownloadMaterial(session)}
+              onPreviewMaterial={() => handlePreviewMaterial(session)}
               isDeleting={deletingId === session.id}
-              isSyncing={syncingId === session.id}
             />
           ))
         )}
@@ -543,7 +532,8 @@ const LiveSessions = () => {
             recordingUrl={recordingUrl}
             setRecordingUrl={setRecordingUrl}
             saving={savingRecording}
-            onSave={handleSaveRecordingUrl}
+            onSave={() => handleSaveRecordingUrl(recordingUrl)}
+            onDelete={handleDeleteRecordingUrl}
             onClose={() => setRecordingModal(null)}
           />
         )}
@@ -560,11 +550,10 @@ function SessionCard({
   session,
   onEdit,
   onDelete,
-  onSyncRecording,
   onOpenRecordingModal,
   onDownloadMaterial,
+  onPreviewMaterial,
   isDeleting,
-  isSyncing,
 }) {
   const TargetIcon = TARGET_TYPE_MAP[session.target_type]?.icon || Users;
   const targetLabel = TARGET_TYPE_MAP[session.target_type]?.label || session.target_type;
@@ -662,37 +651,35 @@ function SessionCard({
           iconClass={isDeleting ? "animate-spin" : ""}
         />
 
-        {/* Material Download */}
+        {/* Material Download & Preview */}
         {hasMaterial && (
-          <ActionBtn
-            icon={FileDown}
-            label="تحميل الملف"
-            onClick={onDownloadMaterial}
-            color="#009966"
-            variant="ghost"
-          />
+          <>
+            <ActionBtn
+              icon={FileDown}
+              label="تحميل الملزمة"
+              onClick={onDownloadMaterial}
+              color="#009966"
+              variant="ghost"
+            />
+            <ActionBtn
+              icon={Eye}
+              label="معاينة"
+              onClick={onPreviewMaterial}
+              color="#4b5563"
+              variant="ghost"
+            />
+          </>
         )}
 
         {/* Recording actions for ended sessions */}
         {isEnded && (
-          <>
-            <ActionBtn
-              icon={isSyncing ? Loader2 : RefreshCw}
-              label="مزامنة التسجيل"
-              onClick={onSyncRecording}
-              color="#D4B45C"
-              variant="ghost"
-              disabled={isSyncing}
-              iconClass={isSyncing ? "animate-spin" : ""}
-            />
-            <ActionBtn
-              icon={Upload}
-              label="رابط يدوي"
-              onClick={onOpenRecordingModal}
-              color="#7c3aed"
-              variant="ghost"
-            />
-          </>
+          <ActionBtn
+            icon={hasRecording ? Edit2 : Link2}
+            label={hasRecording ? "تعديل رابط التسجيل" : "إضافة رابط التسجيل"}
+            onClick={onOpenRecordingModal}
+            color={hasRecording ? "#7c3aed" : "#009966"}
+            variant="ghost"
+          />
         )}
       </div>
     </motion.div>
@@ -1007,7 +994,9 @@ function SessionModal({
 // Recording URL Modal
 // ─────────────────────────────────────────────
 
-function RecordingModal({ session, recordingUrl, setRecordingUrl, saving, onSave, onClose }) {
+function RecordingModal({ session, recordingUrl, setRecordingUrl, saving, onSave, onDelete, onClose }) {
+  const hasExisting = Boolean(session.recording_url && session.recording_url.trim());
+
   return (
     <motion.div
       variants={modalBackdrop}
@@ -1026,7 +1015,9 @@ function RecordingModal({ session, recordingUrl, setRecordingUrl, saving, onSave
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-base text-gray-900">رابط التسجيل اليدوي</h2>
+          <h2 className="font-bold text-base text-gray-900">
+            {hasExisting ? "تعديل رابط التسجيل" : "إضافة رابط تسجيل الحصة"}
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition"
@@ -1037,25 +1028,26 @@ function RecordingModal({ session, recordingUrl, setRecordingUrl, saving, onSave
 
         <div className="p-5 flex flex-col gap-4">
           <p className="text-sm text-gray-500">
-            الجلسة: <span className="font-bold text-gray-700">{session.title}</span>
+            الحصة: <span className="font-bold text-gray-700">{session.title}</span>
           </p>
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">
-              رابط التسجيل <span className="text-red-500">*</span>
+              رابط التسجيل (YouTube أو غيره)
             </label>
             <input
               type="url"
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm outline-none bg-white focus:border-[#009966] focus:ring-1 focus:ring-[#009966]/20 transition"
-              placeholder="https://drive.google.com/..."
+              placeholder="https://..."
               value={recordingUrl}
               onChange={(e) => setRecordingUrl(e.target.value)}
+              dir="ltr"
             />
           </div>
           <div className="flex gap-2">
             <button
               onClick={onSave}
               disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 disabled:opacity-60"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-bold transition hover:opacity-90 disabled:opacity-60 cursor-pointer"
               style={{ background: "#009966" }}
             >
               {saving ? (
@@ -1070,9 +1062,19 @@ function RecordingModal({ session, recordingUrl, setRecordingUrl, saving, onSave
                 </>
               )}
             </button>
+            {hasExisting && (
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={saving}
+                className="px-3 border border-red-200 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition cursor-pointer disabled:opacity-50"
+              >
+                حذف الرابط
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="px-5 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition"
+              className="px-4 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition cursor-pointer"
             >
               إلغاء
             </button>

@@ -253,7 +253,13 @@ export const teacherUpdateRecordingUrl = async (id, recording_url) => {
 export const teacherGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
   const token = localStorage.getItem("token") || ""; 
-  return `${apiUrl}/teacher/live-sessions/${id}/download-material?token=${token}`;
+  return `${apiUrl}/teacher/live-sessions/${id}/download?token=${token}`;
+};
+
+export const teacherGetPreviewMaterialUrl = (id) => {
+  if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+  const token = localStorage.getItem("token") || ""; 
+  return `${apiUrl}/teacher/live-sessions/${id}/preview?token=${token}`;
 };
 
 // ============================================
@@ -403,7 +409,13 @@ export const assistantUpdateRecordingUrl = async (id, recording_url) => {
 export const assistantGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
   const token = localStorage.getItem("token") || ""; 
-  return `${apiUrl}/assistant/live-sessions/${id}/download-material?token=${token}`;
+  return `${apiUrl}/assistant/live-sessions/${id}/download?token=${token}`;
+};
+
+export const assistantGetPreviewMaterialUrl = (id) => {
+  if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+  const token = localStorage.getItem("token") || ""; 
+  return `${apiUrl}/assistant/live-sessions/${id}/preview?token=${token}`;
 };
 
 // ============================================
@@ -449,5 +461,11 @@ export const studentJoinSession = async (id) => {
 export const studentGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
   const token = localStorage.getItem("token") || ""; 
-  return `${apiUrl}/student/live-sessions/${id}/download-material?token=${token}`;
+  return `${apiUrl}/student/live-sessions/${id}/download?token=${token}`;
+};
+
+export const studentGetPreviewMaterialUrl = (id) => {
+  if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+  const token = localStorage.getItem("token") || ""; 
+  return `${apiUrl}/student/live-sessions/${id}/preview?token=${token}`;
 };

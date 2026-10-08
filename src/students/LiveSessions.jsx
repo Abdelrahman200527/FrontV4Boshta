@@ -15,12 +15,14 @@ import {
   BookOpen,
   Loader2,
   WifiOff,
+  Eye,
 } from "lucide-react";
 import { pageVariants, itemVariants } from "../motion";
 import {
   studentGetLiveSessions,
   studentJoinSession,
   studentGetDownloadMaterialUrl,
+  studentGetPreviewMaterialUrl,
 } from "../api/live-sessions/services";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -128,13 +130,29 @@ function EmptyState({ filtered }) {
 // ─── Session Card ─────────────────────────────────────────────────────────────
 
 function SessionCard({ session, onJoin, joiningId }) {
-  const { status, title, description, start_time, duration_minutes, target_type, recording_url, material_name, id } = session;
+  const {
+    status,
+    title,
+    description,
+    start_time,
+    duration_minutes,
+    target_type,
+    recording_url,
+    material_file_path,
+    material_name,
+    id,
+  } = session;
 
   const isJoining = joiningId === id;
-  const canJoin = status === "live";
-  const isScheduled = status === "scheduled";
-  const hasRecording = status === "ended" && recording_url;
-  const materialUrl = material_name ? studentGetDownloadMaterialUrl(id) : null;
+  const canJoin = status === "live" || status === "scheduled";
+  const hasRecording = Boolean(recording_url && recording_url.trim());
+  const hasMaterial = Boolean(material_name || material_file_path);
+  const materialDownloadUrl = hasMaterial
+    ? studentGetDownloadMaterialUrl(id)
+    : null;
+  const materialPreviewUrl = hasMaterial
+    ? studentGetPreviewMaterialUrl(id)
+    : null;
 
   const targetLabel = TARGET_LABELS[target_type] ?? target_type ?? "—";
 
@@ -180,35 +198,28 @@ function SessionCard({ session, onJoin, joiningId }) {
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
-        {/* Join button */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100">
+        {/* Join button for live or scheduled */}
         {canJoin && (
           <button
             onClick={() => onJoin(session)}
             disabled={isJoining}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition
-              ${isJoining
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition ${
+              isJoining
                 ? "bg-[#009966]/60 cursor-not-allowed"
-                : "bg-[#009966] hover:bg-[#007a52] active:scale-95 animate-pulse shadow-md shadow-[#009966]/20"
-              }`}
+                : status === "live"
+                ? "bg-[#009966] hover:bg-[#007a52] active:scale-95 animate-pulse shadow-md shadow-[#009966]/20 cursor-pointer"
+                : "bg-emerald-700 hover:bg-emerald-800 active:scale-95 shadow-xs cursor-pointer"
+            }`}
           >
             {isJoining ? (
               <Loader2 size={15} className="animate-spin" />
-            ) : (
+            ) : status === "live" ? (
               <Radio size={15} />
+            ) : (
+              <Video size={15} />
             )}
-            {isJoining ? "جاري الانضمام..." : "انضمام للحصة"}
-          </button>
-        )}
-
-        {/* Scheduled Disabled Button */}
-        {isScheduled && (
-          <button
-            disabled
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-gray-500 bg-gray-100 border border-gray-200 cursor-not-allowed"
-          >
-            <Clock size={15} />
-            تبدأ قريباً
+            <span>{isJoining ? "جاري الانضمام..." : "انضمام للبث المباشر"}</span>
           </button>
         )}
 
@@ -218,38 +229,52 @@ function SessionCard({ session, onJoin, joiningId }) {
             href={recording_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#1a5d1a] hover:bg-[#144714] text-white active:scale-95 transition shadow-xs"
           >
             <PlayCircle size={15} />
-            مشاهدة التسجيل
+            <span>مشاهدة تسجيل الحصة</span>
           </a>
         )}
 
         {/* Download material */}
-        {materialUrl && (
-          <a
-            href={materialUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 active:scale-95 transition"
-          >
-            <Download size={15} />
-            تحميل المادة
-          </a>
+        {materialDownloadUrl && (
+          <div className="flex items-center gap-1">
+            <a
+              href={materialDownloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 active:scale-95 transition"
+            >
+              <Download size={14} />
+              <span>تحميل ملزمة الحصة</span>
+            </a>
+            {materialPreviewUrl && (
+              <a
+                href={materialPreviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 transition"
+                title="معاينة ملزمة الحصة"
+              >
+                <Eye size={14} />
+              </a>
+            )}
+          </div>
         )}
 
-        {/* Ended / no actions placeholder */}
+        {/* Ended / no recording */}
         {status === "ended" && !hasRecording && (
-          <span className="flex items-center gap-1 text-xs text-gray-400 py-2">
-            <CheckCircle2 size={13} />
-            انتهت الحصة
+          <span className="flex items-center gap-1.5 text-xs text-gray-400 py-2 font-medium">
+            <AlertCircle size={13} className="text-gray-400" />
+            <span>لا يوجد تسجيل متوفر لهذه الحصة</span>
           </span>
         )}
 
+        {/* Cancelled */}
         {status === "cancelled" && (
-          <span className="flex items-center gap-1 text-xs text-red-400 py-2">
-            <XCircle size={13} />
-            تم إلغاء هذه الحصة
+          <span className="flex items-center gap-1 text-xs text-red-500 py-2 font-medium">
+            <XCircle size={13} className="text-red-400" />
+            <span>تم إلغاء هذه الحصة</span>
           </span>
         )}
       </div>

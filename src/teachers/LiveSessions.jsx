@@ -32,6 +32,7 @@ import {
   Pencil,
   Save,
   ExternalLink,
+  Eye,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -48,9 +49,9 @@ import {
   teacherCreateLiveSession,
   teacherUpdateLiveSession,
   teacherDeleteLiveSession,
-  teacherSyncRecording,
   teacherUpdateRecordingUrl,
   teacherGetDownloadMaterialUrl,
+  teacherGetPreviewMaterialUrl,
 } from "../api/live-sessions/services";
 import {
   getGrades,
@@ -219,24 +220,39 @@ function ConfirmDeleteModal({ session, onConfirm, onCancel, loading }) {
 // ─────────────────────────────────────────────────────────
 // SessionCard
 // ─────────────────────────────────────────────────────────
-function SessionCard({ session, onEdit, onDelete, onSyncRecording, syncingId, googleConnected }) {
+function SessionCard({ session, onEdit, onDelete, onRecordingUpdated }) {
   const [recordingInput, setRecordingInput] = useState(session.recording_url || "");
   const [savingUrl, setSavingUrl] = useState(false);
   const [editingUrl, setEditingUrl] = useState(false);
 
-  const downloadUrl = teacherGetDownloadMaterialUrl(session.id);
+  useEffect(() => {
+    setRecordingInput(session.recording_url || "");
+  }, [session.recording_url]);
 
-  const handleSaveRecordingUrl = async () => {
+  const hasMaterial = Boolean(session.material_file_path || session.material_name);
+  const downloadUrl = hasMaterial ? teacherGetDownloadMaterialUrl(session.id) : null;
+  const previewUrl = hasMaterial ? teacherGetPreviewMaterialUrl(session.id) : null;
+
+  const handleSaveRecordingUrl = async (customVal) => {
+    const val = typeof customVal === "string" ? customVal.trim() : recordingInput.trim();
     setSavingUrl(true);
     try {
-      await teacherUpdateRecordingUrl(session.id, recordingInput);
-      notifySuccess("تم حفظ رابط التسجيل");
+      await teacherUpdateRecordingUrl(session.id, val);
+      notifySuccess(val ? "تم تحديث رابط تسجيل الحصة بنجاح" : "تم حذف رابط التسجيل بنجاح");
+      session.recording_url = val || null;
+      setRecordingInput(val);
       setEditingUrl(false);
+      if (onRecordingUpdated) onRecordingUpdated(session.id, val || null);
     } catch (err) {
-      notifyError(err, "فشل حفظ الرابط");
+      notifyError(err, "فشل حفظ رابط التسجيل");
     } finally {
       setSavingUrl(false);
     }
+  };
+
+  const handleDeleteRecordingUrl = async () => {
+    if (!window.confirm("هل تريد بالتأكيد حذف رابط تسجيل هذه الحصة؟")) return;
+    await handleSaveRecordingUrl("");
   };
 
   const targetIcon =
@@ -335,22 +351,35 @@ function SessionCard({ session, onEdit, onDelete, onSyncRecording, syncingId, go
             </a>
           )}
 
-          {/* Material download */}
-          {session.material_file_path && (
-            <a
-              href={downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D4B45C]/10 text-[#a08830] border border-[#D4B45C]/40 rounded-lg text-xs font-medium hover:bg-[#D4B45C]/20 transition"
-              title={session.material_name || "تحميل المادة"}
-            >
-              <Download size={12} />
-              {session.material_name
-                ? session.material_name.length > 14
-                  ? session.material_name.slice(0, 14) + "..."
-                  : session.material_name
-                : "المادة"}
-            </a>
+          {/* Material download & preview */}
+          {hasMaterial && (
+            <div className="flex items-center gap-1">
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#D4B45C]/10 text-[#a08830] border border-[#D4B45C]/40 rounded-lg text-xs font-medium hover:bg-[#D4B45C]/20 transition"
+                title={session.material_name || "تحميل الملزمة"}
+              >
+                <Download size={12} />
+                {session.material_name
+                  ? session.material_name.length > 14
+                    ? session.material_name.slice(0, 14) + "..."
+                    : session.material_name
+                  : "الملزمة"}
+              </a>
+              {previewUrl && (
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 border border-gray-200 transition"
+                  title="معاينة الملزمة"
+                >
+                  <Eye size={12} />
+                </a>
+              )}
+            </div>
           )}
         </div>
 
@@ -373,10 +402,18 @@ function SessionCard({ session, onEdit, onDelete, onSyncRecording, syncingId, go
                     setRecordingInput(session.recording_url || "");
                     setEditingUrl(true);
                   }}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded transition"
+                  className="p-1 text-gray-400 hover:text-[#009966] rounded transition cursor-pointer"
                   title="تعديل الرابط"
                 >
                   <Pencil size={12} />
+                </button>
+                <button
+                  onClick={handleDeleteRecordingUrl}
+                  disabled={savingUrl}
+                  className="p-1 text-gray-400 hover:text-red-500 rounded transition cursor-pointer disabled:opacity-50"
+                  title="حذف رابط التسجيل"
+                >
+                  <Trash2 size={12} />
                 </button>
               </div>
             ) : editingUrl ? (
@@ -385,51 +422,38 @@ function SessionCard({ session, onEdit, onDelete, onSyncRecording, syncingId, go
                   type="url"
                   value={recordingInput}
                   onChange={(e) => setRecordingInput(e.target.value)}
-                  placeholder="رابط التسجيل..."
+                  placeholder="رابط التسجيل (YouTube أو Drive أو غيره)..."
                   className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#009966]"
                   dir="ltr"
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={handleSaveRecordingUrl}
+                    onClick={() => handleSaveRecordingUrl(recordingInput)}
                     disabled={savingUrl}
-                    className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#1a5d1a] text-white rounded-lg text-xs font-medium hover:bg-[#144d14] transition disabled:opacity-60"
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#1a5d1a] text-white rounded-lg text-xs font-medium hover:bg-[#144d14] transition disabled:opacity-60 cursor-pointer"
                   >
                     {savingUrl ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                     حفظ
                   </button>
                   <button
-                    onClick={() => setEditingUrl(false)}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition"
+                    onClick={() => {
+                      setEditingUrl(false);
+                      setRecordingInput(session.recording_url || "");
+                    }}
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600 hover:bg-gray-50 transition cursor-pointer"
                   >
                     إلغاء
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                {googleConnected && (
-                  <button
-                    onClick={() => onSyncRecording(session.id)}
-                    disabled={syncingId === session.id}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 border-2 border-dashed border-[#009966]/50 text-[#009966] rounded-lg text-xs font-medium hover:bg-green-50 transition disabled:opacity-60"
-                  >
-                    {syncingId === session.id ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={12} />
-                    )}
-                    مزامنة التسجيل من Google
-                  </button>
-                )}
-                <button
-                  onClick={() => setEditingUrl(true)}
-                  className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 transition"
-                >
-                  <Link2 size={12} />
-                  إضافة رابط تسجيل يدوياً
-                </button>
-              </div>
+              <button
+                onClick={() => setEditingUrl(true)}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 border border-dashed border-gray-300 hover:border-[#009966] text-gray-600 hover:text-[#009966] rounded-lg text-xs font-medium hover:bg-green-50/40 transition cursor-pointer"
+              >
+                <Link2 size={12} />
+                إضافة رابط تسجيل الحصة
+              </button>
             )}
           </div>
         )}
@@ -947,7 +971,6 @@ const LiveSessions = () => {
   const [editSession, setEditSession] = useState(null);
   const [deleteSession, setDeleteSession] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [syncingId, setSyncingId] = useState(null);
 
   const debounceRef = useRef(null);
 
@@ -1090,18 +1113,6 @@ const LiveSessions = () => {
     }
   };
 
-  const handleSyncRecording = async (id) => {
-    setSyncingId(id);
-    try {
-      await teacherSyncRecording(id);
-      notifySuccess("تمت مزامنة التسجيل");
-      loadSessions();
-    } catch (err) {
-      notifyError(err, "فشل مزامنة التسجيل");
-    } finally {
-      setSyncingId(null);
-    }
-  };
 
   const googleConnected = googleStatus?.is_connected === true || googleStatus?.connected === true;
 
@@ -1369,9 +1380,11 @@ const LiveSessions = () => {
                 session={s}
                 onEdit={(sess) => setEditSession(sess)}
                 onDelete={(sess) => setDeleteSession(sess)}
-                onSyncRecording={handleSyncRecording}
-                syncingId={syncingId}
-                googleConnected={googleConnected}
+                onRecordingUpdated={(id, newUrl) => {
+                  setSessions((prev) =>
+                    prev.map((item) => (item.id === id ? { ...item, recording_url: newUrl } : item))
+                  );
+                }}
               />
             ))}
           </motion.div>
