@@ -22,9 +22,11 @@ import StudentHomework from "./students/Homework.jsx";
 import StudentProfile from "./students/Profile.jsx";
 import StudentWatchVideo from "./students/WatchVideo.jsx";
 import StudentLiveSessions from "./students/LiveSessions.jsx";
+import StudentChat from "./students/Chat.jsx";
 
 // Assistants - shared
 import AssistantProfile from "./assistants/Profile.jsx";
+import AssistantChat from "./assistants/Chat.jsx";
 
 // Assistants - online
 import AssistantOnlineVideos from "./assistants/online/Videos.jsx";
@@ -60,12 +62,14 @@ import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
 import TeacherHomeworks from "./teachers/Homework.jsx";
 import TeacherPayments from "./teachers/Payments.jsx";
 import TeacherLiveSessions from "./teachers/LiveSessions.jsx";
+import TeacherChat from "./teachers/Chat.jsx";
 
 // Super Admin
 import SuperAdminDashboard from "./super-admin/Dashboard.jsx";
 import SuperAdminUsers from "./super-admin/Users.jsx";
 import SuperAdminActivityLog from "./super-admin/ActivityLog.jsx";
 import SuperAdminSettings from "./super-admin/Settings.jsx";
+import SuperAdminChat from "./super-admin/Chat.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 import LoginSystem from "./pages/LoginSystem.jsx";
@@ -145,6 +149,8 @@ export const router = createBrowserRouter([
       { path: "exams/:examId", Component: StudentExamTaking },
       { path: "exams/review/:attemptId", Component: StudentExamReview }, // ✅ جديد
       { path: "homework", Component: StudentHomework },
+      { path: "chat", Component: StudentChat },
+      { path: "ai", Component: StudentChat },
       { path: "profile", Component: StudentProfile },
     ],
   },
@@ -161,6 +167,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, Component: AssistantManagementDashboard },
+      { path: "chat", Component: AssistantChat },
       { path: "profile", Component: AssistantProfile },
 
       { path: "online/videos", Component: AssistantOnlineVideos },
@@ -171,8 +178,10 @@ export const router = createBrowserRouter([
       { path: "online/live-sessions", Component: AssistantOnlineLiveSessions },
       { path: "online/exams", Component: AssistantOnlineExams },
       { path: "online/homework", Component: AssistantOnlineHomework },
+      { path: "online/chat", Component: AssistantChat },
 
       { path: "management", Component: AssistantManagementDashboard },
+      { path: "management/chat", Component: AssistantChat },
       { path: "management/students", Component: AssistantManagementStudents },
       {
         path: "management/attendance",
@@ -219,6 +228,8 @@ export const router = createBrowserRouter([
       { path: "exams/:type/:examId", Component: TeacherExamResults },
       { path: "homework", Component: TeacherHomeworks },
       { path: "payments", Component: TeacherPayments },
+      { path: "chat", Component: TeacherChat },
+      { path: "ai", Component: TeacherChat },
     ],
   },
 
@@ -247,6 +258,8 @@ export const router = createBrowserRouter([
       { path: "live-sessions", Component: TeacherLiveSessions },
       { path: "activity-log", Component: SuperAdminActivityLog },
       { path: "settings", Component: SuperAdminSettings },
+      { path: "chat", Component: SuperAdminChat },
+      { path: "ai", Component: SuperAdminChat },
     ],
   },
 

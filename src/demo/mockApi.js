@@ -323,6 +323,63 @@ export const handleDemoRequest = async (url, options) => {
     });
   }
 
+  if (url.includes("/ai/")) {
+    if (url.includes("/ai/history") && options.method === "DELETE") {
+      return generateResponse({ success: true, message: "تم بدء محادثة جديدة وتصفير السجل السابق بنجاح" });
+    }
+    if (url.includes("/ai/history")) {
+      return generateResponse({
+        success: true,
+        data: [
+          {
+            id: 1,
+            role: "user",
+            message: "اشرح لي قاعدة كان وأخواتها باختصار",
+            file_name: null,
+            created_at: new Date(Date.now() - 3600000).toISOString(),
+          },
+          {
+            id: 2,
+            role: "model",
+            message: "أهلاً بك يا بطل! **كان وأخواتها** هي أفعال ناسخة ناقصة تدخل على الجملة الاسمية، فترفع المبتدأ ويسمى اسمها، وتنصب الخبر ويسمى خبرها.\n\n### أخوات كان الشهيرة:\n* **كان، أصبح، أضحى، أمسى، بات، ظل، صار، ليس**\n* وأفعال الاستمرار: **ما زال، ما برح، ما فتئ، ما انفك**\n\n> مثال: *وكان ربُّكَ قديراً*\n* (ربك): اسم كان مرفوع بالضمة.\n* (قديراً): خبر كان منصوب بالفتحة.",
+            created_at: new Date(Date.now() - 3590000).toISOString(),
+          },
+        ],
+      });
+    }
+    if (url.includes("/ai/quota")) {
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0);
+      return generateResponse({
+        success: true,
+        data: {
+          messages: { used: 5, limit: 100, remaining: 95 },
+          files: { used: 1, limit: 3, remaining: 2 },
+          resets_at: tomorrow.toISOString(),
+        },
+      });
+    }
+    if (url.includes("/ai/chat")) {
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0);
+      return generateResponse({
+        success: true,
+        message: "تم الرد من المساعد الذكي بنجاح",
+        data: {
+          reply: "أهلاً بك يا بطل! أنا مستر محمد بشتة معك دائماً. سؤالك ممتاز؛ في مادة اللغة العربية لكل قاعدة ضابط، واللغة تُفهم بالسياق والإعراب فرع المعنى. استمر في الاجتهاد!",
+          message_id: Date.now(),
+          has_file: false,
+          file_name: null,
+          quota: {
+            messages: { used: 6, limit: 100, remaining: 94 },
+            files: { used: 1, limit: 3, remaining: 2 },
+            resets_at: tomorrow.toISOString(),
+          },
+        },
+      });
+    }
+  }
+
   const isSingleItem = url.match(/\/\d+$/);
   return generateResponse({
     success: true,

@@ -31,6 +31,7 @@ import {
 
 const studentNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/student" },
+  { title: "اسأل مستر محمد", icon: MessageCircle, path: "/student/chat" },
   {
     title: "الحضور والغياب",
     icon: CalendarCheck2,
@@ -46,6 +47,7 @@ const studentNavItems = [
 
 const teacherNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/teacher" },
+  { title: "المساعد الأكاديمي", icon: MessageCircle, path: "/teacher/chat" },
   { title: "الطلاب", icon: Users, path: "/teacher/students" },
   {
     title: "الحضور والغياب",
@@ -65,6 +67,7 @@ const teacherNavItems = [
 // ============ ASSISTANT ONLINE (online_management) ============
 const assistantOnlineNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/assistant" },
+  { title: "المساعد الذكي", icon: MessageCircle, path: "/assistant/chat" },
   {
     title: "اونلاين",
     icon: Globe,
@@ -93,6 +96,7 @@ const assistantOnlineNavItems = [
 // ============ ASSISTANT CENTER (center_management) ============
 const assistantCenterNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/assistant" },
+  { title: "المساعد الذكي", icon: MessageCircle, path: "/assistant/chat" },
   {
     title: "اونلاين",
     icon: Globe,
@@ -157,6 +161,7 @@ const assistantCenterNavItems = [
 
 const superAdminNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/super-admin" },
+  { title: "المستشار الذكي", icon: MessageCircle, path: "/super-admin/chat" },
   { title: "المستخدمين والموظفين", icon: UserRoundPen, path: "/super-admin/users" },
   { title: "الطلاب", icon: Users, path: "/super-admin/students" },
   { title: "الحضور والغياب", icon: CalendarCheck2, path: "/super-admin/attendance" },
