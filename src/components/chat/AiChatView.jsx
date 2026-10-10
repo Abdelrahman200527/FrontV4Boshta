@@ -4,15 +4,26 @@ import {
   Paperclip,
   X,
   FileText,
-  Image as ImageIcon,
   RotateCcw,
   Sparkles,
   Copy,
   Check,
   AlertCircle,
   Clock,
-  ChevronDown,
-  Info,
+  CheckCircle2,
+  Edit3,
+  CalendarCheck,
+  BarChart3,
+  Search,
+  BookOpen,
+  PenTool,
+  FilePlus2,
+  Layers,
+  Target,
+  Lightbulb,
+  FileCheck2,
+  ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MrBoshtaAvatar from "../../assets/Mr-Boshta-removebg.png";
@@ -33,13 +44,64 @@ const ALLOWED_MIME_TYPES = [
   "image/webp",
 ];
 
+/**
+ * Detects if a model message contains an exam draft waiting for human confirmation
+ */
+function isExamDraftMessage(text) {
+  if (!text || typeof text !== "string") return false;
+  const lower = text.toLowerCase();
+
+  const hasConfirmationKeywords =
+    lower.includes("مسودة الامتحان") ||
+    lower.includes("هل تأكد") ||
+    lower.includes("هل تؤكد") ||
+    lower.includes("تأكيد حفظ") ||
+    lower.includes("تأكيد الإنشاء") ||
+    lower.includes("تأكيد إنشاء") ||
+    lower.includes("تفعيل هذا الامتحان") ||
+    lower.includes("حفظ وتفعيل") ||
+    lower.includes("هل توافق على إنشاء") ||
+    lower.includes("اعتمد الامتحان");
+
+  const hasExamKeywords =
+    lower.includes("امتحان") ||
+    lower.includes("الأسئلة") ||
+    lower.includes("اختبار");
+
+  return hasConfirmationKeywords && hasExamKeywords;
+}
+
 const ROLE_CONFIG = {
   student: {
     pageTitle: "اسأل مستر محمد بشتة",
-    pageSubtitle: "معلمك الخصوصي لمادة اللغة العربية",
-    welcomeTitle: "أهلاً بك يا بطل في شات مستر محمد بشتة!",
+    headerTitle: "مستر محمد بشتة",
+    headerRole: "معلم اللغة العربية",
+    headerStatus: "متصل الآن",
+    welcomeTitle: "أهلاً بك في منصة مستر محمد بشتة",
     welcomeDesc:
       "أنا معك هنا لشرح أي قاعدة، إعراب أي بيت شعري، أو حل أي سؤال وتدريب يقف أمامك. يمكنك أيضاً إرفاق صورة مسألة أو ملف PDF لتحليله وشرحه.",
+    quickActions: [
+      {
+        icon: BookOpen,
+        label: "شرح قاعدة نحو",
+        text: "اشرح لي قاعدة إعراب الممنوع من الصرف باختصار مع أمثلة",
+      },
+      {
+        icon: PenTool,
+        label: "إعراب جملة",
+        text: "أعرب جملة: (كان حقاً علينا نصرُ المؤمنين)",
+      },
+      {
+        icon: Sparkles,
+        label: "بلاغة واستعارة",
+        text: "ما الفرق بين الاستعارة المكنية والتصريحية مع أمثلة؟",
+      },
+      {
+        icon: FileText,
+        label: "تحليل بيت شعري",
+        text: "حلل لي البيت الشعري: ولستُ أرى السعادةَ جمعَ مالٍ ولكنَّ التقيَّ هو السعيدُ",
+      },
+    ],
     quickPrompts: [
       "اشرح لي قاعدة إعراب الممنوع من الصرف باختصار مع أمثلة",
       "أعرب جملة: (كان حقاً علينا نصرُ المؤمنين)",
@@ -48,24 +110,79 @@ const ROLE_CONFIG = {
     ],
   },
   assistant: {
-    pageTitle: "المساعد الذكي لإدارة المادة والامتحانات",
-    pageSubtitle: "المستشار الأكاديمي لإعداد بنوك الأسئلة ومراجعة الواجبات",
-    welcomeTitle: "مرحباً بك يا زميلي العزيز!",
+    pageTitle: "المساعد الذكي",
+    headerTitle: "المساعد الذكي",
+    headerRole: "مساعد فريق مستر محمد بشتة",
+    headerStatus: "متصل الآن",
+    welcomeTitle: "مرحباً بك في المساعد الذكي",
     welcomeDesc:
-      "أنا في خدمتك لمساعدتك في صياغة نماذج الامتحانات، مراجعة الأسئلة وتوليد التمارين والواجبات والتأكد من صياغتها وفقاً لمعايير الثانوية العامة.",
+      "يمكنك كتابة أي استفسار أو طلب لمساعدتك في إنجاز ومتابعة مهام المنصة.",
+    quickActions: [
+      {
+        icon: FilePlus2,
+        label: "إنشاء امتحان إلكتروني",
+        text: "عايز أعمل امتحان إلكتروني 5 أسئلة اختيار من متعدد لتالتة ثانوي بكرة الساعة 6 مساء",
+      },
+      {
+        icon: BarChart3,
+        label: "إحصائيات طلاب السنتر",
+        text: "اعرضلي إحصائيات وأعداد الطلاب في السنتر",
+      },
+      {
+        icon: Search,
+        label: "بيانات طالب بالباركود",
+        text: "ابحثلي عن بيانات الطالب بالباركود: ",
+      },
+      {
+        icon: CalendarCheck,
+        label: "تقرير غياب اليوم",
+        text: "مين الطلاب اللي غابوا في حصص النهاردة؟",
+      },
+      {
+        icon: Layers,
+        label: "مواعيد المجموعات والصفوف",
+        text: "إيه هي مواعيد ومجموعات تالتة ثانوي؟",
+      },
+    ],
     quickPrompts: [
-      "اقترح 5 أسئلة اختيار من متعدد على الوحدة الأولى نحو لمستوى متفوقين",
-      "صغ سؤالاً مقالياً يقيس الفهم البلاغي مع نموذج الإجابة وتوزيع الدرجات",
-      "راجع صياغة هذا السؤال واقترح مشتتات دقيقة",
-      "لخص النقاط الجدلية الشائعة في إعراب المصدر المؤول",
+      "عايز أعمل امتحان إلكتروني 5 أسئلة اختيار من متعدد لتالتة ثانوي بكرة الساعة 6 مساء",
+      "اعرضلي إحصائيات وأعداد الطلاب في السنتر لجميع الصفوف والمجموعات",
+      "ابحثلي عن بيانات الطالب بالباركود: ",
+      "مين الطلاب اللي غابوا في حصص النهاردة وأرقام أولياء أمورهم؟",
+      "إيه هي مواعيد ومجموعات تالتة ثانوي المتاحة في السنتر؟",
+      "أنا مين ومعايا صلاحيات إيه في السنتر؟",
     ],
   },
   teacher: {
     pageTitle: "المستشار الأكاديمي وتحضير الحصص",
-    pageSubtitle: "مساعدك الأكاديمي لتحضير الدروس، الاختبارات، والشواهد النحوية",
-    welcomeTitle: "أهلاً بك يا أستاذنا الفاضل!",
+    headerTitle: "المستشار الأكاديمي وتحضير الحصص",
+    headerRole: "مساعدك الأكاديمي المباشر",
+    headerStatus: "متصل الآن",
+    welcomeTitle: "المستشار الأكاديمي وتحضير الحصص",
     welcomeDesc:
       "أنا في خدمتك للمساعدة في تحضير خطط الحصص، مراجعة الشواهد البلاغية والنحوية، صياغة امتحانات شاملة، ومناقشة دقائق اللغة.",
+    quickActions: [
+      {
+        icon: BookOpen,
+        label: "خطة تدريس حصة",
+        text: "اقترح خطة تدريس لحصة مراجعة نهائية في النحو لمدة ساعتين",
+      },
+      {
+        icon: FileText,
+        label: "شواهد نحوية وبلاغية",
+        text: "اجمع لي أهم الشواهد الشعرية على جواز تقديم الخبر على المبتدأ وجوباً وجوازاً",
+      },
+      {
+        icon: Target,
+        label: "أسئلة مهارات عليا",
+        text: "صغ 10 أسئلة بنمط الثانوية العامة الجديد لقياس مستويات التفكير العليا",
+      },
+      {
+        icon: Lightbulb,
+        label: "تمهيد مشوق للدرس",
+        text: "اكتب تمهيداً مشوقاً لشرح درس الإيجاز والإطناب في البلاغة",
+      },
+    ],
     quickPrompts: [
       "اقترح خطة تدريس لحصة مراجعة نهائية في النحو لمدة ساعتين",
       "اجمع لي أهم الشواهد الشعرية على جواز تقديم الخبر على المبتدأ وجوباً وجوازاً",
@@ -75,10 +192,29 @@ const ROLE_CONFIG = {
   },
   super_admin: {
     pageTitle: "المستشار الأكاديمي وإدارة المحتوى",
-    pageSubtitle: "المستشار الذكي لإدارة المنهج والامتحانات",
-    welcomeTitle: "مرحباً بك في المستشار الأكاديمي!",
+    headerTitle: "المستشار الأكاديمي وإدارة المحتوى",
+    headerRole: "المستشار الذكي للإدارة",
+    headerStatus: "متصل الآن",
+    welcomeTitle: "المستشار الأكاديمي وإدارة المحتوى",
     welcomeDesc:
       "يمكنك استخدام هذه الشاشة لاختبار بنوك الأسئلة، مراجعة المناهج والتحضيرات وصياغة الاختبارات المعيارية.",
+    quickActions: [
+      {
+        icon: BarChart3,
+        label: "إحصائيات المنصة",
+        text: "اعرضلي إحصائيات عامة عن المنصة والطلاب والمجموعات",
+      },
+      {
+        icon: FileCheck2,
+        label: "امتحان شامل",
+        text: "توليد نموذج اختبار تجريبي شامل مع مفتاح الإجابة",
+      },
+      {
+        icon: ShieldCheck,
+        label: "معايير الثانوية العامة",
+        text: "مراجعة معايير امتحانات الثانوية العامة في مادة اللغة العربية",
+      },
+    ],
     quickPrompts: [
       "مراجعة معايير امتحانات الثانوية العامة في مادة اللغة العربية",
       "توليد نموذج اختبار تجريبي شامل مع مفتاح الإجابة",
@@ -89,6 +225,7 @@ const ROLE_CONFIG = {
 
 export default function AiChatView({ role = "student" }) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.student;
+  const isAssistant = role === "assistant";
 
   const [messages, setMessages] = useState([]);
   const [quota, setQuota] = useState(null);
@@ -194,6 +331,17 @@ export default function AiChatView({ role = "student" }) {
     }, 2000);
   };
 
+  // Select quick action chip
+  const handleQuickAction = (actionText) => {
+    setInputText(actionText);
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(actionText.length, actionText.length);
+      }
+    }, 50);
+  };
+
   // Send message
   const handleSendMessage = async (customText = null) => {
     const textToSend = customText !== null ? customText : inputText;
@@ -215,14 +363,16 @@ export default function AiChatView({ role = "student" }) {
 
     const currentFile = selectedFile;
     const currentFileName = currentFile ? currentFile.name : null;
+    const tempId = `msg-${Date.now()}`;
 
     // Optimistic user message
     const tempUserMsg = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       role: "user",
       message: textToSend.trim() || (currentFileName ? `[ملف مرفق: ${currentFileName}]` : "ملف مرفق"),
       file_name: currentFileName,
       created_at: new Date().toISOString(),
+      status: "sending",
     };
 
     setMessages((prev) => [...prev, tempUserMsg]);
@@ -237,6 +387,11 @@ export default function AiChatView({ role = "student" }) {
       });
 
       if (result?.success && result?.data) {
+        // Mark user message as delivered
+        setMessages((prev) =>
+          prev.map((m) => (m.id === tempId ? { ...m, status: "sent" } : m))
+        );
+
         const { reply, message_id, quota: updatedQuota } = result.data;
         const modelMsg = {
           id: message_id || Date.now(),
@@ -250,14 +405,28 @@ export default function AiChatView({ role = "student" }) {
           setQuota(updatedQuota);
         }
       } else {
-        notifyError(result?.message || "تعذر الحصول على رد من المساعد");
+        throw new Error(result?.message || "تعذر الحصول على رد من المساعد");
       }
     } catch (error) {
       console.error("Error sending message:", error);
       const errMsg =
         error?.data?.message ||
         error?.message ||
-        "حدث خطأ أثناء إرسال الرسالة، يرجى المحاولة مرة أخرى.";
+        "تعذر إرسال الرسالة، يرجى المحاولة مرة أخرى.";
+
+      // Mark user message with error state
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                ...m,
+                status: "error",
+                errorMessage: errMsg,
+                retryPayload: { text: textToSend, file: currentFile },
+              }
+            : m
+        )
+      );
 
       if (error?.status === 429) {
         notifyError("لقد استنفدت الحد اليومي المسموح به. يتجدد الرصيد تلقائياً كل 24 ساعة.");
@@ -267,6 +436,13 @@ export default function AiChatView({ role = "student" }) {
     } finally {
       setSending(false);
       setTimeout(() => scrollToBottom("smooth"), 100);
+    }
+  };
+
+  // Retry sending failed message
+  const handleRetryMessage = (msg) => {
+    if (msg.retryPayload?.text) {
+      handleSendMessage(msg.retryPayload.text);
     }
   };
 
@@ -280,7 +456,7 @@ export default function AiChatView({ role = "student" }) {
     try {
       await clearAiHistory(role);
       setMessages([]);
-      notifySuccess("تم بدء محادثة جديدة بنجاح");
+      notifySuccess("تم بدء محادثة جديدة وتصفير السجل السابق بنجاح");
     } catch (error) {
       notifyError(error?.message || "فشل تصفير سجل المحادثة");
     } finally {
@@ -302,7 +478,7 @@ export default function AiChatView({ role = "student" }) {
     <div className="flex flex-col h-[calc(100vh-6.5rem)] lg:h-[calc(100vh-5rem)] max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200/90 overflow-hidden">
       {/* 1. CHAT HEADER */}
       <header className="px-3.5 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/90 border-b border-gray-200/80 flex items-center justify-between gap-3 shrink-0">
-        {/* Right: Teacher Identity */}
+        {/* Right: Identity */}
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="relative shrink-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-100/80 border-2 border-[#009966]/40 p-0.5 flex items-center justify-center overflow-hidden shadow-xs">
@@ -319,18 +495,13 @@ export default function AiChatView({ role = "student" }) {
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="font-bold text-sm sm:text-base text-gray-900 truncate">
-                مستر محمد بشتة
-              </h2>
-              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">
-                {config.pageTitle}
-              </span>
-            </div>
-            <p className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 font-medium truncate">
-              <span>معلم اللغة العربية</span>
+            <h2 className="font-bold text-sm sm:text-base text-gray-900 truncate">
+              {config.headerTitle}
+            </h2>
+            <p className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 font-medium truncate mt-0.5">
+              <span>{config.headerRole}</span>
               <span className="text-gray-300">•</span>
-              <span className="text-emerald-600 font-semibold">متصل الآن</span>
+              <span className="text-emerald-600 font-semibold">{config.headerStatus}</span>
             </p>
           </div>
         </div>
@@ -396,11 +567,11 @@ export default function AiChatView({ role = "student" }) {
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-400">
             <div className="w-9 h-9 border-3 border-gray-200 border-t-[#009966] rounded-full animate-spin" />
-            <p className="text-xs sm:text-sm font-medium">جاري تجهيز المحادثة...</p>
+            <p className="text-xs sm:text-sm font-medium">جاري تجهيز بيئة المحادثة...</p>
           </div>
         ) : messages.length === 0 ? (
           /* Empty State / Welcome Screen */
-          <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-lg mx-auto">
+          <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-xl mx-auto">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 p-1 flex items-center justify-center mb-3 shadow-xs">
               <img
                 src={MrBoshtaAvatar}
@@ -415,22 +586,36 @@ export default function AiChatView({ role = "student" }) {
               {config.welcomeDesc}
             </p>
 
-            {/* Quick Prompt Capsules */}
-            {config.quickPrompts && config.quickPrompts.length > 0 && (
+            {/* Quick Action Cards in Empty State */}
+            {config.quickActions && config.quickActions.length > 0 && (
               <div className="w-full text-right">
-                <span className="text-[11px] font-bold text-gray-400 block mb-2 px-1">
-                  💡 أمثلة مقترحة يمكنك البدء بها:
+                <span className="text-xs font-bold text-gray-500 block mb-2.5 px-1 flex items-center gap-1.5">
+                  <Sparkles size={13} className="text-[#009966]" />
+                  أوامر مقترحة للبدء السريع:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {config.quickPrompts.map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSendMessage(prompt)}
-                      className="text-right p-2.5 rounded-xl border border-gray-200/90 bg-white hover:bg-emerald-50/60 hover:border-emerald-300 text-xs text-gray-700 transition shadow-2xs leading-snug cursor-pointer group"
-                    >
-                      <span className="group-hover:text-emerald-800">{prompt}</span>
-                    </button>
-                  ))}
+                  {config.quickActions.map((action, idx) => {
+                    const IconComponent = action.icon;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleQuickAction(action.text)}
+                        className="text-right p-3 rounded-xl border border-gray-200/90 bg-white hover:bg-emerald-50/60 hover:border-emerald-300 text-xs text-gray-700 transition shadow-2xs leading-snug cursor-pointer group flex items-start gap-2.5"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#009966] flex items-center justify-center shrink-0 border border-emerald-100 group-hover:bg-emerald-100/80 transition">
+                          <IconComponent size={15} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold block text-gray-900 group-hover:text-emerald-800">
+                            {action.label}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block truncate mt-0.5">
+                            {action.text}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -467,7 +652,7 @@ export default function AiChatView({ role = "student" }) {
 
                   {/* Message Bubble Container */}
                   <div
-                    className={`max-w-[85%] sm:max-w-[78%] flex flex-col ${
+                    className={`max-w-[85%] sm:max-w-[80%] flex flex-col ${
                       isUser ? "items-end" : "items-start"
                     }`}
                   >
@@ -491,7 +676,9 @@ export default function AiChatView({ role = "student" }) {
                     <div
                       className={`p-3.5 sm:p-4 rounded-2xl shadow-xs transition ${
                         isUser
-                          ? "bg-[#1a5d1a] text-white rounded-br-xs selection:bg-emerald-300 selection:text-emerald-950"
+                          ? msg.status === "error"
+                            ? "bg-red-50 text-red-900 border border-red-200 rounded-br-xs"
+                            : "bg-[#1a5d1a] text-white rounded-br-xs selection:bg-emerald-300 selection:text-emerald-950"
                           : "bg-white text-gray-800 border border-gray-200/80 rounded-bl-xs"
                       }`}
                     >
@@ -500,9 +687,51 @@ export default function AiChatView({ role = "student" }) {
                           {msg.message}
                         </p>
                       ) : (
-                        <MarkdownRenderer content={msg.message} />
+                        <div>
+                          <MarkdownRenderer content={msg.message} />
+
+                          {/* Human-in-the-Loop Confirmation Buttons for Exam Drafts */}
+                          {isAssistant && isExamDraftMessage(msg.message) && (
+                            <div className="mt-3.5 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSendMessage("أكد حفظ وتفعيل هذا الامتحان على المنصة الآن")}
+                                disabled={sending}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1a5d1a] hover:bg-[#144d14] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                              >
+                                <CheckCircle2 size={14} className="text-emerald-300" />
+                                <span>تأكيد وإنشاء الامتحان في المنصة</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickAction("أرغب في تعديل الأسئلة: ")}
+                                disabled={sending}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition cursor-pointer disabled:opacity-50"
+                              >
+                                <Edit3 size={13} className="text-gray-500" />
+                                <span>تعديل الأسئلة أولاً</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
+
+                    {/* Message Error Retry Banner if sending failed */}
+                    {isUser && msg.status === "error" && (
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-red-600 font-medium">
+                        <AlertCircle size={12} className="shrink-0" />
+                        <span>تعذر إرسال الرسالة.</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRetryMessage(msg)}
+                          className="underline hover:text-red-700 font-bold mr-1 cursor-pointer flex items-center gap-0.5"
+                        >
+                          <RefreshCw size={11} />
+                          <span>إعادة المحاولة</span>
+                        </button>
+                      </div>
+                    )}
 
                     {/* Footer Info: Time & Copy Action */}
                     <div className="flex items-center gap-2 mt-1 px-1">
@@ -537,7 +766,7 @@ export default function AiChatView({ role = "student" }) {
               );
             })}
 
-            {/* Typing Indicator */}
+            {/* Waiting for reply indicator: 3 dots ONLY, zero text, sleek & clean */}
             {sending && (
               <div className="flex items-start gap-2.5 sm:gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-200 shrink-0 overflow-hidden p-0.5 shadow-2xs mt-1">
@@ -547,15 +776,10 @@ export default function AiChatView({ role = "student" }) {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="bg-white border border-gray-200/80 rounded-2xl rounded-bl-xs p-3.5 shadow-xs flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-                  <span className="font-semibold text-gray-800">
-                    مستر محمد يكتب الآن
-                  </span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#009966] animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#009966] animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#009966] animate-bounce" />
-                  </div>
+                <div className="bg-white border border-gray-200/80 rounded-2xl rounded-bl-xs px-4 py-3.5 shadow-xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#009966] animate-bounce [animation-delay:-0.32s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#009966] animate-bounce [animation-delay:-0.16s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#009966] animate-bounce" />
                 </div>
               </div>
             )}
@@ -568,11 +792,36 @@ export default function AiChatView({ role = "student" }) {
       <footer className="p-3 sm:p-4 bg-white border-t border-gray-200/80 shrink-0 space-y-2">
         {/* Quota Exceeded Notice */}
         {isQuotaExceeded && (
-          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs text-amber-800">
-            <AlertCircle size={15} className="text-amber-600 shrink-0" />
-            <span>
+          <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/80 flex items-center gap-2.5 text-xs text-amber-900 shadow-2xs">
+            <AlertCircle size={16} className="text-amber-600 shrink-0" />
+            <span className="leading-relaxed font-medium">
               لقد استنفدت الحد اليومي المسموح به من الرسائل (100 رسالة). يتجدد رصيدك تلقائياً مع بداية اليوم الجديد.
             </span>
+          </div>
+        )}
+
+        {/* Quick Action Chips Bar (Above input) */}
+        {config.quickActions && config.quickActions.length > 0 && !isQuotaExceeded && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+            <span className="text-[11px] font-bold text-gray-400 shrink-0 flex items-center gap-1 pl-1">
+              <Sparkles size={12} className="text-[#009966]" />
+              أوامر سريعة:
+            </span>
+            {config.quickActions.map((action, idx) => {
+              const IconComponent = action.icon;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleQuickAction(action.text)}
+                  disabled={sending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-50 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 border border-gray-200/90 hover:border-emerald-300 transition shrink-0 cursor-pointer shadow-2xs disabled:opacity-50"
+                >
+                  <IconComponent size={13} className="text-[#009966] shrink-0" />
+                  <span>{action.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -641,7 +890,9 @@ export default function AiChatView({ role = "student" }) {
             placeholder={
               isQuotaExceeded
                 ? "تم استنفاد الرصيد اليومي للرسائل..."
-                : "اسأل مستر محمد بشتة في أي قاعدة أو مسألة... (أو ارفع ملف PDF / صورة)"
+                : isAssistant
+                ? "اكتب أمرك هنا..."
+                : "اكتب رسالتك هنا..."
             }
             disabled={sending || isQuotaExceeded}
             rows={1}

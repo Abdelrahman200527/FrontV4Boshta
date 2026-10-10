@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 /**
  * Configure marked renderer
@@ -9,27 +10,28 @@ marked.setOptions({
   gfm: true,
 });
 
-/**
- * Basic sanitizer to strip unsafe HTML elements while allowing safe formatting
- */
-function sanitizeHtml(html) {
-  if (!html) return "";
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/javascript:/gi, "");
-}
+// Add hook to ensure all rendered links open safely in a new tab
+DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+  if (node.tagName === "A" && node.getAttribute("href")) {
+    node.setAttribute("target", "_blank");
+    node.setAttribute("rel", "noopener noreferrer");
+  }
+});
 
 /**
  * MarkdownRenderer component
  * Elegantly formats Arabic text, poetry verses, grammar explanations, bullet points, and tables.
+ * Protected with DOMPurify against all XSS attack vectors.
  */
 export default function MarkdownRenderer({ content, className = "" }) {
   const htmlContent = useMemo(() => {
     if (!content) return "";
     try {
       const rawHtml = marked.parse(content);
-      return sanitizeHtml(rawHtml);
+      return DOMPurify.sanitize(rawHtml, {
+        USE_PROFILES: { html: true },
+        ADD_ATTR: ["target", "rel"],
+      });
     } catch {
       return content;
     }

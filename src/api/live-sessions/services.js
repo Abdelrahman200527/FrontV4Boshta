@@ -1,11 +1,16 @@
 import { httpGet, httpPost, httpPut, httpDelete, httpPostFormData, httpPutFormData } from "../http";
 import config from "../../config";
-
+import { getCookie } from "../../utils/cookies";
 import { isDemoMode } from "../../utils/demo";
 
 const { apiUrl } = config;
 
 const isDemo = () => isDemoMode();
+
+const getAuthToken = () => {
+  if (typeof window === "undefined") return "";
+  return getCookie("auth_token") || localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+};
 
 const mockLiveSessions = [
   {
@@ -252,13 +257,13 @@ export const teacherUpdateRecordingUrl = async (id, recording_url) => {
 
 export const teacherGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/teacher/live-sessions/${id}/download?token=${token}`;
 };
 
 export const teacherGetPreviewMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/teacher/live-sessions/${id}/preview?token=${token}`;
 };
 
@@ -408,13 +413,13 @@ export const assistantUpdateRecordingUrl = async (id, recording_url) => {
 
 export const assistantGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/assistant/live-sessions/${id}/download?token=${token}`;
 };
 
 export const assistantGetPreviewMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/assistant/live-sessions/${id}/preview?token=${token}`;
 };
 
@@ -460,12 +465,12 @@ export const studentJoinSession = async (id) => {
 
 export const studentGetDownloadMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/student/live-sessions/${id}/download?token=${token}`;
 };
 
 export const studentGetPreviewMaterialUrl = (id) => {
   if (isDemo()) return "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-  const token = localStorage.getItem("token") || ""; 
+  const token = getAuthToken(); 
   return `${apiUrl}/student/live-sessions/${id}/preview?token=${token}`;
 };

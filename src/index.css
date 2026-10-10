@@ -201,18 +201,29 @@ th {
 }
 .ai-markdown-content table {
   width: 100%;
+  display: block;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 0.75rem 0;
-  font-size: 0.9em;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  -webkit-overflow-scrolling: touch;
 }
 .ai-markdown-content th,
 .ai-markdown-content td {
   border: 1px solid #e2e8f0;
-  padding: 0.5rem;
+  padding: 0.6rem 0.85rem;
   text-align: right;
+  white-space: nowrap;
 }
 .ai-markdown-content th {
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   font-weight: 700;
+  color: #1e293b;
 }
+.ai-markdown-content tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
 

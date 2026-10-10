@@ -271,7 +271,15 @@ const LiveSessions = () => {
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("description", form.description.trim());
-      fd.append("start_time", form.start_time);
+      let startTimeIso = form.start_time;
+      try {
+        if (form.start_time) {
+          startTimeIso = new Date(form.start_time).toISOString();
+        }
+      } catch {
+        startTimeIso = form.start_time;
+      }
+      fd.append("start_time", startTimeIso);
       fd.append("duration_minutes", Number(form.duration_minutes));
       fd.append("target_type", form.target_type);
       if (form.target_type === "grade" && form.grade_id)
@@ -352,12 +360,12 @@ const LiveSessions = () => {
 
   const handleDownloadMaterial = (session) => {
     const url = assistantGetDownloadMaterialUrl(session.id);
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handlePreviewMaterial = (session) => {
     const url = assistantGetPreviewMaterialUrl(session.id);
-    window.open(url, "_blank");
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // ─────────────────────────────────────────────
@@ -602,7 +610,7 @@ function SessionCard({
           )}
           {session.meet_link && (
             <a
-              href={session.meet_link}
+              href={session.meet_link.startsWith("http") ? session.meet_link : `https://${session.meet_link}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:underline max-w-full"
@@ -615,7 +623,7 @@ function SessionCard({
           )}
           {hasRecording && (
             <a
-              href={session.recording_url}
+              href={session.recording_url.startsWith("http") ? session.recording_url : `https://${session.recording_url}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:underline"

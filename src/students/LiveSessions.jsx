@@ -145,7 +145,14 @@ function SessionCard({ session, onJoin, joiningId }) {
 
   const isJoining = joiningId === id;
   const canJoin = status === "live" || status === "scheduled";
-  const hasRecording = Boolean(recording_url && recording_url.trim());
+  const safeRecordingUrl = useMemo(() => {
+    if (!recording_url || !recording_url.trim()) return null;
+    const trimmed = recording_url.trim();
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+    return `https://${trimmed}`;
+  }, [recording_url]);
+
+  const hasRecording = Boolean(safeRecordingUrl);
   const hasMaterial = Boolean(material_name || material_file_path);
   const materialDownloadUrl = hasMaterial
     ? studentGetDownloadMaterialUrl(id)
@@ -226,7 +233,7 @@ function SessionCard({ session, onJoin, joiningId }) {
         {/* Watch recording */}
         {hasRecording && (
           <a
-            href={recording_url}
+            href={safeRecordingUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#1a5d1a] hover:bg-[#144714] text-white active:scale-95 transition shadow-xs"
@@ -408,11 +415,15 @@ const LiveSessions = () => {
     try {
       const data = await studentJoinSession(session.id);
       // Backend returns meet_link inside the response
-      const link = data?.meet_link || session.meet_link;
-      if (link) {
+      let link = data?.meet_link || session.meet_link;
+      if (link && typeof link === "string") {
+        link = link.trim();
+        if (!link.startsWith("http://") && !link.startsWith("https://")) {
+          link = `https://${link}`;
+        }
         window.open(link, "_blank", "noopener,noreferrer");
       } else {
-        setToast({ type: "error", message: "لا يوجد رابط للحصة حالياً" });
+        setToast({ type: "error", message: "لا يوجد رابط صالح للحصة حالياً" });
       }
     } catch (err) {
       console.error("Join session error:", err);

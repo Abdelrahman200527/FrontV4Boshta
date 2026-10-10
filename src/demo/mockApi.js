@@ -244,6 +244,19 @@ export const handleDemoRequest = async (url, options) => {
   }
 
   if (url.includes("/live-sessions")) {
+    if (url.includes("/recording")) {
+      return generateResponse({
+        success: true,
+        message: "تم تحديث رابط تسجيل الحصة بنجاح",
+        data: { recording_url: "https://www.youtube.com/watch?v=gbst-g9OMdw" },
+      });
+    }
+    if (url.includes("/join")) {
+      return generateResponse({
+        success: true,
+        data: { meet_link: "https://meet.google.com/aqx-mmwy-zhv" },
+      });
+    }
     if (url.match(/\/live-sessions\/\d+$/)) return generateResponse({ success: true, data: mockLiveSessions[0] });
     return generateResponse({ success: true, data: mockLiveSessions, sessions: mockLiveSessions, pagination: { totalItems: 2, totalPages: 1 } });
   }
@@ -362,11 +375,42 @@ export const handleDemoRequest = async (url, options) => {
     if (url.includes("/ai/chat")) {
       const tomorrow = new Date();
       tomorrow.setHours(24, 0, 0, 0);
+
+      let reply = "أهلاً بك يا بطل! أنا مستر محمد بشتة معك دائماً. سؤالك ممتاز؛ في مادة اللغة العربية لكل قاعدة ضابط، واللغة تُفهم بالسياق والإعراب فرع المعنى. استمر في الاجتهاد!";
+      
+      let reqMessage = "";
+      try {
+        if (options.body) {
+          if (typeof options.body === "string") {
+            const parsed = JSON.parse(options.body);
+            reqMessage = parsed.message || "";
+          } else if (options.body instanceof FormData) {
+            reqMessage = options.body.get("message") || "";
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      if (url.includes("/assistant/")) {
+        if (reqMessage.includes("أكد") || reqMessage.includes("تأكيد")) {
+          reply = "**تم إنشاء الامتحان الإلكتروني وحفظه بنجاح في قاعدة البيانات!**\n\n* **معرف الامتحان (#ID):** #108\n* **العنوان:** امتحان إلكتروني على درس كان وأخواتها\n* **الصف المستهدف:** الصف الثالث الثانوي\n* **عدد الأسئلة:** 5 أسئلة موضوعية ومقالية\n* **الحالة:** متاح الآن للطلاب في لوحة التحكم الخاصة بهم.";
+        } else if (reqMessage.includes("امتحان")) {
+          reply = "**مسودة الامتحان الإلكتروني المقترح:**\n\n* **عنوان الامتحان:** اختبار تدريبي على الوحدة الأولى نحو\n* **الصف الدراسي:** الصف الثالث الثانوي (ID: 3)\n* **المدة الزمنية:** 30 دقيقة\n* **الدرجة الكلية:** 10 درجات\n\n### نماذج الأسئلة:\n1. ما حكم تقديم الخبر في جملة: (في الدار صاحبها)؟\n   * أ) واجب التقديم *(الإجابة الصحيحة)*\n   * ب) جائز التقديم\n   * ج) ممتنع التقديم\n   * د) جائز التأخير\n\n2. كلمة (ابن) تبدأ بهمزة وصل لأنها:\n   * أ) من الأسماء التسعة المسموعة *(الإجابة الصحيحة)*\n   * ب) مصدر خماسي\n   * ج) فعل ماضٍ\n\nهل تأكد حفظ وتفعيل هذا الامتحان على المنصة الآن؟";
+        } else if (reqMessage.includes("إحصائيات") || reqMessage.includes("احصائيات")) {
+          reply = "**إحصائيات طلاب السنتر المحدثة:**\n\n| الصف الدراسي | عدد المجموعات | عدد الطلاب النشطين |\n| :--- | :--- | :--- |\n| الصف الثالث الثانوي | 3 مجموعات | 35 طالباً |\n| الصف الثاني الثانوي | 2 مجموعات | 10 طلاب |\n| الصف الأول الثانوي | 1 مجموعة | 5 طلاب |\n\n**إجمالي الطلاب المسجلين بالسنتر:** 50 طالباً.";
+        } else if (reqMessage.includes("باركود") || reqMessage.includes("طالب")) {
+          reply = "**بيانات الطالب:**\n\n* **الاسم:** أحمد محمود سالم\n* **الباركود:** `0011`\n* **الصف:** الصف الثالث الثانوي\n* **المجموعة:** مجموعة السبت والأربعاء\n* **رقم هاتف الطالب:** `01012345678`\n* **رقم هاتف ولي الأمر:** `01098765432`\n* **حالة الحساب:** نشط (سدد اشتراك الشهر).";
+        } else {
+          reply = "أهلاً بك يا زميلي العزيز! أنا وكيلك التنفيذي المربوط بقاعدة بيانات السنتر؛ يمكنك طلبي لإنشاء الامتحانات، البحث في بيانات الطلاب، أو استخراج إحصائيات المجموعات والغياب في أي وقت.";
+        }
+      }
+
       return generateResponse({
         success: true,
         message: "تم الرد من المساعد الذكي بنجاح",
         data: {
-          reply: "أهلاً بك يا بطل! أنا مستر محمد بشتة معك دائماً. سؤالك ممتاز؛ في مادة اللغة العربية لكل قاعدة ضابط، واللغة تُفهم بالسياق والإعراب فرع المعنى. استمر في الاجتهاد!",
+          reply,
           message_id: Date.now(),
           has_file: false,
           file_name: null,

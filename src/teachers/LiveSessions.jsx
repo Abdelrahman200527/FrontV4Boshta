@@ -339,7 +339,7 @@ function SessionCard({ session, onEdit, onDelete, onRecordingUpdated }) {
           {/* Meet link */}
           {session.meet_link && (
             <a
-              href={session.meet_link}
+              href={session.meet_link.startsWith("http") ? session.meet_link : `https://${session.meet_link}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#009966] text-white rounded-lg text-xs font-medium hover:bg-[#00815a] transition"
@@ -387,7 +387,7 @@ function SessionCard({ session, onEdit, onDelete, onRecordingUpdated }) {
             {session.recording_url && !editingUrl ? (
               <div className="flex items-center gap-2">
                 <a
-                  href={session.recording_url}
+                  href={session.recording_url.startsWith("http") ? session.recording_url : `https://${session.recording_url}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium truncate flex-1"
@@ -584,7 +584,15 @@ function SessionFormModal({ mode, session, onClose, onSuccess }) {
       const fd = new FormData();
       fd.append("title", form.title.trim());
       fd.append("description", form.description.trim());
-      fd.append("start_time", form.start_time);
+      let startTimeIso = form.start_time;
+      try {
+        if (form.start_time) {
+          startTimeIso = new Date(form.start_time).toISOString();
+        }
+      } catch {
+        startTimeIso = form.start_time;
+      }
+      fd.append("start_time", startTimeIso);
       fd.append("duration_minutes", String(form.duration_minutes));
       if (!isEdit) {
         fd.append("target_type", form.target_type);
