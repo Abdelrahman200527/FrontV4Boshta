@@ -24,7 +24,9 @@ import {
   Globe,
   Settings,
   MessageCircle,
+  MessageSquare,
   CalendarClock,
+  KeyRound,
 } from "lucide-react";
 
 // ============ NAV ITEMS ============
@@ -164,12 +166,14 @@ const superAdminNavItems = [
   { title: "المستشار الذكي", icon: MessageCircle, path: "/super-admin/chat" },
   { title: "المستخدمين والموظفين", icon: UserRoundPen, path: "/super-admin/users" },
   { title: "الطلاب", icon: Users, path: "/super-admin/students" },
+  { title: "كلمات المرور والباركود", icon: KeyRound, path: "/super-admin/passwords" },
   { title: "الحضور والغياب", icon: CalendarCheck2, path: "/super-admin/attendance" },
   { title: "المجموعات", icon: CalendarClock, path: "/super-admin/groups" },
   { title: "الصفوف", icon: BarChart3, path: "/super-admin/grades" },
   { title: "المدفوعات", icon: BadgeDollarSign, path: "/super-admin/payments" },
   { title: "الامتحانات", icon: ClipboardPlus, path: "/super-admin/exams" },
   { title: "الحصص الأونلاين", icon: Video, path: "/super-admin/live-sessions" },
+  { title: "رسائل الواتساب", icon: MessageSquare, path: "/super-admin/whatsapp" },
   { title: "سجل النشاطات", icon: ClipboardList, path: "/super-admin/activity-log" },
   { title: "إعدادات المنصة", icon: Settings, path: "/super-admin/settings" },
 ];

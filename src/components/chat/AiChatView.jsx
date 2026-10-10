@@ -24,6 +24,7 @@ import {
   FileCheck2,
   ShieldCheck,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MrBoshtaAvatar from "../../assets/Mr-Boshta-removebg.png";
@@ -191,41 +192,54 @@ const ROLE_CONFIG = {
     ],
   },
   super_admin: {
-    pageTitle: "المستشار الأكاديمي وإدارة المحتوى",
-    headerTitle: "المستشار الأكاديمي وإدارة المحتوى",
-    headerRole: "المستشار الذكي للإدارة",
+    pageTitle: "المستشار الذكي للإدارة العليا",
+    headerTitle: "المستشار الذكي للإدارة العليا",
+    headerRole: "المستشار التنفيذي للإدارة العليا",
     headerStatus: "متصل الآن",
-    welcomeTitle: "المستشار الأكاديمي وإدارة المحتوى",
+    welcomeTitle: "المستشار الذكي للإدارة العليا",
     welcomeDesc:
-      "يمكنك استخدام هذه الشاشة لاختبار بنوك الأسئلة، مراجعة المناهج والتحضيرات وصياغة الاختبارات المعيارية.",
+      "أنا في خدمتك لمتابعة وتحليل كافة عمليات المنصة، التقارير المالية، إحصائيات الطلاب والغياب، إدارة الامتحانات، وتنفيذ القرارات الإدارية.",
     quickActions: [
       {
         icon: BarChart3,
-        label: "إحصائيات المنصة",
-        text: "اعرضلي إحصائيات عامة عن المنصة والطلاب والمجموعات",
+        label: "أرباح الشهر ونسبة التحصيل",
+        text: "طلعلي أرباح شهر أكتوبر ونسبة التحصيل وإجمالي المتبقي",
       },
       {
-        icon: FileCheck2,
-        label: "امتحان شامل",
-        text: "توليد نموذج اختبار تجريبي شامل مع مفتاح الإجابة",
+        icon: AlertTriangle,
+        label: "الطلاب المعرضين للخطر",
+        text: "مين الطلاب المعرضين للخطر في المنصة (3 غيابات متتالية أو أكثر)؟",
       },
       {
-        icon: ShieldCheck,
-        label: "معايير الثانوية العامة",
-        text: "مراجعة معايير امتحانات الثانوية العامة في مادة اللغة العربية",
+        icon: CalendarCheck,
+        label: "تقرير غياب اليوم",
+        text: "اعرضلي تقرير حضور وغياب طلاب السنتر لليوم",
+      },
+      {
+        icon: FilePlus2,
+        label: "إنشاء امتحان إلكتروني",
+        text: "عايز أعمل امتحان إلكتروني 5 أسئلة اختيار من متعدد لتالتة ثانوي",
+      },
+      {
+        icon: Search,
+        label: "بيانات طالب بالباركود",
+        text: "ابحثلي عن بيانات وسجل الطالب بالباركود: ",
       },
     ],
     quickPrompts: [
-      "مراجعة معايير امتحانات الثانوية العامة في مادة اللغة العربية",
-      "توليد نموذج اختبار تجريبي شامل مع مفتاح الإجابة",
-      "اقتراح محاور توزيع الدرجات على فروع اللغة العربية",
+      "طلعلي أرباح شهر أكتوبر ونسبة التحصيل وإجمالي المتبقي في السنتر",
+      "مين الطلاب المعرضين للخطر في المنصة (3 غيابات متتالية أو أكثر)؟",
+      "اعرضلي تقرير حضور وغياب طلاب السنتر لليوم",
+      "عايز أعمل امتحان إلكتروني 5 أسئلة اختيار من متعدد لتالتة ثانوي",
+      "ابحثلي عن بيانات وسجل الطالب بالباركود: ",
+      "اعرضلي إحصائيات عامة عن المنصة والطلاب والمجموعات",
     ],
   },
 };
 
 export default function AiChatView({ role = "student" }) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.student;
-  const isAssistant = role === "assistant";
+  const isStaff = role === "assistant" || role === "super_admin";
 
   const [messages, setMessages] = useState([]);
   const [quota, setQuota] = useState(null);
@@ -254,10 +268,18 @@ export default function AiChatView({ role = "student" }) {
         getAiHistory(role).catch(() => []),
         getAiQuota(role).catch(() => null),
       ]);
-      setMessages(historyData || []);
+      const list = Array.isArray(historyData)
+        ? historyData
+        : Array.isArray(historyData?.messages)
+        ? historyData.messages
+        : Array.isArray(historyData?.history)
+        ? historyData.history
+        : [];
+      setMessages(list);
       setQuota(quotaData);
     } catch (error) {
       console.error("Failed to load AI data:", error);
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -289,7 +311,9 @@ export default function AiChatView({ role = "student" }) {
     if (!file) return;
 
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      notifyError("يرجى اختيار ملف PDF أو صورة بحجم لا يتعدى 25 ميجابايت (JPG, PNG, WEBP)");
+      notifyError(
+        "يرجى اختيار ملف PDF أو صورة بحجم لا يتعدى 25 ميجابايت (JPG, PNG, WEBP)",
+      );
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -337,7 +361,10 @@ export default function AiChatView({ role = "student" }) {
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(actionText.length, actionText.length);
+        textareaRef.current.setSelectionRange(
+          actionText.length,
+          actionText.length,
+        );
       }
     }, 50);
   };
@@ -351,13 +378,24 @@ export default function AiChatView({ role = "student" }) {
     if ((!hasText && !hasFile) || sending) return;
 
     // Check quota
-    if (quota?.messages?.remaining !== undefined && quota.messages.remaining <= 0) {
-      notifyError("لقد استنفدت الحد اليومي المسموح به من الرسائل. يتجدد رصيدك تلقائياً غداً.");
+    if (
+      quota?.messages?.remaining !== undefined &&
+      quota.messages.remaining <= 0
+    ) {
+      notifyError(
+        "لقد استنفدت الحد اليومي المسموح به من الرسائل. يتجدد رصيدك تلقائياً غداً.",
+      );
       return;
     }
 
-    if (hasFile && quota?.files?.remaining !== undefined && quota.files.remaining <= 0) {
-      notifyError("لقد استنفدت الحد اليومي المسموح به لرفع الملفات (3 ملفات يومياً). يمكنك إرسال سؤالك نصياً.");
+    if (
+      hasFile &&
+      quota?.files?.remaining !== undefined &&
+      quota.files.remaining <= 0
+    ) {
+      notifyError(
+        "لقد استنفدت الحد اليومي المسموح به لرفع الملفات (3 ملفات يومياً). يمكنك إرسال سؤالك نصياً.",
+      );
       return;
     }
 
@@ -369,7 +407,9 @@ export default function AiChatView({ role = "student" }) {
     const tempUserMsg = {
       id: tempId,
       role: "user",
-      message: textToSend.trim() || (currentFileName ? `[ملف مرفق: ${currentFileName}]` : "ملف مرفق"),
+      message:
+        textToSend.trim() ||
+        (currentFileName ? `[ملف مرفق: ${currentFileName}]` : "ملف مرفق"),
       file_name: currentFileName,
       created_at: new Date().toISOString(),
       status: "sending",
@@ -389,7 +429,7 @@ export default function AiChatView({ role = "student" }) {
       if (result?.success && result?.data) {
         // Mark user message as delivered
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...m, status: "sent" } : m))
+          prev.map((m) => (m.id === tempId ? { ...m, status: "sent" } : m)),
         );
 
         const { reply, message_id, quota: updatedQuota } = result.data;
@@ -424,12 +464,14 @@ export default function AiChatView({ role = "student" }) {
                 errorMessage: errMsg,
                 retryPayload: { text: textToSend, file: currentFile },
               }
-            : m
-        )
+            : m,
+        ),
       );
 
       if (error?.status === 429) {
-        notifyError("لقد استنفدت الحد اليومي المسموح به. يتجدد الرصيد تلقائياً كل 24 ساعة.");
+        notifyError(
+          "لقد استنفدت الحد اليومي المسموح به. يتجدد الرصيد تلقائياً كل 24 ساعة.",
+        );
       } else {
         notifyError(errMsg);
       }
@@ -448,7 +490,9 @@ export default function AiChatView({ role = "student" }) {
 
   // Clear history (Start new chat)
   const handleClearHistory = async () => {
-    if (!window.confirm("هل تريد بالتأكيد بدء محادثة جديدة وتصفير السجل السابق؟")) {
+    if (
+      !window.confirm("هل تريد بالتأكيد بدء محادثة جديدة وتصفير السجل السابق؟")
+    ) {
       return;
     }
 
@@ -472,10 +516,22 @@ export default function AiChatView({ role = "student" }) {
     }
   };
 
-  const isQuotaExceeded = quota?.messages?.remaining !== undefined && quota.messages.remaining <= 0;
+  const remainingMessages =
+    quota?.messages?.remaining ??
+    quota?.remaining_messages ??
+    quota?.remaining ??
+    100;
+  const remainingFiles =
+    quota?.files?.remaining ??
+    quota?.remaining_files ??
+    3;
+  const isQuotaExceeded =
+    typeof remainingMessages === "number" && remainingMessages <= 0;
+
+  const safeMessages = Array.isArray(messages) ? messages : [];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6.5rem)] lg:h-[calc(100vh-5rem)] max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200/90 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-6.5rem)] lg:h-[calc(100vh-5rem)] max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200/90 overflow-hidden font-sans">
       {/* 1. CHAT HEADER */}
       <header className="px-3.5 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-emerald-50/70 via-white to-gray-50/90 border-b border-gray-200/80 flex items-center justify-between gap-3 shrink-0">
         {/* Right: Identity */}
@@ -495,13 +551,15 @@ export default function AiChatView({ role = "student" }) {
           </div>
 
           <div className="min-w-0">
-            <h2 className="font-bold text-sm sm:text-base text-gray-900 truncate">
+            <h2 className="font-semibold text-sm sm:text-base text-gray-900 truncate">
               {config.headerTitle}
             </h2>
-            <p className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 font-medium truncate mt-0.5">
+            <p className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 font-normal truncate mt-0.5">
               <span>{config.headerRole}</span>
               <span className="text-gray-300">•</span>
-              <span className="text-emerald-600 font-semibold">{config.headerStatus}</span>
+              <span className="text-emerald-600 font-medium">
+                {config.headerStatus}
+              </span>
             </p>
           </div>
         </div>
@@ -511,24 +569,29 @@ export default function AiChatView({ role = "student" }) {
           {/* Daily Quota Badge */}
           {quota && (
             <div
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium ${
                 isQuotaExceeded
                   ? "bg-red-50 text-red-700 border-red-200"
                   : "bg-gray-50/90 text-gray-700 border-gray-200"
               }`}
               title="رصيد الرسائل والملفات اليومي، يتجدد تلقائياً كل 24 ساعة"
             >
-              <Clock size={13} className={isQuotaExceeded ? "text-red-500" : "text-[#009966]"} />
+              <Clock
+                size={13}
+                className={isQuotaExceeded ? "text-red-500" : "text-[#009966]"}
+              />
               <span>
                 متبقي:{" "}
-                <strong className={isQuotaExceeded ? "text-red-700" : "text-gray-900"}>
-                  {quota.messages?.remaining ?? 100}
-                </strong>{" "}
+                <span
+                  className={isQuotaExceeded ? "text-red-700 font-semibold" : "text-gray-900 font-semibold"}
+                >
+                  {remainingMessages}
+                </span>{" "}
                 رسالة
               </span>
               <span className="text-gray-300">•</span>
               <span>
-                <strong>{quota.files?.remaining ?? 3}</strong> ملفات
+                <span className="font-semibold">{remainingFiles}</span> ملفات
               </span>
             </div>
           )}
@@ -536,8 +599,8 @@ export default function AiChatView({ role = "student" }) {
           {/* New Chat Button */}
           <button
             onClick={handleClearHistory}
-            disabled={clearing || messages.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+            disabled={clearing || safeMessages.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
             title="بدء محادثة جديدة وتصفير السجل السابق"
           >
             <RotateCcw
@@ -552,12 +615,13 @@ export default function AiChatView({ role = "student" }) {
       {/* Mobile Quota Sub-bar */}
       {quota && (
         <div className="sm:hidden px-3 py-1 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
-          <span className="flex items-center gap-1 font-medium">
+          <span className="flex items-center gap-1 font-normal">
             <Clock size={11} className="text-[#009966]" />
             الرصيد اليومي:
           </span>
-          <span className="font-semibold text-gray-800">
-            {quota.messages?.remaining ?? 100} رسالة • {quota.files?.remaining ?? 3} ملفات
+          <span className="font-medium text-gray-800">
+            {remainingMessages} رسالة •{" "}
+            {remainingFiles} ملفات
           </span>
         </div>
       )}
@@ -567,9 +631,11 @@ export default function AiChatView({ role = "student" }) {
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-gray-400">
             <div className="w-9 h-9 border-3 border-gray-200 border-t-[#009966] rounded-full animate-spin" />
-            <p className="text-xs sm:text-sm font-medium">جاري تجهيز بيئة المحادثة...</p>
+            <p className="text-xs sm:text-sm font-medium">
+              جاري تجهيز بيئة المحادثة...
+            </p>
           </div>
-        ) : messages.length === 0 ? (
+        ) : safeMessages.length === 0 ? (
           /* Empty State / Welcome Screen */
           <div className="h-full flex flex-col items-center justify-center text-center p-4 max-w-xl mx-auto">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 p-1 flex items-center justify-center mb-3 shadow-xs">
@@ -579,17 +645,17 @@ export default function AiChatView({ role = "student" }) {
                 className="w-full h-full object-contain"
               />
             </div>
-            <h3 className="font-bold text-base sm:text-lg text-gray-900 mb-1.5">
+            <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-1.5">
               {config.welcomeTitle}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-5">
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-5 font-normal">
               {config.welcomeDesc}
             </p>
 
             {/* Quick Action Cards in Empty State */}
             {config.quickActions && config.quickActions.length > 0 && (
               <div className="w-full text-right">
-                <span className="text-xs font-bold text-gray-500 block mb-2.5 px-1 flex items-center gap-1.5">
+                <span className="text-xs font-medium text-gray-500 block mb-2.5 px-1 flex items-center gap-1.5">
                   <Sparkles size={13} className="text-[#009966]" />
                   أوامر مقترحة للبدء السريع:
                 </span>
@@ -603,13 +669,13 @@ export default function AiChatView({ role = "student" }) {
                         className="text-right p-3 rounded-xl border border-gray-200/90 bg-white hover:bg-emerald-50/60 hover:border-emerald-300 text-xs text-gray-700 transition shadow-2xs leading-snug cursor-pointer group flex items-start gap-2.5"
                       >
                         <div className="w-8 h-8 rounded-lg bg-emerald-50 text-[#009966] flex items-center justify-center shrink-0 border border-emerald-100 group-hover:bg-emerald-100/80 transition">
-                          <IconComponent size={15} />
+                          {IconComponent && <IconComponent size={15} />}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <span className="font-bold block text-gray-900 group-hover:text-emerald-800">
+                          <span className="font-medium block text-gray-900 group-hover:text-emerald-800">
                             {action.label}
                           </span>
-                          <span className="text-[11px] text-gray-500 block truncate mt-0.5">
+                          <span className="text-[11px] text-gray-500 block truncate mt-0.5 font-normal">
                             {action.text}
                           </span>
                         </div>
@@ -623,7 +689,7 @@ export default function AiChatView({ role = "student" }) {
         ) : (
           /* Messages List */
           <>
-            {messages.map((msg, index) => {
+            {safeMessages.map((msg, index) => {
               const isUser = msg.role === "user";
               const timeStr = msg.created_at
                 ? new Date(msg.created_at).toLocaleTimeString("ar-EG", {
@@ -666,7 +732,10 @@ export default function AiChatView({ role = "student" }) {
                         }`}
                       >
                         <FileText size={14} className="text-emerald-700" />
-                        <span className="font-semibold truncate max-w-[200px]" dir="ltr">
+                        <span
+                          className="font-semibold truncate max-w-[200px]"
+                          dir="ltr"
+                        >
                           {msg.file_name}
                         </span>
                       </div>
@@ -691,20 +760,29 @@ export default function AiChatView({ role = "student" }) {
                           <MarkdownRenderer content={msg.message} />
 
                           {/* Human-in-the-Loop Confirmation Buttons for Exam Drafts */}
-                          {isAssistant && isExamDraftMessage(msg.message) && (
+                          {isStaff && isExamDraftMessage(msg.message) && (
                             <div className="mt-3.5 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleSendMessage("أكد حفظ وتفعيل هذا الامتحان على المنصة الآن")}
+                                onClick={() =>
+                                  handleSendMessage(
+                                    "أكد حفظ وتفعيل هذا الامتحان على المنصة الآن",
+                                  )
+                                }
                                 disabled={sending}
                                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1a5d1a] hover:bg-[#144d14] text-white shadow-xs transition cursor-pointer disabled:opacity-50"
                               >
-                                <CheckCircle2 size={14} className="text-emerald-300" />
+                                <CheckCircle2
+                                  size={14}
+                                  className="text-emerald-300"
+                                />
                                 <span>تأكيد وإنشاء الامتحان في المنصة</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleQuickAction("أرغب في تعديل الأسئلة: ")}
+                                onClick={() =>
+                                  handleQuickAction("أرغب في تعديل الأسئلة: ")
+                                }
                                 disabled={sending}
                                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 transition cursor-pointer disabled:opacity-50"
                               >
@@ -743,14 +821,18 @@ export default function AiChatView({ role = "student" }) {
 
                       {!isUser && (
                         <button
-                          onClick={() => handleCopy(msg.id || index, msg.message)}
+                          onClick={() =>
+                            handleCopy(msg.id || index, msg.message)
+                          }
                           className="text-[11px] text-gray-400 hover:text-emerald-700 flex items-center gap-1 transition cursor-pointer"
                           title="نسخ نص الإجابة"
                         >
                           {copiedId === (msg.id || index) ? (
                             <>
                               <Check size={11} className="text-emerald-600" />
-                              <span className="text-emerald-600 font-bold">تم النسخ</span>
+                              <span className="text-emerald-600 font-bold">
+                                تم النسخ
+                              </span>
                             </>
                           ) : (
                             <>
@@ -795,35 +877,41 @@ export default function AiChatView({ role = "student" }) {
           <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/80 flex items-center gap-2.5 text-xs text-amber-900 shadow-2xs">
             <AlertCircle size={16} className="text-amber-600 shrink-0" />
             <span className="leading-relaxed font-medium">
-              لقد استنفدت الحد اليومي المسموح به من الرسائل (100 رسالة). يتجدد رصيدك تلقائياً مع بداية اليوم الجديد.
+              لقد استنفدت الحد اليومي المسموح به من الرسائل (100 رسالة). يتجدد
+              رصيدك تلقائياً مع بداية اليوم الجديد.
             </span>
           </div>
         )}
 
         {/* Quick Action Chips Bar (Above input) */}
-        {config.quickActions && config.quickActions.length > 0 && !isQuotaExceeded && (
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
-            <span className="text-[11px] font-bold text-gray-400 shrink-0 flex items-center gap-1 pl-1">
-              <Sparkles size={12} className="text-[#009966]" />
-              أوامر سريعة:
-            </span>
-            {config.quickActions.map((action, idx) => {
-              const IconComponent = action.icon;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleQuickAction(action.text)}
-                  disabled={sending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-50 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 border border-gray-200/90 hover:border-emerald-300 transition shrink-0 cursor-pointer shadow-2xs disabled:opacity-50"
-                >
-                  <IconComponent size={13} className="text-[#009966] shrink-0" />
-                  <span>{action.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {config.quickActions &&
+          config.quickActions.length > 0 &&
+          !isQuotaExceeded && (
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+              <span className="text-[11px] font-bold text-gray-400 shrink-0 flex items-center gap-1 pl-1">
+                <Sparkles size={12} className="text-[#009966]" />
+                أوامر سريعة:
+              </span>
+              {config.quickActions.map((action, idx) => {
+                const IconComponent = action.icon;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleQuickAction(action.text)}
+                    disabled={sending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-50 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 border border-gray-200/90 hover:border-emerald-300 transition shrink-0 cursor-pointer shadow-2xs disabled:opacity-50"
+                  >
+                    <IconComponent
+                      size={13}
+                      className="text-[#009966] shrink-0"
+                    />
+                    <span>{action.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
         {/* Selected File Preview */}
         {selectedFile && (
@@ -841,7 +929,10 @@ export default function AiChatView({ role = "student" }) {
                 </div>
               )}
               <div className="min-w-0">
-                <span className="font-bold text-gray-900 block truncate" dir="ltr">
+                <span
+                  className="font-bold text-gray-900 block truncate"
+                  dir="ltr"
+                >
                   {selectedFile.name}
                 </span>
                 <span className="text-[11px] text-gray-500 font-mono">
@@ -890,9 +981,9 @@ export default function AiChatView({ role = "student" }) {
             placeholder={
               isQuotaExceeded
                 ? "تم استنفاد الرصيد اليومي للرسائل..."
-                : isAssistant
-                ? "اكتب أمرك هنا..."
-                : "اكتب رسالتك هنا..."
+                : isStaff
+                  ? "اكتب أمرك هنا..."
+                  : "اكتب رسالتك هنا..."
             }
             disabled={sending || isQuotaExceeded}
             rows={1}
@@ -904,9 +995,7 @@ export default function AiChatView({ role = "student" }) {
             type="button"
             onClick={() => handleSendMessage()}
             disabled={
-              sending ||
-              isQuotaExceeded ||
-              (!inputText.trim() && !selectedFile)
+              sending || isQuotaExceeded || (!inputText.trim() && !selectedFile)
             }
             className="p-2.5 sm:p-3 rounded-xl bg-[#1a5d1a] hover:bg-[#144d14] text-white transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
             title="إرسال (Enter)"
@@ -918,7 +1007,9 @@ export default function AiChatView({ role = "student" }) {
         {/* Small Bottom Helper */}
         <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
           <span>اضغط Enter للإرسال، أو Shift + Enter لسطر جديد</span>
-          <span className="hidden sm:inline">يقبل ملفات PDF والصور حتى 25 ميجابايت</span>
+          <span className="hidden sm:inline">
+            يقبل ملفات PDF والصور حتى 25 ميجابايت
+          </span>
         </div>
       </footer>
     </div>

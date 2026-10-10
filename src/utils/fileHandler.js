@@ -19,10 +19,22 @@ const getAuthHeaders = () => {
   return headers;
 };
 
+const resolveUrlForRole = (url) => {
+  if (typeof window !== "undefined" && url && typeof url === "string") {
+    const isSuperAdmin = window.location.pathname.startsWith("/super-admin");
+    if (isSuperAdmin) {
+      return url
+        .replace("/api/assistant/", "/api/super-admin/")
+        .replace("/api/teacher/", "/api/super-admin/");
+    }
+  }
+  return url;
+};
 
 const downloadFile = async (url, fileName = "file") => {
   try {
-    const response = await fetch(url, {
+    const targetUrl = resolveUrlForRole(url);
+    const response = await fetch(targetUrl, {
       method: "GET",
       headers: getAuthHeaders(),
     });
@@ -34,9 +46,24 @@ const downloadFile = async (url, fileName = "file") => {
 
     const contentDisposition = response.headers.get("Content-Disposition");
     if (contentDisposition) {
-      const match = contentDisposition.match(/filename="?([^";]+)"?/);
-      if (match && match[1]) {
-        fileName = match[1].replace(/[/\\]/g, "").replace(/^(\.\.)+/, "").replace(/["']/g, "").trim() || "file";
+      const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const regularMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+      let extractedName = null;
+      if (utf8Match && utf8Match[1]) {
+        try {
+          extractedName = decodeURIComponent(utf8Match[1].trim());
+        } catch {
+          extractedName = utf8Match[1].trim();
+        }
+      } else if (regularMatch && regularMatch[1]) {
+        try {
+          extractedName = decodeURIComponent(regularMatch[1].trim());
+        } catch {
+          extractedName = regularMatch[1].trim();
+        }
+      }
+      if (extractedName) {
+        fileName = extractedName.replace(/[/\\]/g, "").replace(/^(\.\.)+/, "").replace(/["']/g, "").trim() || fileName;
       }
     }
 
@@ -66,7 +93,8 @@ const downloadFile = async (url, fileName = "file") => {
 
 const previewFile = async (url) => {
   try {
-    const response = await fetch(url, {
+    const targetUrl = resolveUrlForRole(url);
+    const response = await fetch(targetUrl, {
       method: "GET",
       headers: getAuthHeaders(),
     });

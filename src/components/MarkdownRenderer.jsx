@@ -1,6 +1,39 @@
 import React, { useMemo } from "react";
 import { marked } from "marked";
-import DOMPurify from "dompurify";
+import DOMPurifyFactory from "dompurify";
+
+/**
+ * Initialize DOMPurify safely across browser and SSR environments
+ */
+const getPurifier = () => {
+  if (typeof DOMPurifyFactory?.sanitize === "function") {
+    return DOMPurifyFactory;
+  }
+  if (typeof window !== "undefined" && typeof DOMPurifyFactory === "function") {
+    try {
+      const instance = DOMPurifyFactory(window);
+      if (typeof instance?.sanitize === "function") return instance;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const DOMPurify = getPurifier();
+
+if (DOMPurify && typeof DOMPurify.addHook === "function") {
+  try {
+    DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+      if (node && node.tagName === "A" && node.getAttribute && node.getAttribute("href")) {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer");
+      }
+    });
+  } catch (err) {
+    // Hook configuration skipped
+  }
+}
 
 /**
  * Configure marked renderer
@@ -8,14 +41,6 @@ import DOMPurify from "dompurify";
 marked.setOptions({
   breaks: true,
   gfm: true,
-});
-
-// Add hook to ensure all rendered links open safely in a new tab
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (node.tagName === "A" && node.getAttribute("href")) {
-    node.setAttribute("target", "_blank");
-    node.setAttribute("rel", "noopener noreferrer");
-  }
 });
 
 /**
@@ -28,10 +53,13 @@ export default function MarkdownRenderer({ content, className = "" }) {
     if (!content) return "";
     try {
       const rawHtml = marked.parse(content);
-      return DOMPurify.sanitize(rawHtml, {
-        USE_PROFILES: { html: true },
-        ADD_ATTR: ["target", "rel"],
-      });
+      if (DOMPurify && typeof DOMPurify.sanitize === "function") {
+        return DOMPurify.sanitize(rawHtml, {
+          USE_PROFILES: { html: true },
+          ADD_ATTR: ["target", "rel"],
+        });
+      }
+      return rawHtml;
     } catch {
       return content;
     }

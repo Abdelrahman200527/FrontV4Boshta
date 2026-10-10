@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component {
           <p className="text-gray-500 text-sm max-w-md mb-6 leading-relaxed">
             نعتذر عن هذا الخطأ المؤقت. يمكنك محاولة إعادة تحميل الصفحة أو العودة للصفحة الرئيسية.
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => window.location.reload()}
               className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold hover:opacity-90 transition shadow-sm"
@@ -58,6 +58,15 @@ class ErrorBoundary extends React.Component {
               الصفحة الرئيسية
             </button>
           </div>
+
+          {this.state.error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-left font-mono text-xs text-red-800 max-w-xl overflow-auto text-left" dir="ltr">
+              <p className="font-bold mb-1">{this.state.error.toString()}</p>
+              {this.state.error.stack && (
+                <pre className="whitespace-pre-wrap text-[11px] text-red-700 opacity-80">{this.state.error.stack}</pre>
+              )}
+            </div>
+          )}
         </div>
       );
     }

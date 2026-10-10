@@ -16,6 +16,8 @@ import {
   Zap,
   Flame,
   ArrowLeft,
+  MessageSquareText,
+  Check,
 } from "lucide-react";
 import { setCookie } from "../utils/cookies";
 
@@ -537,6 +539,255 @@ export default function DemoSelector() {
                       </span>
                     </li>
                   </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* The Personal Assistant Deep Dive Section */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-10 border border-emerald-100/80 shadow-sm flex flex-col gap-6 sm:gap-8">
+              {/* Header */}
+              <div className="flex flex-col gap-3">
+                <div className="inline-flex items-center gap-2 bg-emerald-50 text-[#1a5d1a] border border-emerald-200 px-3.5 py-1.5 rounded-full text-xs font-bold w-fit">
+                  <MessageSquareText size={15} className="text-[#009966] shrink-0" />
+                  <span>المساعد الشخصي الذكي المتكامل</span>
+                </div>
+
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight">
+                  المساعد الشخصي في المنصة.. رفيقك التعليمي والتنفيذي في كل خطوة
+                </h3>
+
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-4xl">
+                  لم نكتفِ في المنصة بتوفير لوحات تحكم وإحصائيات تقليدية، بل قمنا ببناء مساعد شخصي متخصص يعمل وفق هوية المعلم وبصمته العلمية. يتكيف المساعد تلقائياً بحسب نوع الحساب وصلاحياته، ليقدم دعماً فورياً وشاملاً لكل أطراف العملية التعليمية: الطالب، وفريق المساعدين، والمعلم، وإدارة النظام.
+                </p>
+              </div>
+
+              {/* Roles Breakdown Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                {/* 1. Student */}
+                <div className="bg-[#fcfdfd] border border-emerald-100 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-emerald-300 transition duration-200 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-emerald-100/70 text-[#1a5d1a] flex items-center justify-center shrink-0">
+                        <GraduationCap size={22} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#009966] block">
+                          لحساب الطالب
+                        </span>
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                          معلم خصوصي متواجد على مدار الساعة
+                        </h4>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-4">
+                      يرافق الطالب أثناء مذاكرته اليومية في المنزل، مجيباً عن تساؤلاته وميسراً استيعاب أصعب النقاط بنفس لغة وأسلوب معلمه المعتمد.
+                    </p>
+
+                    <ul className="space-y-2.5 text-xs sm:text-sm text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <span><strong>شرح وتبسيط القواعد:</strong> توضيح القواعد النحوية والبلاغية بأسلوب متدرج مدعوم بأمثلة تطبيقية وشواهد واضحة.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <span><strong>إعراب دقيق وتحليل نصوص:</strong> تفكيك الجمل المركبة، وبيان المحلات الإعرابية ومواطن الجمال في الأبيات الشعرية.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <span><strong>توجيه الحل دون تلقين:</strong> تدريب الطالب على طريقة التفكير والاستنتاج الصحيح في التدريبات والواجبات المنزلية.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <span><strong>فحص صور الأسئلة وملفات PDF:</strong> إمكانية تصوير أي سؤال من المذكرة أو إرفاق ملف تدريبات لتحليله وشرحه فوراً.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-emerald-50 text-[11px] text-emerald-800 font-medium">
+                    متاح دائماً في أي وقت ليلاً أو نهاراً لتثبيت المعلومة وطمأنة ولي الأمر.
+                  </div>
+                </div>
+
+                {/* 2. Assistant */}
+                <div className="bg-[#fcfdfd] border border-amber-100 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-amber-300 transition duration-200 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0">
+                        <Users size={22} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-amber-600 block">
+                          لفريق المساعدين
+                        </span>
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                          مساعد تنفيذي لإدارة السنتر والامتحانات
+                        </h4>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-4">
+                      ذراع تنفيذي ذكي لفريق العمل في السنتر يربط أوامر المحادثة المباشرة بقاعدة البيانات لاختصار ساعات من البحث والعمل اليدوي.
+                    </p>
+
+                    <ul className="space-y-2.5 text-xs sm:text-sm text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                        <span><strong>بيانات الطلاب بالباركود:</strong> استعلام فوري برقم الباركود أو الكود لمعرفة بيانات الطالب ومجموعته وحالته دون فتح قوائم طويلة.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                        <span><strong>تقارير الغياب والمتابعة:</strong> استخراج فوري لقوائم الغائبين في حصص اليوم مع أرقام هواتف أولياء أمورهم للتواصل السريع.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                        <span><strong>إحصائيات المجموعات والقاعات:</strong> قراءة حية لتوزيع الطلاب في السنتر لتنظيم المقاعد وتجهيز المذكرات المطلوبة بدقة.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                        <span><strong>إنشاء مسودات الامتحانات:</strong> صياغة امتحانات إلكترونية كاملة بنمط الاختيار من متعدد واعتمادها في النظام بنقرة زر واحدة.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-amber-50 text-[11px] text-amber-800 font-medium">
+                    يقلل الأعباء الروتينية عن المساعدين ليتفرغوا للتركيز على راحة الطلاب في القاعة.
+                  </div>
+                </div>
+
+                {/* 3. Teacher */}
+                <div className="bg-[#fcfdfd] border border-blue-100 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-blue-300 transition duration-200 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center shrink-0">
+                        <UserCheck size={22} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-blue-600 block">
+                          لحساب المعلم
+                        </span>
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                          مستشار أكاديمي لإعداد الحصص والمحتوى
+                        </h4>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-4">
+                      بيئة متقدمة تدعم المعلم في التخطيط التدريسي ومراجعة دقائق المادة العلمية وصياغة اختبارات متميزة تعكس خبرته ومكانته.
+                    </p>
+
+                    <ul className="space-y-2.5 text-xs sm:text-sm text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-blue-600 shrink-0 mt-0.5" />
+                        <span><strong>تنظيم خطط الشرح والمراجعات:</strong> اقتراح توزيع زمني متوازن للحصة يجمع بين الاستيعاب النظري والتطبيق وحل النماذج.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-blue-600 shrink-0 mt-0.5" />
+                        <span><strong>صياغة أسئلة المستويات العليا:</strong> ابتكار أسئلة قياس متطورة تحاكي أحدث معايير الثانوية العامة لقياس الفهم العميق والتحليل.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-blue-600 shrink-0 mt-0.5" />
+                        <span><strong>استدعاء الشواهد اللغوية:</strong> استرجاع فوري للأبيات الشعرية وشواهد النحو والبلاغة في المسائل الدقيقة لإثراء الحصة.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-blue-600 shrink-0 mt-0.5" />
+                        <span><strong>تدقيق المذكرات وبنوك الأسئلة:</strong> مراجعة الصياغات اللغوية ونماذج الإجابة قبل طباعتها لضمان خلوها من أي تأويل مزدوج.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-blue-50 text-[11px] text-blue-800 font-medium">
+                    يساعد المعلم على ابتكار أفكار تعليمية جديدة مع توفير ساعات من التحضير الأسبوعي.
+                  </div>
+                </div>
+
+                {/* 4. Super Admin */}
+                <div className="bg-[#fcfdfd] border border-purple-100 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-purple-300 transition duration-200 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center shrink-0">
+                        <ShieldCheck size={22} />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-purple-600 block">
+                          لإدارة المنصة والمحتوى
+                        </span>
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                          الرقابة المعيارية وضمان جودة الاختبارات
+                        </h4>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-4">
+                      أداة تدقيق شاملة تضمن مطابقة المحتوى للاشتراطات التعليمية الرسمية وسلامة البنية الامتحانية المنشورة للطلاب.
+                    </p>
+
+                    <ul className="space-y-2.5 text-xs sm:text-sm text-gray-700">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-purple-600 shrink-0 mt-0.5" />
+                        <span><strong>مطابقة المعايير الوزارية:</strong> فحص بنوك الأسئلة والتأكد من تدرج صعوبتها وتغطيتها لمخرجات التعلم المطلوبة.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-purple-600 shrink-0 mt-0.5" />
+                        <span><strong>توليد نماذج اختبارات معيارية:</strong> بناء نماذج امتحانات تجريبية شاملة مع مفاتيح الإجابة التفصيلية للتقييم العام.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-purple-600 shrink-0 mt-0.5" />
+                        <span><strong>قراءة مؤشرات أداء الطلاب:</strong> تقديم رؤى تشغيلية تحليلية للمساعدة في التطوير المستمر لجودة المخرجات العلمية.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 size={15} className="text-purple-600 shrink-0 mt-0.5" />
+                        <span><strong>استقرار وأمان المنظومة:</strong> مراقبة مستمرة للعمليات الأكاديمية والتشغيلية بأعلى درجات الانضباط والسرية.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-purple-50 text-[11px] text-purple-800 font-medium">
+                    يضمن للإدارة الحفاظ على هوية المنصة وثبات المستوى الأكاديمي عبر كافة المراحل.
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Value Badges */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-[#009966] flex items-center justify-center shrink-0">
+                    <Check size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">تصميم طبيعي ومريح</span>
+                    <span className="text-[11px] text-gray-500 block">واجهة محادثة هادئة وعملية بدون بهرجة</span>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-[#009966] flex items-center justify-center shrink-0">
+                    <Check size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">أمان وخصوصية تامة</span>
+                    <span className="text-[11px] text-gray-500 block">حفظ البيانات وعزل سجلات كل مستخدم</span>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-[#009966] flex items-center justify-center shrink-0">
+                    <Check size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">دعم المرفقات والمستندات</span>
+                    <span className="text-[11px] text-gray-500 block">تحليل ملفات PDF والصور حتى 25 ميجابايت</span>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-[#009966] flex items-center justify-center shrink-0">
+                    <Check size={16} />
+                  </div>
+                  <div>
+                    <span className="font-bold text-xs text-gray-900 block">رصيد استخدام منتظم</span>
+                    <span className="text-[11px] text-gray-500 block">تجدد يومي تلقائي يحافظ على سرعة الاستجابة</span>
+                  </div>
                 </div>
               </div>
             </div>

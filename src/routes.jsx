@@ -67,9 +67,18 @@ import TeacherChat from "./teachers/Chat.jsx";
 // Super Admin
 import SuperAdminDashboard from "./super-admin/Dashboard.jsx";
 import SuperAdminUsers from "./super-admin/Users.jsx";
+import SuperAdminStudents from "./super-admin/Students.jsx";
+import SuperAdminPasswords from "./super-admin/Passwords.jsx";
+import SuperAdminAttendance from "./super-admin/Attendance.jsx";
+import SuperAdminGroups from "./super-admin/Groups.jsx";
+import SuperAdminGrades from "./super-admin/Grades.jsx";
+import SuperAdminFinance from "./super-admin/Finance.jsx";
+import SuperAdminExams from "./super-admin/Exams.jsx";
+import SuperAdminLiveSessions from "./super-admin/LiveSessions.jsx";
 import SuperAdminActivityLog from "./super-admin/ActivityLog.jsx";
 import SuperAdminSettings from "./super-admin/Settings.jsx";
 import SuperAdminChat from "./super-admin/Chat.jsx";
+import SuperAdminWhatsApp from "./super-admin/WhatsApp.jsx";
 
 import NotFound from "./pages/NotFound.jsx";
 import LoginSystem from "./pages/LoginSystem.jsx";
@@ -246,16 +255,17 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: SuperAdminDashboard },
       { path: "users", Component: SuperAdminUsers },
-      { path: "students", Component: AssistantManagementStudents },
-      { path: "students/:studentId", Component: TeacherStudentDetails },
-      { path: "attendance", Component: AssistantManagementAttendance },
-      { path: "groups", Component: AssistantManagementGroups },
-      { path: "grades", Component: AssistantManagementGrades },
-      { path: "payments", Component: AssistantManagementPayments },
-      { path: "exams", Component: AssistantManagementExams },
-      { path: "exams/:id", Component: AssistantManagementAddDegree },
+      { path: "students", Component: SuperAdminStudents },
+      { path: "passwords", Component: SuperAdminPasswords },
+      { path: "attendance", Component: SuperAdminAttendance },
+      { path: "groups", Component: SuperAdminGroups },
+      { path: "grades", Component: SuperAdminGrades },
+      { path: "payments", Component: SuperAdminFinance },
+      { path: "finance", Component: SuperAdminFinance },
+      { path: "exams", Component: SuperAdminExams },
       { path: "reports", Component: TeacherReports },
-      { path: "live-sessions", Component: TeacherLiveSessions },
+      { path: "live-sessions", Component: SuperAdminLiveSessions },
+      { path: "whatsapp", Component: SuperAdminWhatsApp },
       { path: "activity-log", Component: SuperAdminActivityLog },
       { path: "settings", Component: SuperAdminSettings },
       { path: "chat", Component: SuperAdminChat },

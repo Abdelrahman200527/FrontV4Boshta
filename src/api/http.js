@@ -38,16 +38,39 @@ function getHeaders(isFormData = false) {
 
 import { handleDemoRequest } from "../demo/mockApi";
 import { isDemoMode, clearDemoState } from "../utils/demo";
+import { getUserRole } from "../utils/getUser";
+
+function isSuperAdminContext() {
+  if (typeof window === "undefined") return false;
+  if (isDemoMode()) return false;
+  const isSuperAdminPath = window.location.pathname.startsWith("/super-admin");
+  const role = getUserRole();
+  return isSuperAdminPath && role === "super_admin";
+}
+
+function resolveRolePath(path) {
+  if (isSuperAdminContext()) {
+    if (path.startsWith("/assistant/")) {
+      return path.replace(/^\/assistant\//, "/super-admin/");
+    }
+    if (path.startsWith("/teacher/")) {
+      return path.replace(/^\/teacher\//, "/super-admin/");
+    }
+  }
+  return path;
+}
 
 async function httpRequest(path, options = {}) {
+  const targetPath = resolveRolePath(path);
+
   // If requesting real authentication routes, ALWAYS purge demo state and call real backend
-  if (path.startsWith("/auth/")) {
+  if (targetPath.startsWith("/auth/")) {
     clearDemoState();
   }
 
   // --- DEMO MODE INTERCEPTOR ---
-  if (!path.startsWith("/auth/") && isDemoMode()) {
-    const mockResponse = await handleDemoRequest(path, options);
+  if (!targetPath.startsWith("/auth/") && isDemoMode()) {
+    const mockResponse = await handleDemoRequest(targetPath, options);
     const data = await mockResponse.json().catch(() => null);
     if (!mockResponse.ok) {
       const error = new Error(data?.message || "خطأ في الاتصال (ديمو)");
@@ -59,7 +82,7 @@ async function httpRequest(path, options = {}) {
   }
   // -----------------------------
 
-  const url = `${apiUrl}${path}`;
+  const url = `${apiUrl}${targetPath}`;
 
   try {
     const response = await fetch(url, {

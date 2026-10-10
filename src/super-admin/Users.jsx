@@ -189,11 +189,11 @@ export default function SuperAdminUsers() {
       {/* Top Header */}
       <div className="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-800 flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <Users size={24} className="text-[#1a5d1a]" />
             إدارة الموظفين وفريق العمل
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 font-normal">
             إضافة وتعديل بيانات المدرسين والمساعدين والمشرفين والتحكم بصلاحياتهم.
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function SuperAdminUsers() {
             });
             setIsAddModalOpen(true);
           }}
-          className="w-full sm:w-auto bg-[#1a5d1a] hover:bg-[#124112] text-white px-5 py-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2"
+          className="w-full sm:w-auto bg-[#1a5d1a] hover:bg-[#124112] text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all shadow-sm flex items-center justify-center gap-2"
         >
           <UserPlus size={18} />
           إضافة موظف جديد
@@ -232,7 +232,7 @@ export default function SuperAdminUsers() {
           </div>
           <button
             type="submit"
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold transition"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium transition"
           >
             بحث
           </button>
@@ -249,7 +249,7 @@ export default function SuperAdminUsers() {
             <button
               key={item.value}
               onClick={() => setRoleFilter(item.value)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+              className={`px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap ${
                 roleFilter === item.value
                   ? "bg-[#1a5d1a] text-white shadow-sm"
                   : "bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200"
@@ -264,13 +264,13 @@ export default function SuperAdminUsers() {
       {/* Users Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-gray-500 font-bold">جاري تحميل بيانات الموظفين...</div>
+          <div className="text-center py-12 text-gray-500 font-medium">جاري تحميل بيانات الموظفين...</div>
         ) : users.length === 0 ? (
           <div className="text-center py-12 text-gray-400 text-sm">لا يوجد موظفين مطابقين للبحث.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead className="bg-gray-50/80 text-gray-500 text-xs font-bold border-b border-gray-100">
+              <thead className="bg-gray-50/80 text-gray-500 text-xs font-semibold border-b border-gray-100">
                 <tr>
                   <th className="py-3.5 px-4">الموظف</th>
                   <th className="py-3.5 px-4">رقم الهاتف</th>
@@ -289,11 +289,11 @@ export default function SuperAdminUsers() {
                     <tr key={u.id} className="hover:bg-slate-50/60 transition">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-emerald-50 text-[#1a5d1a] font-bold flex items-center justify-center text-sm shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-emerald-50 text-[#1a5d1a] font-medium flex items-center justify-center text-sm shrink-0">
                             {u.full_name?.charAt(0) || "U"}
                           </div>
                           <div>
-                            <span className="font-bold text-gray-900 block">{u.full_name}</span>
+                            <span className="font-medium text-gray-900 block">{u.full_name}</span>
                             <span className="text-[11px] text-gray-400 font-mono">ID: #{u.id}</span>
                           </div>
                         </div>
@@ -303,7 +303,7 @@ export default function SuperAdminUsers() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
                             u.role === "super_admin"
                               ? "bg-purple-50 text-purple-700 border border-purple-200"
                               : u.role === "teacher"
@@ -327,15 +327,15 @@ export default function SuperAdminUsers() {
                       </td>
                       <td className="py-3.5 px-4">
                         {isDeleted ? (
-                          <span className="text-xs bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold">
+                          <span className="text-xs bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-medium">
                             محذوف
                           </span>
                         ) : isActive ? (
-                          <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold">
+                          <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-medium">
                             نشط
                           </span>
                         ) : (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-bold">
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">
                             معطل
                           </span>
                         )}
@@ -416,7 +416,7 @@ export default function SuperAdminUsers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-gray-100 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+              <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
                 <UserPlus size={20} className="text-[#1a5d1a]" />
                 إضافة موظف جديد
               </h3>
@@ -430,7 +430,7 @@ export default function SuperAdminUsers() {
 
             <form onSubmit={handleCreateUser} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">الاسم بالكامل</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">الاسم بالكامل</label>
                 <input
                   type="text"
                   required
@@ -442,7 +442,7 @@ export default function SuperAdminUsers() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">رقم الهاتف</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">رقم الهاتف</label>
                 <input
                   type="tel"
                   required
@@ -455,7 +455,7 @@ export default function SuperAdminUsers() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">كلمة المرور</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">كلمة المرور</label>
                 <input
                   type="password"
                   required
@@ -469,7 +469,7 @@ export default function SuperAdminUsers() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">الدور الوظيفي</label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">الدور الوظيفي</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -481,7 +481,7 @@ export default function SuperAdminUsers() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">الصلاحية</label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">الصلاحية</label>
                   <select
                     value={formData.permissions}
                     onChange={(e) => setFormData({ ...formData, permissions: e.target.value })}
@@ -497,14 +497,14 @@ export default function SuperAdminUsers() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50"
+                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50"
                 >
                   {submitting ? "جاري الإضافة..." : "حفظ الموظف"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition"
                 >
                   إلغاء
                 </button>
@@ -519,7 +519,7 @@ export default function SuperAdminUsers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl border border-gray-100 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+              <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
                 <Edit size={20} className="text-[#1a5d1a]" />
                 تعديل بيانات: {selectedUser.full_name}
               </h3>
@@ -533,7 +533,7 @@ export default function SuperAdminUsers() {
 
             <form onSubmit={handleUpdateUser} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">الاسم بالكامل</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">الاسم بالكامل</label>
                 <input
                   type="text"
                   required
@@ -544,7 +544,7 @@ export default function SuperAdminUsers() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">رقم الهاتف</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">رقم الهاتف</label>
                 <input
                   type="tel"
                   required
@@ -557,7 +557,7 @@ export default function SuperAdminUsers() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">الدور الوظيفي</label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">الدور الوظيفي</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -569,7 +569,7 @@ export default function SuperAdminUsers() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">الصلاحية</label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1">الصلاحية</label>
                   <select
                     value={formData.permissions}
                     onChange={(e) => setFormData({ ...formData, permissions: e.target.value })}
@@ -585,14 +585,14 @@ export default function SuperAdminUsers() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50"
+                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50"
                 >
                   {submitting ? "جاري التحديث..." : "حفظ التغييرات"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition"
                 >
                   إلغاء
                 </button>
@@ -607,7 +607,7 @@ export default function SuperAdminUsers() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl border border-gray-100 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-base text-gray-800 flex items-center gap-2">
+              <h3 className="font-semibold text-base text-gray-800 flex items-center gap-2">
                 <KeyRound size={18} className="text-amber-600" />
                 تغيير كلمة المرور
               </h3>
@@ -620,12 +620,12 @@ export default function SuperAdminUsers() {
             </div>
 
             <p className="text-xs text-gray-500">
-              أدخل كلمة المرور الجديدة للمستخدم: <span className="font-bold text-gray-800">{selectedUser.full_name}</span>
+              أدخل كلمة المرور الجديدة للمستخدم: <span className="font-semibold text-gray-800">{selectedUser.full_name}</span>
             </p>
 
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1">كلمة المرور الجديدة</label>
+                <label className="text-xs font-medium text-gray-700 block mb-1">كلمة المرور الجديدة</label>
                 <input
                   type="password"
                   required
@@ -641,14 +641,14 @@ export default function SuperAdminUsers() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50"
+                  className="flex-1 bg-[#1a5d1a] hover:bg-[#124112] text-white py-2.5 rounded-xl font-medium text-sm transition disabled:opacity-50"
                 >
                   {submitting ? "جاري الحفظ..." : "تأكيد التغيير"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition"
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition"
                 >
                   إلغاء
                 </button>

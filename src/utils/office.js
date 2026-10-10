@@ -1,6 +1,5 @@
 
 import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 
 
 export async function downloadExcelTemplate(filename, headers, sampleRow) {

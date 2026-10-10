@@ -53,7 +53,7 @@ export default function SuperAdminActivityLog() {
       {/* Top Header */}
       <div className="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-gray-800 flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <Activity size={24} className="text-[#1a5d1a]" />
             سجل العمليات والرقابة العامة
           </h1>
@@ -64,7 +64,7 @@ export default function SuperAdminActivityLog() {
 
         <button
           onClick={fetchLogs}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-sm font-bold border border-gray-200 transition"
+          className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-sm font-medium border border-gray-200 transition"
         >
           <RotateCcw size={16} />
           تحديث السجل
@@ -73,7 +73,7 @@ export default function SuperAdminActivityLog() {
 
       {/* Filters Bar */}
       <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+        <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
           <Filter size={16} />
           تصفية حسب:
         </div>
@@ -85,7 +85,7 @@ export default function SuperAdminActivityLog() {
             setEntityType(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:border-[#1a5d1a]"
+          className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:outline-none focus:border-[#1a5d1a]"
         >
           <option value="">جميع العمليات</option>
           <option value="student">الطلاب</option>
@@ -107,14 +107,14 @@ export default function SuperAdminActivityLog() {
               setDate(e.target.value);
               setPage(1);
             }}
-            className="bg-transparent text-xs text-gray-700 font-bold focus:outline-none"
+            className="bg-transparent text-xs text-gray-700 font-medium focus:outline-none"
           />
         </div>
 
         {(entityType || date) && (
           <button
             onClick={handleResetFilters}
-            className="text-xs text-red-600 hover:underline font-bold px-2 py-1"
+            className="text-xs text-red-600 hover:underline font-medium px-2 py-1"
           >
             إلغاء الفلاتر
           </button>
@@ -124,18 +124,18 @@ export default function SuperAdminActivityLog() {
       {/* Activity Log Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-gray-500 font-bold">جاري تحميل السجل...</div>
+          <div className="text-center py-12 text-gray-500 font-medium">جاري تحميل السجل...</div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">لا توجد عمليات مسجلة في هذا النطاق.</div>
+          <div className="text-center py-12 text-gray-400 text-sm font-normal">لا توجد عمليات مسجلة في هذا النطاق.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right text-sm">
-              <thead className="bg-gray-50/80 text-gray-500 text-xs font-bold border-b border-gray-100">
+              <thead className="bg-gray-50/80 text-gray-500 text-xs font-medium border-b border-gray-100">
                 <tr>
-                  <th className="py-3.5 px-4">المستخدم المسؤول</th>
-                  <th className="py-3.5 px-4">نوع العملية</th>
-                  <th className="py-3.5 px-4">تفاصيل الإجراء</th>
-                  <th className="py-3.5 px-4">الوقت والتاريخ</th>
+                  <th className="py-3.5 px-4 font-medium">المستخدم المسؤول</th>
+                  <th className="py-3.5 px-4 font-medium">نوع العملية</th>
+                  <th className="py-3.5 px-4 font-medium">تفاصيل الإجراء</th>
+                  <th className="py-3.5 px-4 font-medium">الوقت والتاريخ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700">
@@ -143,11 +143,11 @@ export default function SuperAdminActivityLog() {
                   <tr key={log.id || idx} className="hover:bg-slate-50/60 transition">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1a5d1a] font-bold flex items-center justify-center text-xs shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-[#1a5d1a] font-medium flex items-center justify-center text-xs shrink-0">
                           {log.user_role === "teacher" ? "معلم" : log.user_role === "assistant" ? "مساعد" : "أدمن"}
                         </div>
                         <div>
-                          <span className="font-bold text-gray-900 block text-xs sm:text-sm">
+                          <span className="font-semibold text-gray-900 block text-xs sm:text-sm">
                             {log.user_name || "النظام"}
                           </span>
                           <span className="text-[10px] text-gray-400">{log.user_role || "system"}</span>
@@ -155,11 +155,11 @@ export default function SuperAdminActivityLog() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-mono font-bold">
+                      <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-mono font-medium">
                         {log.action}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-xs sm:text-sm text-gray-700 max-w-md">
+                    <td className="py-3.5 px-4 text-xs sm:text-sm text-gray-700 max-w-md font-normal">
                       {log.description}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-xs text-gray-400" dir="ltr">
@@ -175,14 +175,14 @@ export default function SuperAdminActivityLog() {
         {/* Pagination Controls */}
         {pagination.totalPages > 1 && (
           <div className="p-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-            <span>
+            <span className="font-normal">
               الصفحة {pagination.page} من {pagination.totalPages} (إجمالي: {pagination.total})
             </span>
             <div className="flex items-center gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 font-bold disabled:opacity-40 transition flex items-center gap-1"
+                className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 font-medium disabled:opacity-40 transition flex items-center gap-1"
               >
                 <ChevronRight size={14} />
                 السابق
@@ -190,7 +190,7 @@ export default function SuperAdminActivityLog() {
               <button
                 disabled={page >= pagination.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 font-bold disabled:opacity-40 transition flex items-center gap-1"
+                className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 font-medium disabled:opacity-40 transition flex items-center gap-1"
               >
                 التالي
                 <ChevronLeft size={14} />

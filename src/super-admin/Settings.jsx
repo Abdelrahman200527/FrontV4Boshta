@@ -92,7 +92,7 @@ export default function SuperAdminSettings() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="w-10 h-10 border-4 border-[#1a5d1a] border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-gray-500 font-bold text-sm">جاري تحميل الإعدادات...</p>
+        <p className="text-gray-500 font-medium text-sm">جاري تحميل الإعدادات...</p>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export default function SuperAdminSettings() {
     <div className="space-y-6 pb-12 font-sans max-w-4xl mx-auto" dir="rtl">
       {/* Top Header */}
       <div className="bg-white/95 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100">
-        <h1 className="text-xl sm:text-2xl font-black text-gray-800 flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 flex items-center gap-2">
           <Settings size={24} className="text-[#1a5d1a]" />
           إعدادات المنصة والتحكم المركزي
         </h1>
@@ -120,7 +120,7 @@ export default function SuperAdminSettings() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className={`w-3 h-3 rounded-full ${isPlatformActive ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`}></span>
-              <h3 className="font-bold text-base sm:text-lg text-gray-900">
+              <h3 className="font-semibold text-base sm:text-lg text-gray-900">
                 حالة عمل المنصة: {isPlatformActive ? "نشطة وتعمل" : "متوقفة مؤقتاً"}
               </h3>
             </div>
@@ -134,7 +134,7 @@ export default function SuperAdminSettings() {
           <button
             onClick={handleTogglePlatform}
             disabled={toggling}
-            className={`px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shadow-md transition disabled:opacity-50 shrink-0 ${
+            className={`px-6 py-3 rounded-xl font-medium text-sm flex items-center gap-2 shadow-md transition disabled:opacity-50 shrink-0 ${
               isPlatformActive
                 ? "bg-red-600 hover:bg-red-700 text-white"
                 : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -148,7 +148,7 @@ export default function SuperAdminSettings() {
 
       {/* Academic Year Control */}
       <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-3">
-        <h3 className="font-bold text-base text-gray-800 flex items-center gap-2">
+        <h3 className="font-semibold text-base text-gray-800 flex items-center gap-2">
           <Calendar size={18} className="text-[#1a5d1a]" />
           حالة العام الدراسي
         </h3>
@@ -165,7 +165,7 @@ export default function SuperAdminSettings() {
               key={item.value}
               type="button"
               onClick={() => handleAcademicYearChange(item.value)}
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold transition border ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-medium transition border ${
                 settings.academic_year_status === item.value
                   ? "bg-[#1a5d1a] text-white border-[#1a5d1a] shadow-sm"
                   : "bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
@@ -179,14 +179,14 @@ export default function SuperAdminSettings() {
 
       {/* Center Details Form */}
       <form onSubmit={handleSaveSettings} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
-        <h3 className="font-bold text-base text-gray-800 flex items-center gap-2 border-b pb-3">
+        <h3 className="font-semibold text-base text-gray-800 flex items-center gap-2 border-b pb-3">
           <Building size={18} className="text-[#1a5d1a]" />
           البيانات الأساسية للسنتر
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1.5">
+            <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
               <Building size={14} className="text-gray-400" />
               اسم السنتر / الأكاديمية
             </label>
@@ -200,7 +200,7 @@ export default function SuperAdminSettings() {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1.5">
+            <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
               <Phone size={14} className="text-gray-400" />
               رقم هاتف التواصل الرسمي
             </label>
@@ -215,7 +215,7 @@ export default function SuperAdminSettings() {
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1.5">
+          <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
             <MapPin size={14} className="text-gray-400" />
             عنوان السنتر ومقره
           </label>
@@ -228,7 +228,7 @@ export default function SuperAdminSettings() {
         </div>
 
         <div>
-          <label className="text-xs font-bold text-gray-700 flex items-center gap-1.5 mb-1.5">
+          <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
             <Clock size={14} className="text-gray-400" />
             مدة قفل جلسة الحضور التلقائي (بالدقائق)
           </label>
@@ -247,7 +247,7 @@ export default function SuperAdminSettings() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full sm:w-auto bg-[#1a5d1a] hover:bg-[#124112] text-white px-8 py-3 rounded-xl font-bold text-sm transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto bg-[#1a5d1a] hover:bg-[#124112] text-white px-8 py-3 rounded-xl font-medium text-sm transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Save size={18} />
             {saving ? "جاري الحفظ..." : "حفظ التغييرات"}

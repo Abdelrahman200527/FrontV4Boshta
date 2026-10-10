@@ -19,9 +19,20 @@ export const getRolePrefix = (role) => {
  * @returns {Promise<Array>}
  */
 export const getAiHistory = async (role) => {
-  const prefix = getRolePrefix(role);
-  const response = await httpGet(`${prefix}/ai/history`);
-  return response?.data || [];
+  try {
+    const prefix = getRolePrefix(role);
+    const response = await httpGet(`${prefix}/ai/history`);
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.data)) return response.data;
+    if (Array.isArray(response?.data?.messages)) return response.data.messages;
+    if (Array.isArray(response?.data?.history)) return response.data.history;
+    if (Array.isArray(response?.messages)) return response.messages;
+    if (Array.isArray(response?.history)) return response.history;
+    return [];
+  } catch (err) {
+    console.warn("Failed to fetch AI history, defaulting to empty list:", err);
+    return [];
+  }
 };
 
 /**
@@ -30,9 +41,14 @@ export const getAiHistory = async (role) => {
  * @returns {Promise<Object>}
  */
 export const getAiQuota = async (role) => {
-  const prefix = getRolePrefix(role);
-  const response = await httpGet(`${prefix}/ai/quota`);
-  return response?.data || null;
+  try {
+    const prefix = getRolePrefix(role);
+    const response = await httpGet(`${prefix}/ai/quota`);
+    return response?.data || response || null;
+  } catch (err) {
+    console.warn("Failed to fetch AI quota:", err);
+    return null;
+  }
 };
 
 /**

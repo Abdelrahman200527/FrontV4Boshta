@@ -1,10 +1,10 @@
-import React from "react";
 import {
   CheckCircle2,
   Sparkles,
   Lock,
   Zap,
   HeartHandshake,
+  MessageSquareText,
 } from "lucide-react";
 import AboutPhoto from "../assets/AboutPhoto.jpg";
 import { motion } from "framer-motion";
@@ -31,6 +31,11 @@ const About = () => {
       Icon: HeartHandshake,
       title: "متابعة ولي الأمر لايف",
       description: "أي غياب أو تقصير بيظهر لولي الأمر برقم موبايله فوراً بدون ما تحتاج ترن عليه",
+    },
+    {
+      Icon: MessageSquareText,
+      title: "مساعدك الشخصي المتكامل",
+      description: "معلم خصوصي للطالب، ومساعد تنفيذي لإدارة السنتر، ومستشار أكاديمي للمعلم على مدار 24 ساعة",
     },
   ];
 
@@ -80,6 +85,7 @@ const About = () => {
               "حماية مشددة تمنع تحميل الفيديوهات",
               "حضور فوري بالباركود",
               "متابعة لحظية لولي الأمر برقم الموبايل",
+              "مساعد شخصي متواجد 24 ساعة",
             ].map(
               (item) => (
                 <span
