@@ -378,7 +378,7 @@ export const getGradesStats = async () => {
       gradeMap.set(g.id, existing);
     });
     return Array.from(gradeMap.values());
-  } catch (err) {
+  } catch {
     const response = await httpGet("/super-admin/grades");
     return response?.data || response;
   }

@@ -80,6 +80,7 @@ const exportPaymentsPDF = (payments, filters = {}) => {
   container.innerHTML = `
     <div style="text-align:center;margin-bottom:20px;">
       <h2 style="color:#009966;">تقرير المدفوعات</h2>
+      ${filters.month ? `<p style="color:#666;">شهر: ${escapeHtml(filters.month)}</p>` : ""}
     </div>
     <table style="width:100%;border-collapse:collapse;">
       <thead>

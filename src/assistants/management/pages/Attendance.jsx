@@ -690,7 +690,7 @@ const MobileAttendanceCard = memo(function MobileAttendanceCard({
         <motion.button
           whileTap={{ scale: 0.95 }}
           type="button"
-          onClick={() => markAbsent(student)}
+          onClick={() => onMarkAbsent(student)}
           disabled={!canEdit || isAbsent || isLoading}
           className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-red-500 py-2.5 text-xs text-white font-medium hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 transition-all"
         >
@@ -967,6 +967,38 @@ const Attendance = () => {
       cancelled = true;
     };
   }, [loadDashboard]);
+
+  /* ============================ Notifications (Absent Students for Today) ============================ */
+  const todayDateStr = useMemo(() => toLocalDate(new Date()), []);
+
+  const loadAbsentNotifications = useCallback(async (dateToFetch) => {
+    const targetDate = dateToFetch || toLocalDate(new Date());
+    setAbsentNotificationsLoading(true);
+
+    try {
+      const result = await fetchAbsentByDate(targetDate);
+
+      // Support result.date as array (from new API response) or fallback to result.data or result
+      const rawList = Array.isArray(result?.date)
+        ? result.date
+        : Array.isArray(result?.data)
+        ? result.data
+        : Array.isArray(result)
+        ? result
+        : [];
+
+      setAbsentStudents(rawList);
+    } catch (error) {
+      setAbsentStudents([]);
+    } finally {
+      setAbsentNotificationsLoading(false);
+    }
+  }, []);
+
+  // Fetch today's absents immediately when entering the page
+  useEffect(() => {
+    loadAbsentNotifications(todayDateStr);
+  }, [loadAbsentNotifications, todayDateStr]);
 
   /* ============================ Load Grade Stats ============================ */
 
@@ -2221,36 +2253,6 @@ const Attendance = () => {
 
 
   // ============================ Notifications (Absent Students for Today) ============================
-  const todayDateStr = useMemo(() => toLocalDate(new Date()), []);
-
-  const loadAbsentNotifications = useCallback(async (dateToFetch) => {
-    const targetDate = dateToFetch || toLocalDate(new Date());
-    setAbsentNotificationsLoading(true);
-
-    try {
-      const result = await fetchAbsentByDate(targetDate);
-
-      // Support result.date as array (from new API response) or fallback to result.data or result
-      const rawList = Array.isArray(result?.date)
-        ? result.date
-        : Array.isArray(result?.data)
-        ? result.data
-        : Array.isArray(result)
-        ? result
-        : [];
-
-      setAbsentStudents(rawList);
-    } catch (error) {
-      setAbsentStudents([]);
-    } finally {
-      setAbsentNotificationsLoading(false);
-    }
-  }, []);
-
-  // Fetch today's absents immediately when entering the page
-  useEffect(() => {
-    loadAbsentNotifications(todayDateStr);
-  }, [loadAbsentNotifications, todayDateStr]);
 
   // Total absent students across all grades
   const absentCount = useMemo(() => {

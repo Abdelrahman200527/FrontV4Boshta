@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
+import { Suspense } from "react";
 
 import Sidebar from "../components/Sidebar";
 import background from "../assets/background.png";
 import ErrorBoundary from "../components/ErrorBoundary";
+import PageLoading from "../components/PageLoading";
 import { motion } from "framer-motion";
 import { pageVariants, itemVariants } from "../motion";
 
@@ -19,7 +21,9 @@ export default function MainLayout() {
       }}>
         <main className="p-2.5 sm:p-4 lg:p-6 overflow-y-auto overflow-x-hidden touch-scroll flex-1">
           <ErrorBoundary>
-            <Outlet />
+            <Suspense fallback={<PageLoading />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
       </motion.div>

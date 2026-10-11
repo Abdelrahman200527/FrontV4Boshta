@@ -282,7 +282,7 @@ export default function SuperAdminExams() {
       toast.success("تم رفع وتحديث درجات الطلاب بنجاح من الشيت");
       fetchPaperExams();
       if (batchModal.isOpen && batchModal.exam?.id === examId) {
-        handleOpenBatchModal(batchModal.exam);
+        handleOpenBatchGrading(batchModal.exam);
       }
     } catch (err) {
       toast.error(err?.data?.message || err?.message || "فشل رفع ملف الدرجات");

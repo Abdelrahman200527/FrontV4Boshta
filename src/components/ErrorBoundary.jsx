@@ -59,7 +59,7 @@ class ErrorBoundary extends React.Component {
             </button>
           </div>
 
-          {this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-left font-mono text-xs text-red-800 max-w-xl overflow-auto text-left" dir="ltr">
               <p className="font-bold mb-1">{this.state.error.toString()}</p>
               {this.state.error.stack && (

@@ -30,13 +30,35 @@ export async function pickExcelFile() {
     inp.type = "file";
     inp.accept = ".xlsx,.xls,.csv";
     inp.onchange = async () => {
-      const f = inp.files?.[0];
-      if (!f) return resolve(null);
-      const buf = await f.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      resolve(rows);
+      try {
+        const f = inp.files?.[0];
+        if (!f) return resolve(null);
+        // Protect against client-side memory exhaustion (max 15MB)
+        if (f.size > 15 * 1024 * 1024) {
+          console.warn("Excel file exceeded safe size limit (15MB)");
+          return resolve(null);
+        }
+        const buf = await f.arrayBuffer();
+        // Disable formulas and raw HTML parsing to mitigate cell injection & ReDoS
+        const wb = XLSX.read(buf, { type: "array", cellFormula: false, cellHTML: false });
+        const firstSheet = wb.SheetNames[0];
+        if (!firstSheet) return resolve([]);
+        const ws = wb.Sheets[firstSheet];
+        const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        // Sanitize each row object to neutralize prototype pollution attacks
+        const cleanRows = rawRows.map(row => {
+          const cleanObj = Object.create(null);
+          for (const [key, value] of Object.entries(row)) {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+            cleanObj[key] = typeof value === 'string' ? value.trim() : value;
+          }
+          return { ...cleanObj };
+        });
+        resolve(cleanRows);
+      } catch (err) {
+        console.error("Excel parse error:", err);
+        resolve(null);
+      }
     };
     inp.click();
   });
@@ -250,7 +272,9 @@ export async function exportPdfTable(filename, title, columns, rows) {
   
   try {
     w.document.title = filename;
-  } catch(e) {}
+  } catch {
+    // Title update skipped if blocked
+  }
 }
 
 

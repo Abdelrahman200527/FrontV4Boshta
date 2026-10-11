@@ -3,7 +3,7 @@ import { getCookie, clearAllAuthCookies } from "../utils/cookies";
 
 const { apiUrl, apiUserName, apiPassword } = config;
 
-const credential = btoa(`${apiUserName}:${apiPassword}`);
+const credential = (apiUserName && apiPassword) ? btoa(`${apiUserName}:${apiPassword}`) : null;
 
 function forceLogout() {
   clearAllAuthCookies();
@@ -24,7 +24,7 @@ function getHeaders(isFormData = false) {
   const superAdminKey = getCookie("super_admin_key");
 
   const headers = {
-    Authorization: `Basic ${credential}`,
+    ...(credential ? { Authorization: `Basic ${credential}` } : {}),
     ...(token ? { "x-client-key": token } : {}),
     ...(superAdminKey ? { "x-super-admin-key": superAdminKey } : {}),
   };

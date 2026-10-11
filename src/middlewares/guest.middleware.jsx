@@ -22,6 +22,9 @@ const GuestMiddleware = ({ children }) => {
     if (userRole === "parent") {
       return <Navigate to="/parent" replace />;
     }
+    if (userRole === "super_admin") {
+      return <Navigate to="/super-admin" replace />;
+    }
   }
 
   return children;

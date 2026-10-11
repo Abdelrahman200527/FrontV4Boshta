@@ -1,92 +1,104 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout.jsx";
-import Login from "./pages/Login.jsx";
-import LandingPage from "./landing/LandingPage.jsx";
-import DemoSelector from './pages/DemoSelector.jsx';
-import StudentDemo from "./demo/student/StudentDemo.jsx";
-
-import ParentDashboard from "./parents/ParentDashboard.jsx";
-
 import AuthMiddleware from "./middlewares/auth.middleware.jsx";
 import GuestMiddleware from "./middlewares/guest.middleware.jsx";
+import PageLoading from "./components/PageLoading.jsx";
 
-// Students
-import StudentDashboard from "./students/Dashboard.jsx";
-import StudentAttendance from "./students/Attendance.jsx";
-import StudentCourses from "./students/Courses.jsx";
-import StudentDegrees from "./students/Degrees.jsx";
-import StudentExams from "./students/Exams.jsx";
-import StudentExamTaking from "./students/ExamTaking.jsx";
-import StudentExamReview from "./students/ExamReview.jsx";
-import StudentHomework from "./students/Homework.jsx";
-import StudentProfile from "./students/Profile.jsx";
-import StudentWatchVideo from "./students/WatchVideo.jsx";
-import StudentLiveSessions from "./students/LiveSessions.jsx";
-import StudentChat from "./students/Chat.jsx";
+// Helper to wrap lazy components in Suspense with accessible PageLoading fallback
+const lazyRoute = (factory) => {
+  const LazyComponent = lazy(factory);
+  return function SuspenseWrappedRoute(props) {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <LazyComponent {...props} />
+      </Suspense>
+    );
+  };
+};
 
-// Assistants - shared
-import AssistantProfile from "./assistants/Profile.jsx";
-import AssistantChat from "./assistants/Chat.jsx";
+// Public & Demo Pages
+const LandingPage = lazyRoute(() => import("./landing/LandingPage.jsx"));
+const Login = lazyRoute(() => import("./pages/Login.jsx"));
+const LoginSystem = lazyRoute(() => import("./pages/LoginSystem.jsx"));
+const StudentActivation = lazyRoute(() => import("./pages/StudentActivation.jsx"));
+const DemoSelector = lazyRoute(() => import("./pages/DemoSelector.jsx"));
+const StudentDemo = lazyRoute(() => import("./demo/student/StudentDemo.jsx"));
+const ParentDashboard = lazyRoute(() => import("./parents/ParentDashboard.jsx"));
+const NotFound = lazyRoute(() => import("./pages/NotFound.jsx"));
 
-// Assistants - online
-import AssistantOnlineVideos from "./assistants/online/Videos.jsx";
-import AssistantOnlineWatchVideo from "./assistants/online/WatchVideo.jsx";
-import AssistantOnlineExams from "./assistants/online/Exams.jsx";
-import AssistantOnlineHomework from "./assistants/online/Homework.jsx";
-import AssistantOnlineLiveSessions from "./assistants/online/LiveSessions.jsx";
+// Students Pages
+const StudentDashboard = lazyRoute(() => import("./students/Dashboard.jsx"));
+const StudentAttendance = lazyRoute(() => import("./students/Attendance.jsx"));
+const StudentCourses = lazyRoute(() => import("./students/Courses.jsx"));
+const StudentDegrees = lazyRoute(() => import("./students/Degrees.jsx"));
+const StudentExams = lazyRoute(() => import("./students/Exams.jsx"));
+const StudentExamTaking = lazyRoute(() => import("./students/ExamTaking.jsx"));
+const StudentExamReview = lazyRoute(() => import("./students/ExamReview.jsx"));
+const StudentHomework = lazyRoute(() => import("./students/Homework.jsx"));
+const StudentProfile = lazyRoute(() => import("./students/Profile.jsx"));
+const StudentWatchVideo = lazyRoute(() => import("./students/WatchVideo.jsx"));
+const StudentLiveSessions = lazyRoute(() => import("./students/LiveSessions.jsx"));
+const StudentChat = lazyRoute(() => import("./students/Chat.jsx"));
 
-// Assistants - management
-import AssistantManagementDashboard from "./assistants/management/pages/Dashboard.jsx";
-import AssistantManagementStudents from "./assistants/management/pages/Students.jsx";
-import AssistantManagementAttendance from "./assistants/management/pages/Attendance.jsx";
-import AssistantManagementGroups from "./assistants/management/pages/Groups.jsx";
-import AssistantManagementGrades from "./assistants/management/pages/Grades.jsx";
-import AssistantManagementExams from "./assistants/management/pages/Exams.jsx";
-import AssistantManagementPayments from "./assistants/management/pages/Payments.jsx";
-// import AssistantManagementWhatsApp from "./assistants/management/pages/WhatsApp.jsx";
-import AssistantManagementSettings from "./assistants/management/pages/Settings.jsx";
-import AssistantManagementAddDegree from "./assistants/management/components/AddDegree.jsx";
+// Assistants Pages - shared
+const AssistantProfile = lazyRoute(() => import("./assistants/Profile.jsx"));
+const AssistantChat = lazyRoute(() => import("./assistants/Chat.jsx"));
 
-// Teachers
-import TeacherDashboard from "./teachers/Dashboard.jsx";
-import TeacherAttendance from "./teachers/Attendance.jsx";
-import TeacherCourses from "./teachers/Courses.jsx";
-import TeacherDegrees from "./teachers/Degrees.jsx";
-import TeacherProfile from "./teachers/Profile.jsx";
-import TeacherReports from "./teachers/Reports.jsx";
-import TeacherStudents from "./teachers/Students.jsx";
-import TeacherAssistants from "./teachers/Assistants.jsx";
-import TeacherExamResults from "./teachers/ExamResults.jsx";
-import TeacherStudentDetails from "./teachers/StudentDetails.jsx";
-import TeacherWatchVideo from "./teachers/WatchVideo.jsx";
-import TeacherHomeworks from "./teachers/Homework.jsx";
-import TeacherPayments from "./teachers/Payments.jsx";
-import TeacherLiveSessions from "./teachers/LiveSessions.jsx";
-import TeacherChat from "./teachers/Chat.jsx";
+// Assistants Pages - online
+const AssistantOnlineVideos = lazyRoute(() => import("./assistants/online/Videos.jsx"));
+const AssistantOnlineWatchVideo = lazyRoute(() => import("./assistants/online/WatchVideo.jsx"));
+const AssistantOnlineExams = lazyRoute(() => import("./assistants/online/Exams.jsx"));
+const AssistantOnlineHomework = lazyRoute(() => import("./assistants/online/Homework.jsx"));
+const AssistantOnlineLiveSessions = lazyRoute(() => import("./assistants/online/LiveSessions.jsx"));
 
-// Super Admin
-import SuperAdminDashboard from "./super-admin/Dashboard.jsx";
-import SuperAdminUsers from "./super-admin/Users.jsx";
-import SuperAdminStudents from "./super-admin/Students.jsx";
-import SuperAdminPasswords from "./super-admin/Passwords.jsx";
-import SuperAdminAttendance from "./super-admin/Attendance.jsx";
-import SuperAdminGroups from "./super-admin/Groups.jsx";
-import SuperAdminGrades from "./super-admin/Grades.jsx";
-import SuperAdminFinance from "./super-admin/Finance.jsx";
-import SuperAdminExams from "./super-admin/Exams.jsx";
-import SuperAdminLiveSessions from "./super-admin/LiveSessions.jsx";
-import SuperAdminActivityLog from "./super-admin/ActivityLog.jsx";
-import SuperAdminSettings from "./super-admin/Settings.jsx";
-import SuperAdminChat from "./super-admin/Chat.jsx";
-import SuperAdminWhatsApp from "./super-admin/WhatsApp.jsx";
+// Assistants Pages - management
+const AssistantManagementDashboard = lazyRoute(() => import("./assistants/management/pages/Dashboard.jsx"));
+const AssistantManagementStudents = lazyRoute(() => import("./assistants/management/pages/Students.jsx"));
+const AssistantManagementAttendance = lazyRoute(() => import("./assistants/management/pages/Attendance.jsx"));
+const AssistantManagementGroups = lazyRoute(() => import("./assistants/management/pages/Groups.jsx"));
+const AssistantManagementGrades = lazyRoute(() => import("./assistants/management/pages/Grades.jsx"));
+const AssistantManagementExams = lazyRoute(() => import("./assistants/management/pages/Exams.jsx"));
+const AssistantManagementPayments = lazyRoute(() => import("./assistants/management/pages/Payments.jsx"));
+const AssistantManagementSettings = lazyRoute(() => import("./assistants/management/pages/Settings.jsx"));
+const AssistantManagementAddDegree = lazyRoute(() => import("./assistants/management/components/AddDegree.jsx"));
 
-import NotFound from "./pages/NotFound.jsx";
-import LoginSystem from "./pages/LoginSystem.jsx";
-import StudentActivation from "./pages/StudentActivation.jsx";
+// Teachers Pages
+const TeacherDashboard = lazyRoute(() => import("./teachers/Dashboard.jsx"));
+const TeacherAttendance = lazyRoute(() => import("./teachers/Attendance.jsx"));
+const TeacherCourses = lazyRoute(() => import("./teachers/Courses.jsx"));
+const TeacherDegrees = lazyRoute(() => import("./teachers/Degrees.jsx"));
+const TeacherProfile = lazyRoute(() => import("./teachers/Profile.jsx"));
+const TeacherReports = lazyRoute(() => import("./teachers/Reports.jsx"));
+const TeacherStudents = lazyRoute(() => import("./teachers/Students.jsx"));
+const TeacherStudentDetails = lazyRoute(() => import("./teachers/StudentDetails.jsx"));
+const TeacherAssistants = lazyRoute(() => import("./teachers/Assistants.jsx"));
+const TeacherExamResults = lazyRoute(() => import("./teachers/ExamResults.jsx"));
+const TeacherWatchVideo = lazyRoute(() => import("./teachers/WatchVideo.jsx"));
+const TeacherHomeworks = lazyRoute(() => import("./teachers/Homework.jsx"));
+const TeacherPayments = lazyRoute(() => import("./teachers/Payments.jsx"));
+const TeacherLiveSessions = lazyRoute(() => import("./teachers/LiveSessions.jsx"));
+const TeacherChat = lazyRoute(() => import("./teachers/Chat.jsx"));
+
+// Super Admin Pages
+const SuperAdminDashboard = lazyRoute(() => import("./super-admin/Dashboard.jsx"));
+const SuperAdminUsers = lazyRoute(() => import("./super-admin/Users.jsx"));
+const SuperAdminStudents = lazyRoute(() => import("./super-admin/Students.jsx"));
+const SuperAdminPasswords = lazyRoute(() => import("./super-admin/Passwords.jsx"));
+const SuperAdminAttendance = lazyRoute(() => import("./super-admin/Attendance.jsx"));
+const SuperAdminGroups = lazyRoute(() => import("./super-admin/Groups.jsx"));
+const SuperAdminGrades = lazyRoute(() => import("./super-admin/Grades.jsx"));
+const SuperAdminFinance = lazyRoute(() => import("./super-admin/Finance.jsx"));
+const SuperAdminExams = lazyRoute(() => import("./super-admin/Exams.jsx"));
+const SuperAdminLiveSessions = lazyRoute(() => import("./super-admin/LiveSessions.jsx"));
+const SuperAdminActivityLog = lazyRoute(() => import("./super-admin/ActivityLog.jsx"));
+const SuperAdminSettings = lazyRoute(() => import("./super-admin/Settings.jsx"));
+const SuperAdminChat = lazyRoute(() => import("./super-admin/Chat.jsx"));
+const SuperAdminWhatsApp = lazyRoute(() => import("./super-admin/WhatsApp.jsx"));
 
 export const router = createBrowserRouter([
-  { path: '/demo', element: <DemoSelector /> },
-  { path: '/demo/student', element: <StudentDemo /> },
+  { path: '/demo', Component: DemoSelector },
+  { path: '/demo/student', Component: StudentDemo },
   {
     path: "/",
     Component: () => (
@@ -95,7 +107,6 @@ export const router = createBrowserRouter([
       </GuestMiddleware>
     ),
   },
-
   {
     path: "/activate",
     Component: () => (
@@ -108,7 +119,6 @@ export const router = createBrowserRouter([
     path: "/student-activation",
     element: <Navigate to="/activate" replace />,
   },
-
   {
     path: "/login",
     Component: () => (
@@ -117,14 +127,13 @@ export const router = createBrowserRouter([
       </GuestMiddleware>
     ),
   },
-
   {
     path: "/user/login",
     Component: () => (
       <GuestMiddleware>
         <LoginSystem />
       </GuestMiddleware>
-    )
+    ),
   },
 
   // Parent Route - Public
@@ -156,7 +165,7 @@ export const router = createBrowserRouter([
       { path: "degrees", Component: StudentDegrees },
       { path: "exams", Component: StudentExams },
       { path: "exams/:examId", Component: StudentExamTaking },
-      { path: "exams/review/:attemptId", Component: StudentExamReview }, // ✅ جديد
+      { path: "exams/review/:attemptId", Component: StudentExamReview },
       { path: "homework", Component: StudentHomework },
       { path: "chat", Component: StudentChat },
       { path: "ai", Component: StudentChat },
@@ -204,7 +213,6 @@ export const router = createBrowserRouter([
         Component: AssistantManagementAddDegree,
       },
       { path: "management/payments", Component: AssistantManagementPayments },
-      // { path: "management/whatsapp", Component: AssistantManagementWhatsApp },
       {
         path: "management/settings",
         Component: AssistantManagementSettings,
@@ -279,13 +287,12 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/live-sessions",
     Component: () => {
-      // Small inline component to handle Google OAuth redirect
       const role = localStorage.getItem("user_role") || "student";
       let dest = "/student/live-sessions";
       if (role === "teacher") dest = "/teacher/live-sessions";
       if (role === "super_admin") dest = "/super-admin/live-sessions";
       if (role === "assistant") dest = "/assistant/online/live-sessions";
-      
+
       const search = window.location.search;
       return <Navigate to={`${dest}${search}`} replace />;
     },
