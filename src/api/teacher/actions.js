@@ -1803,6 +1803,8 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
     // Step 1: Init Resumable Upload
     const initRes = await initTeacherYoutubeUploadAction({
       title: title.trim(),
+      name: title.trim(),
+      video_title: title.trim(),
       description: (description || "").trim(),
       grade_id: Number(gradeId),
       playlist_id: playlistId ? Number(playlistId) : null,
@@ -1842,6 +1844,9 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
       const fd = new FormData();
       fd.append("youtube_video_id", youtubeVideoId);
       fd.append("title", title.trim());
+      fd.append("name", title.trim());
+      fd.append("video_title", title.trim());
+      fd.append("videoTitle", title.trim());
       if (description?.trim()) fd.append("description", description.trim());
       fd.append("grade_id", String(gradeId));
       if (playlistId) fd.append("playlist_id", String(playlistId));
@@ -1852,6 +1857,9 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
       confirmPayload = {
         youtube_video_id: youtubeVideoId,
         title: title.trim(),
+        name: title.trim(),
+        video_title: title.trim(),
+        videoTitle: title.trim(),
         description: (description || "").trim(),
         grade_id: Number(gradeId),
         playlist_id: playlistId ? Number(playlistId) : null,
@@ -1861,6 +1869,13 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
     }
 
     const confirmRes = await confirmTeacherYoutubeUploadAction(confirmPayload);
+    if (confirmRes?.success && confirmRes?.data) {
+      if (confirmRes.data.video && !confirmRes.data.video.title) {
+        confirmRes.data.video.title = title.trim();
+      } else if (!confirmRes.data.title && !confirmRes.data.video) {
+        confirmRes.data.title = title.trim();
+      }
+    }
 
     return confirmRes;
   } catch (error) {

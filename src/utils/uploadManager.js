@@ -10,6 +10,7 @@ const initialUploadState = {
   active: false,
   videoFile: null,
   title: "",
+  description: "",
   gradeId: "",
   gradeName: "",
   playlistId: null,
@@ -61,6 +62,7 @@ export const uploadManager = {
   async startUpload({
     videoFile,
     title,
+    description = "",
     gradeId,
     gradeName = "",
     playlistId = null,
@@ -91,6 +93,7 @@ export const uploadManager = {
       active: true,
       videoFile,
       title: title.trim(),
+      description: (description || "").trim(),
       gradeId,
       gradeName,
       playlistId: playlistId ? Number(playlistId) : null,
@@ -117,6 +120,7 @@ export const uploadManager = {
       const result = await uploader({
         videoFile,
         title: title.trim(),
+        description: (description || "").trim(),
         gradeId: Number(gradeId),
         playlistId: playlistId ? Number(playlistId) : null,
         thumbnailFile,

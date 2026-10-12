@@ -89,12 +89,6 @@ export default function UploadVideoModal({
     if (!file) return;
     setVideoFile(file);
     setErrorMessage("");
-
-    // Auto-fill title from filename if title is empty
-    if (!title.trim()) {
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-      setTitle(cleanName);
-    }
   };
 
   const filteredPlaylists = gradeId
@@ -128,6 +122,7 @@ export default function UploadVideoModal({
       uploadManager.startUpload({
         videoFile,
         title: title.trim(),
+        description: description.trim(),
         gradeId: Number(gradeId),
         gradeName: selectedGradeName,
         playlistId: playlistId ? Number(playlistId) : null,
