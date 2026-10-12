@@ -1909,8 +1909,24 @@ const fetchAllExams = async (page = 1, search = "") => {
     };
   }
   try {
-    const data = await teacherServices.getExams(page, search);
-    return { success: true, data };
+    const [paperRes, onlineRes] = await Promise.allSettled([
+      teacherServices.getExams(page, search),
+      teacherServices.getOnlineExams(),
+    ]);
+
+    const paperData = paperRes.status === "fulfilled" ? (paperRes.value?.data || paperRes.value || []) : [];
+    const onlineData = onlineRes.status === "fulfilled" ? (onlineRes.value?.data || onlineRes.value || []) : [];
+
+    const paperExams = Array.isArray(paperData) ? paperData : (paperData.exams || paperData.rows || []);
+    const onlineExams = Array.isArray(onlineData) ? onlineData : (onlineData.exams || onlineData.rows || []);
+
+    return {
+      success: true,
+      data: {
+        paperExams,
+        onlineExams,
+      },
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }

@@ -348,21 +348,53 @@ const Dashboard = () => {
     attendanceHistory.find((a) => a.status === "absent") || null;
   const lastExam = allCompletedExams[0] || null;
 
-  // Upcoming items with reliable fallback
+  // Upcoming & Active items with reliable fallback
   const upcomingExams = useMemo(() => {
-    if (dashboardData?.upcoming_exams && dashboardData.upcoming_exams.length > 0) {
-      return dashboardData.upcoming_exams;
+    const rawList =
+      dashboardData?.upcoming_exams && dashboardData.upcoming_exams.length > 0
+        ? dashboardData.upcoming_exams
+        : null;
+
+    if (rawList) {
+      return rawList.map((e) => {
+        const isOnline = e.exam_type === "online" || !!e.start_at;
+        const now = Date.now();
+        const startTime = e.start_at ? new Date(e.start_at).getTime() : 0;
+        const endTime = e.end_at ? new Date(e.end_at).getTime() : Infinity;
+        const isLive =
+          isOnline &&
+          (e.status === "available" || (now >= startTime && now <= endTime));
+        return {
+          ...e,
+          is_live: isLive,
+        };
+      });
     }
+
     const now = Date.now();
     const upcomingOnline = (allExams || [])
-      .filter((e) => new Date(e.start_at).getTime() > now && !e.attempted)
-      .map((e) => ({
-        id: e.exam_id || e.id,
-        title: e.title || e.exam_title,
-        start_at: e.start_at,
-        full_mark: e.full_mark,
-        exam_type: "online",
-      }));
+      .filter((e) => {
+        if (e.attempted || e.has_submitted || e.is_submitted) return false;
+        const endTime = e.end_at ? new Date(e.end_at).getTime() : Infinity;
+        return endTime >= now;
+      })
+      .map((e) => {
+        const startTime = e.start_at ? new Date(e.start_at).getTime() : 0;
+        const endTime = e.end_at ? new Date(e.end_at).getTime() : Infinity;
+        const isLive =
+          e.status === "available" || (now >= startTime && now <= endTime);
+        return {
+          id: e.exam_id || e.id,
+          title: e.title || e.exam_title,
+          start_at: e.start_at,
+          end_at: e.end_at,
+          full_mark: e.full_mark,
+          exam_type: "online",
+          status: isLive ? "available" : "upcoming",
+          is_live: isLive,
+        };
+      });
+
     const upcomingPaper = (paperExams || [])
       .filter(
         (e) =>
@@ -375,7 +407,9 @@ const Dashboard = () => {
         exam_date: e.exam_date,
         full_mark: e.total_degree,
         exam_type: "paper",
+        is_live: false,
       }));
+
     return [...upcomingOnline, ...upcomingPaper].sort((a, b) => {
       const dateA = new Date(a.start_at || a.exam_date);
       const dateB = new Date(b.start_at || b.exam_date);
@@ -965,12 +999,18 @@ const Dashboard = () => {
                         </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                            exam.exam_type === "online"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-orange-100 text-orange-700"
+                            exam.is_live
+                              ? "bg-green-100 text-green-700 animate-pulse"
+                              : exam.exam_type === "online"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-orange-100 text-orange-700"
                           }`}
                         >
-                          {exam.exam_type === "online" ? "إلكتروني" : "ورقي"}
+                          {exam.is_live
+                            ? "متاح الآن للحل"
+                            : exam.exam_type === "online"
+                              ? "إلكتروني"
+                              : "ورقي"}
                         </span>
                       </div>
                       <span className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
@@ -990,9 +1030,13 @@ const Dashboard = () => {
                     </span>
                     <button
                       onClick={() => navigate("/student/exams")}
-                      className="text-xs font-bold text-[#009966] bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition"
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition ${
+                        exam.is_live
+                          ? "text-white bg-green-600 hover:bg-green-700 shadow-sm"
+                          : "text-[#009966] bg-green-50 hover:bg-green-100"
+                      }`}
                     >
-                      التفاصيل
+                      {exam.is_live ? "ابدأ الآن" : "التفاصيل"}
                     </button>
                   </div>
                 </div>

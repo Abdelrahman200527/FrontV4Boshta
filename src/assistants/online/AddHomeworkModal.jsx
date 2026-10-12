@@ -37,24 +37,19 @@ const AddHomeworkModal = ({
 
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return "";
-
     try {
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-        return cairoDate.toISOString().slice(0, 16);
-      }
-    } catch (e) {}
-
-    if (typeof dateStr === "string" && dateStr.includes("T")) {
-      try {
-        const date = new Date(dateStr);
-        const cairoDate = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-        return cairoDate.toISOString().slice(0, 16);
-      } catch (e) {}
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "";
+      const pad = (n) => String(n).padStart(2, "0");
+      const year = d.getFullYear();
+      const month = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hours = pad(d.getHours());
+      const minutes = pad(d.getMinutes());
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch {
+      return "";
     }
-
-    return "";
   };
 
   useEffect(() => {

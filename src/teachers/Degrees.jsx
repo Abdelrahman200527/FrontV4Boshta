@@ -55,8 +55,13 @@ const Degrees = () => {
       ]);
 
       if (examsResult.success) {
-        setPaperExams(examsResult.data.paperExams || []);
-        setOnlineExams(examsResult.data.onlineExams || []);
+        if (Array.isArray(examsResult.data)) {
+          setPaperExams(examsResult.data);
+          setOnlineExams([]);
+        } else {
+          setPaperExams(examsResult.data?.paperExams || []);
+          setOnlineExams(examsResult.data?.onlineExams || []);
+        }
       } else {
         setError(examsResult.error || "فشل تحميل الامتحانات");
       }
@@ -89,8 +94,13 @@ const Degrees = () => {
     if (grade === "all") {
       const result = await fetchAllExams();
       if (result.success) {
-        setPaperExams(result.data.paperExams || []);
-        setOnlineExams(result.data.onlineExams || []);
+        if (Array.isArray(result.data)) {
+          setPaperExams(result.data);
+          setOnlineExams([]);
+        } else {
+          setPaperExams(result.data?.paperExams || []);
+          setOnlineExams(result.data?.onlineExams || []);
+        }
       }
     } else {
       setLoading(true);
