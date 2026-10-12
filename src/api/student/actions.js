@@ -716,9 +716,9 @@ export const fetchStudentStats = async () => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const updateStudentProfileImage = async () => {
+export const updateStudentProfileImage = async (formData) => {
   if (isDemo()) return { success: true, data: { profile_image: mockData.profile.profile_image } };
-  try { return { success: true, data: await studentServices.updateProfileImage() }; }
+  try { return { success: true, data: await studentServices.updateProfileImage(formData) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
@@ -728,9 +728,14 @@ export const deleteStudentProfileImage = async () => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const changeStudentPassword = async () => {
+export const changeStudentPassword = async (oldPassword, newPassword, confirmPassword) => {
   if (isDemo()) return { success: true, message: "تم تغيير كلمة المرور بنجاح" };
-  return { success: false, error: "Not implemented in demo" };
+  try {
+    const res = await studentServices.updatePassword(oldPassword, newPassword, confirmPassword);
+    return { success: true, message: res?.message || "تم تغيير كلمة المرور بنجاح" };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 // 3. Attendance
@@ -825,9 +830,9 @@ export const fetchOnlineExamById = async (id) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const checkExamAttempt = async () => {
+export const checkExamAttempt = async (id) => {
   if (isDemo()) return { success: true, data: { has_active_attempt: false, submitted: false } };
-  try { return { success: true, data: await studentServices.checkExamAttempt() }; }
+  try { return { success: true, data: await studentServices.checkExamAttempt(id) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
@@ -851,15 +856,15 @@ export const resumeStudentExam = async (id) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const submitStudentExam = async () => {
+export const submitStudentExam = async (attemptId) => {
   if (isDemo()) return { success: true, message: "تم تسليم الامتحان بنجاح وحساب النتيجة" };
-  try { return { success: true, data: await studentServices.submitExam() }; }
+  try { return { success: true, data: await studentServices.submitExam(attemptId) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const fetchExamQuestions = async () => {
+export const fetchExamQuestions = async (examId) => {
   if (isDemo()) return { success: true, data: mockData.exam_questions };
-  try { return { success: true, data: await studentServices.getExamQuestions() }; }
+  try { return { success: true, data: await studentServices.getExamQuestions(examId) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
@@ -876,21 +881,21 @@ export const fetchOptionsByQuestion = async (qId) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const submitStudentAnswer = async () => {
+export const submitStudentAnswer = async (examId, questionId, selectedOptionId) => {
   if (isDemo()) return { success: true };
-  try { return { success: true, data: await studentServices.answerQuestion() }; }
+  try { return { success: true, data: await studentServices.answerQuestion(examId, questionId, selectedOptionId) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const submitStudentEssayAnswer = async () => {
+export const submitStudentEssayAnswer = async (examId, questionId, file) => {
   if (isDemo()) return { success: true };
-  try { return { success: true, data: await studentServices.submitEssayAnswer() }; }
+  try { return { success: true, data: await studentServices.submitEssayAnswer(examId, questionId, file) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const fetchExamReview = async () => {
+export const fetchExamReview = async (attemptId) => {
   if (isDemo()) return { success: true, data: mockData.exam_review };
-  try { return { success: true, data: await studentServices.getExamReview() }; }
+  try { return { success: true, data: await studentServices.getExamReview(attemptId) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
@@ -916,33 +921,33 @@ export const fetchAssignmentById = async (id) => {
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const downloadAssignmentFile = async () => {
+export const downloadAssignmentFile = async (id) => {
   if (isDemo()) return { success: true, data: new Blob(["ملف واجب تجريبي كامل"], { type: "application/pdf" }) };
-  try { return { success: true, data: await studentServices.downloadAssignment() }; }
+  try { return { success: true, data: await studentServices.downloadAssignment(id) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const submitStudentAssignment = async () => {
+export const submitStudentAssignment = async (id, file) => {
   if (isDemo()) return { success: true, message: "تم تسليم الواجب بنجاح وإرساله للمصحح" };
-  try { return { success: true, data: await studentServices.submitAssignment() }; }
+  try { return { success: true, data: await studentServices.submitAssignment(id, file) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const updateStudentAssignment = async () => {
+export const updateStudentAssignment = async (id, file) => {
   if (isDemo()) return { success: true, message: "تم تحديث تسليم الواجب بنجاح" };
-  try { return { success: true, data: await studentServices.updateAssignmentSubmission() }; }
+  try { return { success: true, data: await studentServices.updateAssignmentSubmission(id, file) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const fetchSubmissions = async () => {
+export const fetchSubmissions = async (month = "", page = 1) => {
   if (isDemo()) return { success: true, data: mockData.assignments.data };
-  try { return { success: true, data: await studentServices.getSubmissions() }; }
+  try { return { success: true, ...unwrapApiData(await studentServices.getSubmissions(month, page)) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 
-export const downloadSubmissionFile = async () => {
+export const downloadSubmissionFile = async (id) => {
   if (isDemo()) return { success: true, data: new Blob(["ملف تسليم الطالب التجريبي"], { type: "application/pdf" }) };
-  try { return { success: true, data: await studentServices.downloadSubmissionFile() }; }
+  try { return { success: true, data: await studentServices.downloadSubmissionFile(id) }; }
   catch (error) { return { success: false, error: error.message }; }
 };
 

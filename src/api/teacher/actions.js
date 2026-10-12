@@ -1989,7 +1989,25 @@ const fetchOnlineExamStats = async (examId) => {
   }
   try {
     const data = await teacherServices.getOnlineExamStats(examId);
-    return { success: true, data };
+    let attempts = data?.attempts || [];
+    const stats = data?.stats || data || {};
+    if (!attempts.length && teacherServices.getStudentExams) {
+      try {
+        const studentExams = await teacherServices.getStudentExams(examId);
+        if (Array.isArray(studentExams)) {
+          attempts = studentExams;
+        }
+      } catch {
+        // ignore if not available
+      }
+    }
+    return {
+      success: true,
+      data: {
+        stats,
+        attempts,
+      },
+    };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2061,7 +2079,7 @@ const changeTeacherPassword = async () => {
   return { success: false, error: "Not implemented in demo" };
 };
 
-const updateTeacherProfileImageAction = async () => {
+const updateTeacherProfileImageAction = async (formData) => {
   if (isDemo()) {
     return {
       success: true,
@@ -2071,12 +2089,30 @@ const updateTeacherProfileImageAction = async () => {
       }
     };
   }
-  return { success: false, error: "Not implemented in demo" };
+  try {
+    const res = await teacherServices.updateTeacherProfileImage(formData);
+    return {
+      success: true,
+      message: res?.message || "تم تحديث الصورة الشخصية بنجاح",
+      data: res?.data || res,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 const deleteTeacherProfileImageAction = async () => {
   if (isDemo()) return { success: true, message: "تم حذف الصورة الشخصية بنجاح" };
-  return { success: false, error: "Not implemented in demo" };
+  try {
+    const res = await teacherServices.deleteTeacherProfileImage();
+    return {
+      success: true,
+      message: res?.message || "تم حذف الصورة الشخصية بنجاح",
+      data: res?.data || res,
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 const downloadAssignmentAction = async (filePath, fileName) => {
