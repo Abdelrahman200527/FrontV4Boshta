@@ -193,7 +193,7 @@ const ExamResults = () => {
   );
 
   const getStudentScore = useCallback(
-    (student) => toNumber(student.degree || student.score),
+    (student) => toNumber(student.degree ?? student.score ?? student.student_degree ?? 0),
     [toNumber],
   );
 
@@ -452,7 +452,9 @@ const ExamResults = () => {
               {
                 icon: Users,
                 label: "الطلاب",
-                value: examResults.length,
+                value: examStats?.total_students
+                  ? `${examResults.length} / ${examStats.total_students}`
+                  : examResults.length,
                 color: "text-blue-500",
                 bg: "bg-blue-50",
               },

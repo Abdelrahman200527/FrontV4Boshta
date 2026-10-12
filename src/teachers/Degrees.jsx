@@ -494,6 +494,13 @@ const Degrees = () => {
                           <BarChart3 size={13} />
                           {exam.full_mark || "-"} درجة
                         </span>
+                        {(exam.students_submitted !== undefined || exam.students_count !== undefined) && (
+                          <span className="flex items-center gap-1 font-semibold text-gray-700" dir="ltr">
+                            <Users size={13} />
+                            {exam.students_submitted ?? exam.students_count ?? 0}
+                            {exam.total_students ? ` / ${exam.total_students}` : ""}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <span className="text-xs text-gray-400 flex items-center gap-1">

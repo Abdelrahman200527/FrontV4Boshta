@@ -41,6 +41,7 @@ import {
   updateTeacherProfileImageAction,
   deleteTeacherProfileImageAction,
   fetchTeacherProfile,
+  fetchTeacherDashboard,
 } from "../api/teacher/actions";
 import {
   teacherGetGoogleStatus,
@@ -62,6 +63,7 @@ const Profile = () => {
   const [imageMessage, setImageMessage] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [profileData, setProfileData] = useState(user);
+  const [dashboardStats, setDashboardStats] = useState(null);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
 
   const profileImage = profileData?.profile_image
@@ -69,19 +71,33 @@ const Profile = () => {
     : null;
 
   const loadProfile = useCallback(async () => {
-    const result = await fetchTeacherProfile();
-    if (result.success && result.data) {
-      setProfileData(result.data);
-      updateUserCookie(result.data);
+    try {
+      const [profRes, dashRes] = await Promise.allSettled([
+        fetchTeacherProfile(),
+        fetchTeacherDashboard(),
+      ]);
+      if (profRes.status === "fulfilled" && profRes.value?.success && profRes.value?.data) {
+        setProfileData(profRes.value.data);
+        updateUserCookie(profRes.value.data);
+      }
+      if (dashRes.status === "fulfilled" && dashRes.value?.success && dashRes.value?.data) {
+        setDashboardStats(dashRes.value.data.overview || {});
+      }
+    } catch (err) {
+      console.error("Error loading profile or dashboard stats:", err);
     }
   }, []);
 
   useEffect(() => {
     let isMounted = true;
-    fetchTeacherProfile().then((result) => {
-      if (isMounted && result?.success && result?.data) {
-        setProfileData(result.data);
-        updateUserCookie(result.data);
+    Promise.allSettled([fetchTeacherProfile(), fetchTeacherDashboard()]).then(([profRes, dashRes]) => {
+      if (!isMounted) return;
+      if (profRes.status === "fulfilled" && profRes.value?.success && profRes.value?.data) {
+        setProfileData(profRes.value.data);
+        updateUserCookie(profRes.value.data);
+      }
+      if (dashRes.status === "fulfilled" && dashRes.value?.success && dashRes.value?.data) {
+        setDashboardStats(dashRes.value.data.overview || {});
       }
     });
     return () => {
@@ -260,14 +276,36 @@ const Profile = () => {
         ? "إدارة المنصة التعليمية"
         : "إدارة كاملة";
 
-  const stats = profileData?.stats || {
-    total_students: 50,
-    total_groups: 5,
-    total_grades: 3,
-    total_exams: 8,
-    total_assignments: 6,
-    total_videos: 6,
-    total_playlists: 3,
+  const stats = {
+    total_students:
+      dashboardStats?.total_students ??
+      profileData?.stats?.total_students ??
+      0,
+    total_groups:
+      dashboardStats?.total_groups ??
+      profileData?.stats?.total_groups ??
+      0,
+    total_grades:
+      dashboardStats?.total_grades ??
+      profileData?.stats?.total_grades ??
+      0,
+    total_videos:
+      dashboardStats?.total_videos ??
+      profileData?.stats?.total_videos ??
+      0,
+    total_exams:
+      dashboardStats?.total_exams ??
+      dashboardStats?.total_paper_exams ??
+      profileData?.stats?.total_exams ??
+      0,
+    total_assignments:
+      dashboardStats?.total_assignments ??
+      profileData?.stats?.total_assignments ??
+      0,
+    total_playlists:
+      dashboardStats?.total_playlists ??
+      profileData?.stats?.total_playlists ??
+      0,
   };
 
   // Password states
@@ -473,42 +511,42 @@ const Profile = () => {
             {[
               {
                 label: "إجمالي الطلاب",
-                value: stats.total_students || 50,
+                value: stats.total_students,
                 icon: Users,
                 color: "text-blue-600",
                 bg: "bg-blue-50",
               },
               {
                 label: "المجموعات",
-                value: stats.total_groups || 5,
+                value: stats.total_groups,
                 icon: Layers,
                 color: "text-purple-600",
                 bg: "bg-purple-50",
               },
               {
                 label: "الصفوف الدراسية",
-                value: stats.total_grades || 3,
+                value: stats.total_grades,
                 icon: GraduationCap,
                 color: "text-emerald-600",
                 bg: "bg-emerald-50",
               },
               {
                 label: "المحاضرات",
-                value: stats.total_videos || 6,
+                value: stats.total_videos,
                 icon: Video,
                 color: "text-red-600",
                 bg: "bg-red-50",
               },
               {
                 label: "الامتحانات",
-                value: stats.total_exams || 8,
+                value: stats.total_exams,
                 icon: FileCheck2,
                 color: "text-amber-600",
                 bg: "bg-amber-50",
               },
               {
                 label: "سلاسل الشرح",
-                value: stats.total_playlists || 3,
+                value: stats.total_playlists,
                 icon: ListVideo,
                 color: "text-teal-600",
                 bg: "bg-teal-50",

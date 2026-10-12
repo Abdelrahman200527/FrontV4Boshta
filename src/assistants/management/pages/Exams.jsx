@@ -137,8 +137,9 @@ const ExamStatsModal = ({ isOpen, onClose, exam, stats, loading }) => {
                       عدد الطلاب
                     </p>
                   </div>
-                  <p className="text-2xl font-bold text-blue-800">
+                  <p className="text-2xl font-bold text-blue-800" dir="ltr">
                     {stats.students_count || 0}
+                    {stats.total_students ? ` / ${stats.total_students}` : ""}
                   </p>
                 </div>
                 <div className="p-4 bg-green-50 rounded-xl border border-green-100">

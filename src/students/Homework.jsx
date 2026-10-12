@@ -102,7 +102,8 @@ const Homework = () => {
     setDetailsLoading(true);
     setAssignmentDetails(null);
 
-    const result = await fetchAssignmentById(assignment.assignment_id);
+    const assignmentId = assignment.id || assignment.assignment_id;
+    const result = await fetchAssignmentById(assignmentId);
     if (result.success) {
       setAssignmentDetails(result.data);
     }
@@ -115,9 +116,18 @@ const Homework = () => {
     setDetailsLoading(true);
     setAssignmentDetails(null);
 
-    const result = await fetchAssignmentById(assignment.assignment_id);
+    const assignmentId = assignment.id || assignment.assignment_id;
+    const result = await fetchAssignmentById(assignmentId);
     if (result.success) {
-      setAssignmentDetails(result.data);
+      const sub = submissions.find(
+        (s) => (s.assignment_id || s.id) === assignmentId,
+      );
+      setAssignmentDetails({
+        ...result.data,
+        score: sub?.score ?? result.data?.score,
+        full_mark: result.data?.full_mark || sub?.full_mark || 10,
+        feedback: sub?.feedback ?? result.data?.feedback,
+      });
     }
     setDetailsLoading(false);
   };
@@ -140,10 +150,9 @@ const Homework = () => {
     setUploadLoading(true);
     setUploadMessage(null);
 
-    const result = await submitStudentAssignment(
-      selectedAssignment.assignment_id,
-      uploadFile,
-    );
+    const assignmentId =
+      selectedAssignment.id || selectedAssignment.assignment_id;
+    const result = await submitStudentAssignment(assignmentId, uploadFile);
 
     if (result.success) {
       setUploadMessage({ type: "success", text: "تم تسليم الواجب بنجاح" });
@@ -177,10 +186,9 @@ const Homework = () => {
     setUploadLoading(true);
     setUploadMessage(null);
 
-    const result = await updateStudentAssignment(
-      selectedAssignment.assignment_id,
-      uploadFile,
-    );
+    const assignmentId =
+      selectedAssignment.id || selectedAssignment.assignment_id;
+    const result = await updateStudentAssignment(assignmentId, uploadFile);
 
     if (result.success) {
       setUploadMessage({ type: "success", text: "تم تحديث التسليم بنجاح" });
@@ -197,7 +205,8 @@ const Homework = () => {
   };
 
   const handleDownload = async (assignment) => {
-    const result = await downloadAssignmentFile(assignment.assignment_id);
+    const assignmentId = assignment.id || assignment.assignment_id;
+    const result = await downloadAssignmentFile(assignmentId);
     if (!result.success) {
       alert(result.error || "فشل التحميل");
     }
@@ -221,87 +230,103 @@ const Homework = () => {
   };
 
   // ✅ دالة التحقق من حالة الواجب
-  const getAssignmentStatus = useCallback((assignment) => {
-    const now = new Date();
-    const deadline = new Date(assignment.deadline);
-    const isExpired = now > deadline;
+  const getAssignmentStatus = useCallback(
+    (assignment) => {
+      const now = new Date();
+      const deadline = new Date(assignment.deadline);
+      const isExpired = now > deadline;
+      const assignmentId = assignment.id || assignment.assignment_id;
+      const userSubmission = submissions.find(
+        (s) => (s.assignment_id || s.id) === assignmentId,
+      );
 
-    // 1. مغلق من المدرس
-    if (assignment.is_closed === 1 || assignment.is_closed === true) {
-      return {
-        key: "closed",
-        text: "مغلق",
-        badge: "bg-gray-100 text-gray-600",
-        icon: Lock,
-        canSubmit: false,
-        canUpdate: false,
-        canViewResult: false,
-      };
-    }
+      // 1. مغلق من المدرس
+      if (assignment.is_closed === 1 || assignment.is_closed === true) {
+        return {
+          key: "closed",
+          text: "مغلق",
+          badge: "bg-gray-100 text-gray-600",
+          icon: Lock,
+          canSubmit: false,
+          canUpdate: false,
+          canViewResult: false,
+        };
+      }
 
-    // 2. مصحح
-    if (assignment.assignment_status === "graded") {
-      return {
-        key: "graded",
-        text: "مصحح",
-        badge: "bg-blue-100 text-blue-700",
-        icon: Star,
-        canSubmit: false,
-        canUpdate: false,
-        canViewResult: true,
-      };
-    }
+      // 2. مصحح
+      if (
+        assignment.assignment_status === "graded" ||
+        userSubmission?.status === "graded" ||
+        userSubmission?.is_graded === true ||
+        (userSubmission?.score !== null && userSubmission?.score !== undefined)
+      ) {
+        return {
+          key: "graded",
+          text: "مصحح",
+          badge: "bg-blue-100 text-blue-700",
+          icon: Star,
+          canSubmit: false,
+          canUpdate: false,
+          canViewResult: true,
+        };
+      }
 
-    // 3. مسلم
-    if (assignment.assignment_status === "submitted") {
-      // لو مسلم والوقت لسه شغال → يقدر يحدث
-      if (!isExpired) {
+      // 3. مسلم
+      if (
+        assignment.assignment_status === "submitted" ||
+        userSubmission !== undefined ||
+        assignment.submitted === true
+      ) {
+        // لو مسلم والوقت لسه شغال → يقدر يحدث
+        if (!isExpired) {
+          return {
+            key: "submitted",
+            text: "مسلم",
+            badge: "bg-green-100 text-green-700",
+            icon: CheckCircle2,
+            canSubmit: false,
+            canUpdate: true,
+            canViewResult: false,
+          };
+        }
+        // مسلم والوقت خلص → مش يقدر يحدث
         return {
           key: "submitted",
           text: "مسلم",
           badge: "bg-green-100 text-green-700",
           icon: CheckCircle2,
           canSubmit: false,
-          canUpdate: true,
+          canUpdate: false,
           canViewResult: false,
         };
       }
-      // مسلم والوقت خلص → مش يقدر يحدث
+
+      // 4. متأخر
+      if (isExpired) {
+        return {
+          key: "overdue",
+          text: "متأخر",
+          badge: "bg-red-100 text-red-700",
+          icon: XCircle,
+          canSubmit: false,
+          canUpdate: false,
+          canViewResult: false,
+        };
+      }
+
+      // 5. مطلوب - يقدر يسلم
       return {
-        key: "submitted",
-        text: "مسلم",
-        badge: "bg-green-100 text-green-700",
-        icon: CheckCircle2,
-        canSubmit: false,
+        key: "pending",
+        text: "مطلوب",
+        badge: "bg-yellow-100 text-yellow-700",
+        icon: Clock3,
+        canSubmit: true,
         canUpdate: false,
         canViewResult: false,
       };
-    }
-
-    // 4. متأخر
-    if (isExpired) {
-      return {
-        key: "overdue",
-        text: "متأخر",
-        badge: "bg-red-100 text-red-700",
-        icon: XCircle,
-        canSubmit: false,
-        canUpdate: false,
-        canViewResult: false,
-      };
-    }
-
-    // 5. مطلوب - يقدر يسلم
-    return {
-      key: "pending",
-      text: "مطلوب",
-      badge: "bg-yellow-100 text-yellow-700",
-      icon: Clock3,
-      canSubmit: true,
-      canUpdate: false,
-      canViewResult: false,
-    };
-  }, []);
+    },
+    [submissions],
+  );
 
   const categorizedAssignments = useMemo(() => {
     const pending = [];
@@ -562,13 +587,13 @@ const Homework = () => {
               <p className="text-sm">لا توجد واجبات</p>
             </div>
           ) : (
-            filteredAssignments.map((assignment) => {
+            filteredAssignments.map((assignment, index) => {
               const status = getAssignmentStatus(assignment);
               const StatusIcon = status.icon;
 
               return (
                 <motion.div
-                  key={assignment.assignment_id}
+                  key={assignment.id || assignment.assignment_id || index}
                   className={`bg-white border rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 ${status.key === "closed" ? "border-gray-200 bg-gray-50" : "border-gray-200"}`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">

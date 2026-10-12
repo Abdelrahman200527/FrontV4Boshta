@@ -196,12 +196,14 @@ const Exams = () => {
       return;
     }
 
-    setStartingExam(exam.exam_id);
+    const targetExamId = exam.exam_id || exam.id;
+    setStartingExam(targetExamId);
 
     try {
-      const checkResult = await checkExamAttempt(exam.exam_id);
+      const checkResult = await checkExamAttempt(targetExamId);
       if (checkResult.success && checkResult.data?.has_active_attempt) {
-        setMessage({ type: "error", text: "لقد بدأت هذا الامتحان بالفعل" });
+        // للطالب محاولة جارية بالفعل -> استئناف الامتحان مباشرة
+        navigate(`/student/exams/${targetExamId}`);
         return;
       }
       if (checkResult.success && checkResult.data?.submitted) {
@@ -213,7 +215,7 @@ const Exams = () => {
         return;
       }
 
-      navigate(`/student/exams/${exam.exam_id}`);
+      navigate(`/student/exams/${targetExamId}`);
     } catch (err) {
       console.error("Start exam error:", err);
       setMessage({ type: "error", text: "حدث خطأ، حاول مرة أخرى" });
@@ -758,14 +760,26 @@ const Exams = () => {
                           </span>
                           <span
                             className={`text-[10px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full ${
-                              exam.exam_status === "attended"
+                              exam.exam_status === "attended" ||
+                              exam.status === "حاضر" ||
+                              exam.status === "attended" ||
+                              Number(exam.student_degree) > 0
                                 ? "bg-green-50 text-green-700"
                                 : "bg-red-50 text-red-700"
                             }`}
                           >
-                            {exam.exam_status === "attended" ? "حضر" : "غائب"}
+                            {exam.exam_status === "attended" ||
+                            exam.status === "حاضر" ||
+                            exam.status === "attended" ||
+                            Number(exam.student_degree) > 0
+                              ? "حضر"
+                              : "غائب"}
                           </span>
                         </>
+                      ) : new Date(exam.exam_date).getTime() < Date.now() ? (
+                        <span className="text-[10px] sm:text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-full bg-red-50 text-red-700">
+                          غائب
+                        </span>
                       ) : (
                         <span className="text-[10px] sm:text-xs text-gray-400">
                           لم يعقد بعد

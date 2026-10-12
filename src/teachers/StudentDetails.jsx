@@ -622,17 +622,28 @@ const StudentDetails = () => {
                           <td className="py-3 px-4 text-center">
                             <span
                               className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${
-                                exam.exam_status === "attended"
+                                exam.exam_status === "attended" ||
+                                exam.status === "حاضر" ||
+                                exam.status === "attended" ||
+                                Number(exam.student_degree ?? exam.degree) > 0
                                   ? "bg-green-50 text-green-700"
                                   : "bg-red-50 text-red-700"
                               }`}
                             >
-                              {exam.exam_status === "attended" ? (
+                              {exam.exam_status === "attended" ||
+                              exam.status === "حاضر" ||
+                              exam.status === "attended" ||
+                              Number(exam.student_degree ?? exam.degree) > 0 ? (
                                 <CheckCircle2 size={11} />
                               ) : (
                                 <XCircle size={11} />
                               )}
-                              {exam.exam_status === "attended" ? "حضر" : "غائب"}
+                              {exam.exam_status === "attended" ||
+                              exam.status === "حاضر" ||
+                              exam.status === "attended" ||
+                              Number(exam.student_degree ?? exam.degree) > 0
+                                ? "حضر"
+                                : "غائب"}
                             </span>
                           </td>
                         </tr>

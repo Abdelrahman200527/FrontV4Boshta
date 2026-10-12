@@ -18,6 +18,9 @@ import {
   Eye,
   Users,
   CheckCircle2,
+  XCircle,
+  Clock,
+  Search,
   Award,
   TrendingUp,
   TrendingDown,
@@ -29,7 +32,7 @@ import {
   ClipboardCheck,
   Loader2,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Pagination from "../../components/Pagination";
 import {
   fetchAllOnlineExams,
@@ -103,6 +106,8 @@ const Exams = () => {
   const [examStats, setExamStats] = useState(null);
   const [examStudents, setExamStudents] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [modalSearch, setModalSearch] = useState("");
+  const [modalStatusFilter, setModalStatusFilter] = useState("all");
   const [showGradingModal, setShowGradingModal] = useState(false);
   const [gradingAnswers, setGradingAnswers] = useState([]);
   const [gradingLoading, setGradingLoading] = useState(false);
@@ -112,6 +117,69 @@ const Exams = () => {
   const EXAMS_PER_PAGE = 12;
   const [studentsPage, setStudentsPage] = useState(1);
   const STUDENTS_PER_PAGE = 10;
+
+  // ✅ فحص دقيق هل قام الطالب بالتسليم أم لا
+  const isStudentSubmitted = (student) => {
+    if (!student) return false;
+    if (student.status === "submitted" || student.status === "graded") return true;
+    if (student.submitted_at) return true;
+    if (student.score !== null && student.score !== undefined && student.score !== "") return true;
+    return false;
+  };
+
+  // ✅ دالة تحديد حالة الطالب بدقة بناءً على حالة الامتحان
+  const getStudentStatusInfo = (student, exam) => {
+    const ended = isExamEnded(exam);
+    const hasSubmitted = isStudentSubmitted(student);
+
+    if (hasSubmitted) {
+      return {
+        key: "submitted",
+        label: "تم التسليم",
+        badgeColor: "bg-green-100 text-green-700 border-green-200",
+        isAbsent: false,
+        isSubmitted: true,
+      };
+    }
+
+    // إذا انتهى موعد الامتحان ولم يسلم -> غائب
+    if (ended) {
+      return {
+        key: "absent",
+        label: "غائب",
+        badgeColor: "bg-red-100 text-red-700 border-red-200",
+        isAbsent: true,
+        isSubmitted: false,
+      };
+    }
+
+    if (isExamActive(exam)) {
+      if (student.status === "in_progress" || (student.started_at && !student.submitted_at)) {
+        return {
+          key: "in_progress",
+          label: "جاري الحل",
+          badgeColor: "bg-yellow-100 text-yellow-700 border-yellow-200",
+          isAbsent: false,
+          isSubmitted: false,
+        };
+      }
+      return {
+        key: "not_started",
+        label: "لم يبدأ بعد",
+        badgeColor: "bg-gray-100 text-gray-600 border-gray-200",
+        isAbsent: false,
+        isSubmitted: false,
+      };
+    }
+
+    return {
+      key: "not_started",
+      label: "لم يبدأ بعد",
+      badgeColor: "bg-gray-100 text-gray-600 border-gray-200",
+      isAbsent: false,
+      isSubmitted: false,
+    };
+  };
 
   // ✅ دالة لتحويل التاريخ لصيغة datetime-local مع تعويض فرق التوقيت
   const formatDateForInput = (dateStr) => {
@@ -193,8 +261,12 @@ const Exams = () => {
       const attemptsMap = {};
       for (const exam of result.data) {
         const statsRes = await fetchOnlineExamStats(exam.id);
-        if (statsRes.success) {
-          attemptsMap[exam.id] = statsRes.data?.students_attempted || 0;
+        if (statsRes.success && statsRes.data) {
+          attemptsMap[exam.id] = {
+            attempted: statsRes.data.students_attempted || 0,
+            submitted: statsRes.data.students_submitted || 0,
+            total: statsRes.data.total_students || statsRes.data.students_attempted || 0,
+          };
         }
       }
       setExamAttemptsMap(attemptsMap);
@@ -217,14 +289,38 @@ const Exams = () => {
     setShowDetailsModal(true);
     setDetailsLoading(true);
     setStudentsPage(1);
+    setModalSearch("");
+    setModalStatusFilter("all");
 
     const [statsRes, studentsRes] = await Promise.all([
       fetchOnlineExamStats(exam.id),
       fetchStudentExams(exam.id),
     ]);
 
+    const loadedStudents = studentsRes.success ? (studentsRes.data || []) : [];
     if (statsRes.success) setExamStats(statsRes.data);
-    if (studentsRes.success) setExamStudents(studentsRes.data || []);
+    setExamStudents(loadedStudents);
+
+    // ✅ مزامنة فورية لعدد التسليمات بين الكارت الخارجي والنافذة
+    const actualSubCount = Math.max(
+      statsRes.data?.students_submitted || 0,
+      loadedStudents.filter(isStudentSubmitted).length,
+    );
+    const totalCount =
+      statsRes.data?.total_students ||
+      statsRes.data?.students_attempted ||
+      loadedStudents.length ||
+      0;
+
+    setExamAttemptsMap((prev) => ({
+      ...prev,
+      [exam.id]: {
+        attempted: Math.max(prev[exam.id]?.attempted || 0, loadedStudents.length),
+        submitted: actualSubCount,
+        total: totalCount || prev[exam.id]?.total || 0,
+      },
+    }));
+
     setDetailsLoading(false);
   };
 
@@ -233,9 +329,10 @@ const Exams = () => {
     setDeletedOptionIds([]);
 
     if (exam) {
-      const attemptsCount = examAttemptsMap[exam.id] || 0;
-      if (attemptsCount > 0) {
-        notifyError("لا يمكن تعديل هذا الامتحان - يوجد طلاب قد دخلوه بالفعل");
+      const stats = examAttemptsMap[exam.id];
+      const submittedCount = typeof stats === "object" ? (stats?.submitted || 0) : (stats || 0);
+      if (submittedCount > 0) {
+        notifyError("لا يمكن تعديل هذا الامتحان - يوجد طلاب قد سلّموا بالفعل");
         return;
       }
 
@@ -662,17 +759,18 @@ const Exams = () => {
     const exam = exams.find((e) => e.id === examId);
     if (!exam) return;
 
-    const attemptsCount = examAttemptsMap[examId] || 0;
+    const stats = examAttemptsMap[examId];
+    const submittedCount = typeof stats === "object" ? (stats?.submitted || 0) : (stats || 0);
     const ended = isExamEnded(exam);
 
-    if (attemptsCount > 0 && !ended) {
+    if (submittedCount > 0 && !ended) {
       notifyError("لا يمكن حذف الامتحان - لسه فيه طلاب بيمتحنوا");
       return;
     }
 
     let confirmMessage = "حذف هذا الامتحان؟";
-    if (attemptsCount > 0 && ended) {
-      confirmMessage = `تحذير: هذا الامتحان فيه ${attemptsCount} طالب.\nحذف الامتحان سيحذف كل الدرجات.\nهل أنت متأكد؟`;
+    if (submittedCount > 0 && ended) {
+      confirmMessage = `تحذير: هذا الامتحان فيه ${submittedCount} طالب سلّموا.\nحذف الامتحان سيحذف كل الدرجات.\nهل أنت متأكد؟`;
     }
 
     confirmToast(confirmMessage, async () => {
@@ -955,124 +1053,242 @@ const Exams = () => {
               </div>
             </div>
 
-            {examStats && (
-              <div className="shrink-0 px-5 py-4 bg-gray-50 grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                <div className="bg-white rounded-xl p-3">
-                  <Users size={20} className="text-blue-600 mx-auto mb-1" />
-                  <span className="font-bold text-lg text-blue-600 block">
-                    {examStats.students_attempted || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">دخلوا</span>
-                </div>
-                <div className="bg-white rounded-xl p-3">
-                  <CheckCircle2
-                    size={20}
-                    className="text-green-600 mx-auto mb-1"
-                  />
-                  <span className="font-bold text-lg text-green-600 block">
-                    {examStats.students_submitted || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">خلصوا</span>
-                </div>
-                <div className="bg-white rounded-xl p-3">
-                  <Award size={20} className="text-purple-600 mx-auto mb-1" />
-                  <span className="font-bold text-lg text-purple-600 block">
-                    {examStats.average_score || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">المتوسط</span>
-                </div>
-                <div className="bg-white rounded-xl p-3">
-                  <TrendingUp
-                    size={20}
-                    className="text-orange-600 mx-auto mb-1"
-                  />
-                  <span className="font-bold text-lg text-orange-600 block">
-                    {examStats.highest_score || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">أعلى</span>
-                </div>
-                <div className="bg-white rounded-xl p-3">
-                  <TrendingDown
-                    size={20}
-                    className="text-red-600 mx-auto mb-1"
-                  />
-                  <span className="font-bold text-lg text-red-600 block">
-                    {examStats.lowest_score || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">أقل</span>
-                </div>
-              </div>
-            )}
+            {(() => {
+              const totalStudentsCount =
+                Number(examStats?.total_students) ||
+                Number(examStats?.students_attempted) ||
+                examStudents.length ||
+                0;
 
-            <div className="flex-1 overflow-y-auto p-5">
-              {detailsLoading ? (
-                <p className="text-center text-gray-400 py-8">
-                  جاري التحميل...
-                </p>
-              ) : examStudents.length === 0 ? (
-                <p className="text-center text-gray-400 py-8">
-                  لا يوجد طلاب دخلوا هذا الامتحان بعد
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {examStudents
-                    .slice(
-                      (studentsPage - 1) * STUDENTS_PER_PAGE,
-                      studentsPage * STUDENTS_PER_PAGE,
-                    )
-                    .map((student) => (
-                    <div
-                      key={student.id}
-                      className="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                          <Users size={18} className="text-blue-600" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-bold text-sm block truncate">
-                            {student.student_name || student.full_name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            باركود: {student.barcode}
-                          </span>
-                          <span className="text-xs text-gray-400 block">
-                            بدأ: {formatTime(student.started_at)} | سلم:{" "}
-                            {formatTime(student.submitted_at)}
-                          </span>
-                        </div>
+              const submittedStudentsList = examStudents.filter(isStudentSubmitted);
+              const inProgressStudentsList = examStudents.filter(
+                (s) =>
+                  !isStudentSubmitted(s) &&
+                  (s.status === "in_progress" || Boolean(s.started_at)),
+              );
+
+              // ✅ حساب دقيق للتسليمات: الأكبر بين إحصائية السيرفر أو الطلاب الفعليين المسلّمين
+              const submittedCount = Math.max(
+                Number(examStats?.students_submitted) || 0,
+                submittedStudentsList.length,
+              );
+
+              const filteredExamStudents = examStudents.filter((student) => {
+                const isSub = isStudentSubmitted(student);
+                if (modalStatusFilter === "submitted" && !isSub) return false;
+                if (
+                  modalStatusFilter === "in_progress" &&
+                  (isSub || (!student.started_at && student.status !== "in_progress"))
+                )
+                  return false;
+
+                if (modalSearch.trim()) {
+                  const query = modalSearch.toLowerCase().trim();
+                  const name = (
+                    student.student_name ||
+                    student.full_name ||
+                    ""
+                  ).toLowerCase();
+                  const barcode = (student.barcode || "").toLowerCase();
+                  return name.includes(query) || barcode.includes(query);
+                }
+                return true;
+              });
+
+              return (
+                <>
+                  <div className="shrink-0 px-5 py-4 bg-gray-50 grid grid-cols-3 gap-3 text-center border-b border-gray-100">
+                    <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-2xs">
+                      <CheckCircle2
+                        size={20}
+                        className="text-green-600 mx-auto mb-1"
+                      />
+                      <span className="font-bold text-lg text-green-600 block" dir="ltr">
+                        {submittedCount} / {totalStudentsCount}
+                      </span>
+                      <span className="text-xs text-gray-500">التسليمات</span>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-2xs">
+                      <Award size={20} className="text-purple-600 mx-auto mb-1" />
+                      <span className="font-bold text-lg text-purple-600 block">
+                        {examStats?.average_score || 0}
+                      </span>
+                      <span className="text-xs text-gray-500">متوسط الدرجات</span>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-2xs">
+                      <TrendingUp
+                        size={20}
+                        className="text-orange-600 mx-auto mb-1"
+                      />
+                      <span className="font-bold text-lg text-orange-600 block">
+                        {examStats?.highest_score || 0}
+                      </span>
+                      <span className="text-xs text-gray-500">أعلى درجة</span>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-5">
+                    {/* شريط البحث والفلترة */}
+                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                      <div className="relative flex-1">
+                        <Search
+                          size={15}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                        <input
+                          type="text"
+                          placeholder="بحث باسم الطالب أو الباركود..."
+                          value={modalSearch}
+                          onChange={(e) => {
+                            setModalSearch(e.target.value);
+                            setStudentsPage(1);
+                          }}
+                          className="w-full pr-9 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:bg-white transition"
+                        />
+                        {modalSearch && (
+                          <button
+                            onClick={() => setModalSearch("")}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${student.status === "submitted"
-                              ? "bg-green-100 text-green-600"
-                              : "bg-yellow-100 text-yellow-600"
+                      <div className="flex gap-1.5 shrink-0">
+                        {[
+                          { key: "all", label: `الكل (${examStudents.length})` },
+                          {
+                            key: "submitted",
+                            label: `تم التسليم (${submittedStudentsList.length})`,
+                          },
+                          ...(inProgressStudentsList.length > 0
+                            ? [
+                                {
+                                  key: "in_progress",
+                                  label: `جاري الحل (${inProgressStudentsList.length})`,
+                                },
+                              ]
+                            : []),
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            onClick={() => {
+                              setModalStatusFilter(tab.key);
+                              setStudentsPage(1);
+                            }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                              modalStatusFilter === tab.key
+                                ? "bg-primary text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                             }`}
-                        >
-                          {student.status === "submitted" ? "خلص" : "جاري"}
-                        </span>
-                        <span className="font-bold text-lg text-gray-800">
-                          {student.score != null
-                            ? `${student.score}/${selectedExam.full_mark}`
-                            : "-"}
-                        </span>
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                  {examStudents.length > STUDENTS_PER_PAGE && (
-                    <Pagination
-                      currentPage={studentsPage}
-                      totalPages={Math.ceil(examStudents.length / STUDENTS_PER_PAGE)}
-                      total={examStudents.length}
-                      limit={STUDENTS_PER_PAGE}
-                      onChange={setStudentsPage}
-                      className="mt-3 rounded-xl border border-gray-100"
-                    />
-                  )}
-                </div>
-              )}
-            </div>
+
+                    {detailsLoading ? (
+                      <p className="text-center text-gray-400 py-8">
+                        جاري التحميل...
+                      </p>
+                    ) : filteredExamStudents.length === 0 ? (
+                      <p className="text-center text-gray-400 py-8">
+                        {modalSearch || modalStatusFilter !== "all"
+                          ? "لا توجد نتائج مطابقة للبحث أو الفلتر"
+                          : "لا يوجد طلاب في هذا الامتحان بعد"}
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {filteredExamStudents
+                          .slice(
+                            (studentsPage - 1) * STUDENTS_PER_PAGE,
+                            studentsPage * STUDENTS_PER_PAGE,
+                          )
+                          .map((student) => {
+                            const statusInfo = getStudentStatusInfo(student, selectedExam);
+                            return (
+                              <div
+                                key={student.id}
+                                className="border border-gray-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white hover:border-gray-300 transition"
+                              >
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                                      statusInfo.isSubmitted
+                                        ? "bg-green-50 text-green-600"
+                                        : statusInfo.isAbsent
+                                        ? "bg-red-50 text-red-600"
+                                        : "bg-blue-50 text-blue-600"
+                                    }`}
+                                  >
+                                    <Users size={18} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-sm block truncate">
+                                      {student.student_name || student.full_name}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      باركود: {student.barcode || "-"}
+                                    </span>
+                                    {statusInfo.isSubmitted ? (
+                                      <span className="text-xs text-gray-400 block">
+                                        بدأ: {formatTime(student.started_at)} • سلّم: {formatTime(student.submitted_at)}
+                                      </span>
+                                    ) : statusInfo.key === "in_progress" ? (
+                                      <span className="text-xs text-yellow-600 block">
+                                        بدأ في: {formatTime(student.started_at)} (جاري الحل)
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-red-500 font-medium block">
+                                        لم يدخل الامتحان
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusInfo.badgeColor}`}
+                                  >
+                                    {statusInfo.label}
+                                  </span>
+                                  <span
+                                    className={`font-bold text-base ${
+                                      statusInfo.isAbsent ? "text-red-500" : "text-gray-800"
+                                    }`}
+                                    dir="ltr"
+                                  >
+                                    {statusInfo.isAbsent
+                                      ? `0 / ${selectedExam.full_mark}`
+                                      : student.score != null
+                                      ? `${student.score} / ${selectedExam.full_mark}`
+                                      : `- / ${selectedExam.full_mark}`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                        {filteredExamStudents.length > STUDENTS_PER_PAGE && (
+                          <Pagination
+                            currentPage={studentsPage}
+                            totalPages={Math.ceil(
+                              filteredExamStudents.length / STUDENTS_PER_PAGE,
+                            )}
+                            total={filteredExamStudents.length}
+                            limit={STUDENTS_PER_PAGE}
+                            onChange={setStudentsPage}
+                            className="mt-3 rounded-xl border border-gray-100"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -1603,10 +1819,16 @@ const Exams = () => {
               currentPage * EXAMS_PER_PAGE,
             )
             .map((exam) => {
-            const attemptsCount = examAttemptsMap[exam.id] || 0;
+            const examStatsInfo = examAttemptsMap[exam.id] || { attempted: 0, submitted: 0, total: 0 };
+            const totalTarget = typeof examStatsInfo === "object"
+              ? (examStatsInfo.total || examStatsInfo.attempted || 0)
+              : (examStatsInfo || 0);
+            const submittedCount = typeof examStatsInfo === "object"
+              ? (examStatsInfo.submitted || 0)
+              : 0;
             const ended = isExamEnded(exam);
-            const isEditLocked = attemptsCount > 0;
-            const isDeleteLocked = attemptsCount > 0 && !ended;
+            const isEditLocked = submittedCount > 0;
+            const isDeleteLocked = submittedCount > 0 && !ended;
 
             return (
               <motion.div
@@ -1654,17 +1876,35 @@ const Exams = () => {
                   </div>
                 )}
 
-                {attemptsCount > 0 && !ended && (
-                  <div className="flex items-center gap-1.5 bg-yellow-50 text-yellow-700 text-xs font-bold px-2.5 py-1.5 rounded-lg">
-                    <Lock size={12} />
-                    {attemptsCount} طالب بيمتحنوا دلوقتي
+                {ended ? (
+                  <div className="flex items-center justify-between bg-blue-50/80 border border-blue-100 text-blue-900 text-xs px-2.5 py-2 rounded-lg">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <CheckCircle2 size={13} className="text-blue-600 shrink-0" />
+                      الامتحان منتهي
+                    </span>
+                    <span className="text-xs font-bold text-blue-900" dir="ltr">
+                      {submittedCount} / {totalTarget} طالب
+                    </span>
                   </div>
-                )}
-
-                {attemptsCount > 0 && ended && (
-                  <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1.5 rounded-lg">
-                    <CheckCircle2 size={12} />
-                    الامتحان خلص - {attemptsCount} طالب دخلوا
+                ) : isExamActive(exam) ? (
+                  <div className="flex items-center justify-between bg-emerald-50/80 border border-emerald-100 text-emerald-900 text-xs px-2.5 py-2 rounded-lg">
+                    <span className="flex items-center gap-1.5 font-bold text-emerald-800">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      امتحان جارٍ
+                    </span>
+                    <span className="text-xs font-bold text-emerald-900" dir="ltr">
+                      {submittedCount} / {totalTarget} طالب
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-gray-50 border border-gray-200 text-gray-700 text-xs px-2.5 py-2 rounded-lg">
+                    <span className="flex items-center gap-1.5 font-bold text-gray-600">
+                      <Clock size={13} className="text-gray-400 shrink-0" />
+                      لم يبدأ بعد
+                    </span>
+                    <span className="text-xs font-bold text-gray-600" dir="ltr">
+                      0 / {totalTarget} طالب
+                    </span>
                   </div>
                 )}
 

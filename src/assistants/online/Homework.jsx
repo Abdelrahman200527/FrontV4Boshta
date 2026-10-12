@@ -338,71 +338,86 @@ const Homeworks = () => {
             className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
-              <div>
-                <h2 className="font-bold text-lg text-gray-900">
-                  تسليمات: {selectedAssignment.title}
-                </h2>
-                <span className="text-xs text-gray-500">
-                  {submissionStats?.submitted_count || submissions.length} من{" "}
-                  {submissionStats?.total_students || 0} طالب سلموا
-                </span>
-              </div>
-              <button
-                onClick={() => setShowSubmissions(false)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X size={20} />
-              </button>
-            </div>
+          {(() => {
+            const actualSubmitted = Math.max(
+              submissionStats?.submitted_count || 0,
+              submissions.length,
+              submittedStudents.length,
+            );
+            const actualTotal =
+              submissionStats?.total_students ||
+              (actualSubmitted + notSubmittedStudents.length) ||
+              0;
 
-            {submissionStats && (
-              <div className="shrink-0 px-5 py-3 bg-gray-50 grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <span className="font-bold text-lg text-green-600 block">
-                    {submissionStats.submitted_count || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">سلموا</span>
+            return (
+              <>
+                <div className="shrink-0 px-5 py-4 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="font-bold text-lg text-gray-900">
+                      تسليمات: {selectedAssignment.title}
+                    </h2>
+                    <span className="text-xs font-semibold text-gray-500" dir="ltr">
+                      {actualSubmitted} / {actualTotal} طالب
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowSubmissions(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-                <div>
-                  <span className="font-bold text-lg text-blue-600 block">
-                    {submissionStats.not_submitted_count || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">مسلموش</span>
-                </div>
-                <div>
-                  <span className="font-bold text-lg text-purple-600 block">
-                    {submissionStats.average_score || 0}
-                  </span>
-                  <span className="text-xs text-gray-500">متوسط الدرجات</span>
-                </div>
-              </div>
-            )}
 
-            <div className="shrink-0 px-5 py-2 border-b border-gray-100 flex gap-2">
-              <button
-                onClick={() => setActiveTab("submitted")}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-                  activeTab === "submitted"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                <UserCheck size={14} className="inline ml-1" />
-                سلموا ({submittedStudents.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("not_submitted")}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-                  activeTab === "not_submitted"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                <UserX size={14} className="inline ml-1" />
-                مسلموش ({notSubmittedStudents.length})
-              </button>
-            </div>
+                {submissionStats && (
+                  <div className="shrink-0 px-5 py-3 bg-gray-50 grid grid-cols-3 gap-3 text-center border-b border-gray-100">
+                    <div>
+                      <span className="font-bold text-lg text-green-600 block" dir="ltr">
+                        {actualSubmitted} / {actualTotal}
+                      </span>
+                      <span className="text-xs text-gray-500">التسليمات</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-lg text-purple-600 block">
+                        {submissionStats.average_score || 0}
+                      </span>
+                      <span className="text-xs text-gray-500">متوسط الدرجات</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-lg text-orange-600 block">
+                        {submissionStats.highest_score || 0}
+                      </span>
+                      <span className="text-xs text-gray-500">أعلى درجة</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="shrink-0 px-5 py-2 border-b border-gray-100 flex gap-2">
+                  <button
+                    onClick={() => setActiveTab("submitted")}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                      activeTab === "submitted"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    }`}
+                  >
+                    <UserCheck size={14} className="inline ml-1" />
+                    تم التسليم ({submittedStudents.length || submissions.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("not_submitted")}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
+                      activeTab === "not_submitted"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    }`}
+                  >
+                    <UserX size={14} className="inline ml-1" />
+                    لم يسلموا ({notSubmittedStudents.length})
+                  </button>
+                </div>
+              </>
+            );
+          })()}
 
             <div className="flex-1 overflow-y-auto p-5">
               {submissionsLoading ? (

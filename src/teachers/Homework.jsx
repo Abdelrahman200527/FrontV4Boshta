@@ -488,8 +488,11 @@ const Homeworks = () => {
                         <span className="text-xs text-gray-500 block mb-1">
                           التسليمات
                         </span>
-                        <span className="font-bold text-sm text-gray-900">
+                        <span className="font-bold text-sm text-gray-900" dir="ltr">
                           {assignmentDetails.submissions?.length || 0}
+                          {assignmentDetails.stats?.total_students
+                            ? ` / ${assignmentDetails.stats.total_students}`
+                            : ""}
                         </span>
                       </div>
                     </div>

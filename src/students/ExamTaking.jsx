@@ -19,6 +19,7 @@ import getImageUrl from "../utils/imageUrl";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   startStudentExam,
+  fetchExamQuestions,
   submitStudentExam,
   submitStudentAnswer,
   submitStudentEssayAnswer,
@@ -67,10 +68,23 @@ const ExamTaking = () => {
       if (result.success) {
         const data = result.data;
         setExamData(data);
-        setQuestions(data.questions || []);
+
+        let examQuestions = Array.isArray(data.questions) ? data.questions : [];
+        if (examQuestions.length === 0) {
+          const qResult = await fetchExamQuestions(examId);
+          if (qResult.success) {
+            if (Array.isArray(qResult.data)) {
+              examQuestions = qResult.data;
+            } else if (Array.isArray(qResult.data?.questions)) {
+              examQuestions = qResult.data.questions;
+            }
+          }
+        }
+        setQuestions(examQuestions);
+
         setAttemptInfo({
-          attempt_id: data.attempt_id,
-          exam_id: data.exam_id,
+          attempt_id: data.attempt_id || data.id,
+          exam_id: data.exam_id || examId,
         });
 
         if (data.remaining_seconds !== undefined) {
@@ -123,13 +137,16 @@ const ExamTaking = () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
 
+    const currentAttemptId =
+      attemptInfo?.attempt_id || examData?.attempt_id || examData?.id || examId;
+
     try {
-      const result = await submitStudentExam(attemptInfo?.attempt_id);
+      const result = await submitStudentExam(currentAttemptId);
 
       if (result.success) {
         notifySuccess("انتهى الوقت! تم تسليم الامتحان تلقائياً");
         // ✅ يودي لصفحة المراجعة
-        navigate(`/student/exams/review/${attemptInfo?.attempt_id}`, {
+        navigate(`/student/exams/review/${currentAttemptId}`, {
           replace: true,
         });
       } else {
@@ -149,13 +166,16 @@ const ExamTaking = () => {
     setSubmitting(true);
     setShowConfirmSubmit(false);
 
+    const currentAttemptId =
+      attemptInfo?.attempt_id || examData?.attempt_id || examData?.id || examId;
+
     try {
-      const result = await submitStudentExam(attemptInfo?.attempt_id);
+      const result = await submitStudentExam(currentAttemptId);
 
       if (result.success) {
         notifySuccess("تم تسليم الامتحان بنجاح!");
         // ✅ يودي لصفحة المراجعة
-        navigate(`/student/exams/review/${attemptInfo?.attempt_id}`, {
+        navigate(`/student/exams/review/${currentAttemptId}`, {
           replace: true,
         });
       } else {
@@ -181,8 +201,9 @@ const ExamTaking = () => {
 
     try {
       setSavingAnswer(true);
+      const currentExamId = attemptInfo?.exam_id || examId;
       const result = await submitStudentAnswer(
-        attemptInfo?.exam_id,
+        currentExamId,
         questionId,
         selectedOptionId,
       );
@@ -221,8 +242,9 @@ const ExamTaking = () => {
     setUploadingFile(true);
 
     try {
+      const currentExamId = attemptInfo?.exam_id || examId;
       const result = await submitStudentEssayAnswer(
-        attemptInfo?.exam_id,
+        currentExamId,
         questionId,
         file,
       );
