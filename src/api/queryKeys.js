@@ -31,13 +31,14 @@ export const qk = {
   },
 
   students: {
-    list: (page = 1, search = "", gradeId = "", groupId = "") => [
+    list: (page = 1, search = "", gradeId = "", groupId = "", searchType = "all") => [
       "students",
       "list",
       page,
       search,
       gradeId,
       groupId,
+      searchType,
     ],
     deleted: (page = 1) => ["students", "deleted", page],
     byGroup: (groupId) => ["students", "by-group", String(groupId)],

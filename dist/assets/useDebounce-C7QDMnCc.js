@@ -1,1 +1,0 @@
-import{c as f}from"./index-BIfEn6SE.js";import{r as n}from"./vendor-react-B4bdUMY_.js";function a(t,c){const e=f.c(4),o=c===void 0?500:c,[u,i]=n.useState(t);let r,s;return e[0]!==o||e[1]!==t?(r=()=>{const m=setTimeout(()=>i(t),o);return()=>clearTimeout(m)},s=[t,o],e[0]=o,e[1]=t,e[2]=r,e[3]=s):(r=e[2],s=e[3]),n.useEffect(r,s),u}export{a as u};

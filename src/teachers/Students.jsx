@@ -47,6 +47,7 @@ const Students = () => {
   // Filters & Search
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchType, setSearchType] = useState("all");
   const [grades, setGrades] = useState([]);
   const [groups, setGroups] = useState([]);
   const [selectedGrade, setSelectedGrade] = useState("");
@@ -93,6 +94,8 @@ const Students = () => {
         searchQuery,
         selectedGrade,
         selectedGroup,
+        PAGE_SIZE,
+        searchType,
       );
       if (result.success) {
         setStudents(result.data || []);
@@ -107,7 +110,7 @@ const Students = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery, selectedGrade, selectedGroup]);
+  }, [page, searchQuery, selectedGrade, selectedGroup, searchType]);
 
   useEffect(() => {
     loadStudents();
@@ -134,6 +137,7 @@ const Students = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSearchInput("");
     setSearchQuery("");
+    setSearchType("all");
     setSelectedGrade("");
     setSelectedGroup("");
     setPage(1);
@@ -184,6 +188,7 @@ const Students = () => {
         selectedGrade,
         selectedGroup,
         "all",
+        searchType,
       );
       const studentList =
         result.success && Array.isArray(result.data) && result.data.length > 0
@@ -246,6 +251,7 @@ const Students = () => {
         selectedGrade,
         selectedGroup,
         "all",
+        searchType,
       );
       const studentList =
         result.success && Array.isArray(result.data) && result.data.length > 0
@@ -459,7 +465,7 @@ const Students = () => {
               ))}
             </select>
 
-            {(selectedGrade || selectedGroup || searchQuery) && (
+            {(selectedGrade || selectedGroup || searchQuery || searchType !== "all") && (
               <button
                 onClick={clearAllFilters}
                 className="text-xs sm:text-sm text-red-500 hover:text-red-700 font-medium px-2 py-1 transition"
@@ -469,25 +475,50 @@ const Students = () => {
             )}
           </div>
 
-          {/* Search Box */}
-          <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 flex-1 lg:max-w-md focus-within:border-primary/50 transition-colors">
-            <Search size={16} className="text-gray-400 shrink-0" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="بحث بالاسم أو الباركود أو رقم الهاتف..."
-              className="bg-transparent focus:outline-none text-xs sm:text-sm w-full font-normal"
-            />
-            {searchInput && (
-              <button
-                onClick={handleClearSearch}
-                className="text-gray-400 hover:text-gray-600 shrink-0"
-                type="button"
-              >
-                <X size={14} />
-              </button>
-            )}
+          {/* Search Type + Search Box */}
+          <div className="flex items-center gap-2 flex-1 lg:max-w-lg">
+            <select
+              value={searchType}
+              onChange={(e) => {
+                setSearchType(e.target.value);
+                setPage(1);
+              }}
+              className="border-2 border-gray-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 text-gray-700 shrink-0"
+              title="نوع البحث"
+            >
+              <option value="all">🔍 بحث شامل</option>
+              <option value="name">👤 بالاسم فقط</option>
+              <option value="barcode">🏷️ بالباركود فقط</option>
+              <option value="phone">📞 بالهاتف فقط</option>
+            </select>
+
+            <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 flex-1 focus-within:border-primary/50 transition-colors">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={
+                  searchType === "name"
+                    ? "بحث باسم الطالب..."
+                    : searchType === "barcode"
+                      ? "بحث بالباركود الخاص بالطالب..."
+                      : searchType === "phone"
+                        ? "بحث برقم هاتف الطالب أو ولي الأمر..."
+                        : "بحث بالاسم أو الباركود أو رقم الهاتف..."
+                }
+                className="bg-transparent focus:outline-none text-xs sm:text-sm w-full font-normal"
+              />
+              {searchInput && (
+                <button
+                  onClick={handleClearSearch}
+                  className="text-gray-400 hover:text-gray-600 shrink-0"
+                  type="button"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>

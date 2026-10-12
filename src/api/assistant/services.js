@@ -240,11 +240,13 @@ const getStudents = async (
   gradeId = "",
   groupId = "",
   limit = 20,
+  searchType = "all",
 ) => {
   const params = new URLSearchParams();
   params.append("page", page);
   if (limit) params.append("limit", limit);
   if (search) params.append("search", search);
+  if (searchType && searchType !== "all") params.append("search_type", searchType);
   if (gradeId) params.append("grade_id", gradeId);
   if (groupId) params.append("group_id", groupId);
   const response = await httpGet(`/assistant/students?${params.toString()}`);

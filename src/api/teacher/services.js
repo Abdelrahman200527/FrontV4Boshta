@@ -157,6 +157,7 @@ const getStudents = async (
   gradeId = "",
   groupId = "",
   limit = 20,
+  searchType = "all",
 ) => {
   const params = new URLSearchParams();
   if (limit === "all" || limit === 10000 || Number(limit) >= 500) {
@@ -167,6 +168,7 @@ const getStudents = async (
     if (limit) params.append("limit", limit);
   }
   if (search) params.append("search", search);
+  if (searchType && searchType !== "all") params.append("search_type", searchType);
   if (gradeId && gradeId !== "all") params.append("grade_id", gradeId);
   if (groupId && groupId !== "all") params.append("group_id", groupId);
   const response = await httpGet(`/teacher/students?${params.toString()}`);

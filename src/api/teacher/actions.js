@@ -834,6 +834,7 @@ const fetchAllStudents = async (
   gradeId = "",
   groupId = "",
   limit = 20,
+  searchType = "all",
 ) => {
   if (isDemo()) {
     const result = filterStudents(page, search, gradeId, groupId, limit);
@@ -846,6 +847,7 @@ const fetchAllStudents = async (
       gradeId,
       groupId,
       limit,
+      searchType,
     );
     return {
       success: true,

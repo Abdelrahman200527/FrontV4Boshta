@@ -311,6 +311,7 @@ const Students = () => {
   // Filters
   const [searchInput, setSearchInput] = useState("");
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [searchType, setSearchType] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [showDeleted, setShowDeleted] = useState(false);
@@ -352,11 +353,11 @@ const Students = () => {
   const studentsQuery = useApiQuery(
     showDeleted
       ? qk.students.deleted(page)
-      : qk.students.list(page, debouncedSearch, selectedGrade, selectedGroup),
+      : qk.students.list(page, debouncedSearch, selectedGrade, selectedGroup, searchType),
     () =>
       showDeleted
         ? fetchDeletedStudents(page)
-        : fetchAllStudents(page, debouncedSearch, selectedGrade, selectedGroup),
+        : fetchAllStudents(page, debouncedSearch, selectedGrade, selectedGroup, PAGE_SIZE, searchType),
     {
       fallback: [],
       select: (data) => (Array.isArray(data) ? data : []),
@@ -601,6 +602,7 @@ const Students = () => {
   const clearAllFilters = () => {
     setSearchInput("");
     setBarcodeInput("");
+    setSearchType("all");
     setSelectedGrade("");
     setSelectedGroup("");
     setPage(1);
@@ -797,7 +799,7 @@ const Students = () => {
     }
     const res = showDeleted
       ? await fetchDeletedStudents(1)
-      : await fetchAllStudents(1, debouncedSearch, selectedGrade, selectedGroup, 10000);
+      : await fetchAllStudents(1, debouncedSearch, selectedGrade, selectedGroup, 10000, searchType);
     if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
       return res.data;
     }
@@ -1137,33 +1139,59 @@ const Students = () => {
                 </select>
               </div>
 
-              {/* Search */}
-              <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 lg:w-80 focus-within:border-primary/50 transition-colors">
-                <Search size={16} className="text-gray-400 shrink-0" />
-                <input
-                  type="text"
-                  value={searchInput}
+              {/* Search Type + Search Input */}
+              <div className="flex items-center gap-2 flex-1 lg:max-w-lg">
+                <select
+                  value={searchType}
                   onChange={(e) => {
-                    setSearchInput(e.target.value);
-                    setBarcodeInput("");
+                    setSearchType(e.target.value);
                     setPage(1);
                     setSelectedIds(new Set());
                   }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") searchByBarcode();
-                  }}
-                  placeholder="بحث بالباركود الخاص بالطالب..."
-                  className="bg-transparent focus:outline-none text-sm w-full"
-                />
-                {searchInput && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-gray-400 hover:text-gray-600 shrink-0"
-                    type="button"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                  className="border-2 border-gray-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 text-gray-700 shrink-0"
+                  title="نوع البحث"
+                >
+                  <option value="all">🔍 بحث شامل</option>
+                  <option value="name">👤 بالاسم فقط</option>
+                  <option value="barcode">🏷️ بالباركود فقط</option>
+                  <option value="phone">📞 بالهاتف فقط</option>
+                </select>
+
+                <div className="flex items-center gap-2 bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 flex-1 focus-within:border-primary/50 transition-colors">
+                  <Search size={16} className="text-gray-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      setBarcodeInput("");
+                      setPage(1);
+                      setSelectedIds(new Set());
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") searchByBarcode();
+                    }}
+                    placeholder={
+                      searchType === "name"
+                        ? "اكتب اسم الطالب للبحث..."
+                        : searchType === "barcode"
+                          ? "اكتب رقم الباركود بدقة (مثال: 1108)..."
+                          : searchType === "phone"
+                            ? "اكتب رقم الهاتف للبحث..."
+                            : "بحث بالاسم، الباركود، أو الهاتف..."
+                    }
+                    className="bg-transparent focus:outline-none text-sm w-full"
+                  />
+                  {searchInput && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="text-gray-400 hover:text-gray-600 shrink-0"
+                      type="button"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

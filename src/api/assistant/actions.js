@@ -278,12 +278,13 @@ export const fetchAllStudents = (
   gradeId = "",
   groupId = "",
   limit = 20,
+  searchType = "all",
 ) =>
   wrapPaginatedAction(
     () =>
       isDemo()
         ? mockStore.mockGetStudents(page, search, gradeId, groupId, limit)
-        : assistantServices.getStudents(page, search, gradeId, groupId, limit),
+        : assistantServices.getStudents(page, search, gradeId, groupId, limit, searchType),
     "تحميل الطلاب",
   );
 

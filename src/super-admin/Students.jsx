@@ -66,6 +66,7 @@ export default function SuperAdminStudents() {
 
   // Filters & Pagination
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [statusFilter, setStatusFilter] = useState("active"); // 'active' | 'frozen' | 'deleted' | 'all'
@@ -148,6 +149,7 @@ export default function SuperAdminStudents() {
           page,
           limit: 20,
           search: searchTerm.trim() || undefined,
+          search_type: searchType !== "all" ? searchType : undefined,
           grade_id: selectedGrade || undefined,
           group_id: selectedGroup || undefined,
           status: statusFilter === "all" ? undefined : statusFilter === "frozen" ? "inactive" : "active",
@@ -168,7 +170,7 @@ export default function SuperAdminStudents() {
 
   useEffect(() => {
     fetchStudents();
-  }, [page, statusFilter, selectedGrade, selectedGroup]);
+  }, [page, statusFilter, selectedGrade, selectedGroup, searchType]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -443,7 +445,7 @@ export default function SuperAdminStudents() {
           </button>
 
           <button
-            onClick={() => exportStudentsExcel({ grade_id: selectedGrade, group_id: selectedGroup, search: searchTerm, status: statusFilter })}
+            onClick={() => exportStudentsExcel({ grade_id: selectedGrade, group_id: selectedGroup, search: searchTerm, search_type: searchType !== "all" ? searchType : undefined, status: statusFilter })}
             className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-medium shadow-xs transition flex items-center gap-1.5"
           >
             <FileSpreadsheet size={15} />
@@ -451,7 +453,7 @@ export default function SuperAdminStudents() {
           </button>
 
           <button
-            onClick={() => exportStudentsPdf({ grade_id: selectedGrade, group_id: selectedGroup, search: searchTerm, status: statusFilter })}
+            onClick={() => exportStudentsPdf({ grade_id: selectedGrade, group_id: selectedGroup, search: searchTerm, search_type: searchType !== "all" ? searchType : undefined, status: statusFilter })}
             className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-medium shadow-xs transition flex items-center gap-1.5"
           >
             <Printer size={15} />
@@ -507,16 +509,51 @@ export default function SuperAdminStudents() {
 
         {/* Search & Cascading Dropdowns */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-96">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full md:w-auto flex-1 md:max-w-lg">
+            <select
+              value={searchType}
+              onChange={(e) => {
+                setSearchType(e.target.value);
+                setPage(1);
+              }}
+              className="px-2.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:border-[#1a5d1a] shrink-0"
+              title="نوع البحث"
+            >
+              <option value="all">🔍 بحث شامل</option>
+              <option value="name">👤 بالاسم فقط</option>
+              <option value="barcode">🏷️ بالباركود فقط</option>
+              <option value="phone">📞 بالهاتف فقط</option>
+            </select>
+
             <div className="relative flex-1">
               <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="بحث بالاسم، الباركود، أو الهاتف..."
+                placeholder={
+                  searchType === "name"
+                    ? "بحث باسم الطالب..."
+                    : searchType === "barcode"
+                      ? "بحث بالباركود الخاص بالطالب..."
+                      : searchType === "phone"
+                        ? "بحث برقم هاتف الطالب أو ولي الأمر..."
+                        : "بحث بالاسم، الباركود، أو الهاتف..."
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pr-10 pl-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#1a5d1a]"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setPage(1);
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
             <button
               type="submit"
