@@ -167,8 +167,10 @@ export const router = createBrowserRouter([
       { path: "exams/:examId", Component: StudentExamTaking },
       { path: "exams/review/:attemptId", Component: StudentExamReview },
       { path: "homework", Component: StudentHomework },
-      { path: "chat", Component: StudentChat },
-      { path: "ai", Component: StudentChat },
+      // { path: "chat", Component: StudentChat }, // مُعطّل مؤقتاً بطلب المدرس الحالي - لإعادة التفعيل قم بإلغاء الكومنت وحذف الـ Navigate
+      // { path: "ai", Component: StudentChat }, // مُعطّل مؤقتاً بطلب المدرس الحالي - لإعادة التفعيل قم بإلغاء الكومنت وحذف الـ Navigate
+      { path: "chat", element: <Navigate to="/student" replace /> },
+      { path: "ai", element: <Navigate to="/student" replace /> },
       { path: "profile", Component: StudentProfile },
     ],
   },

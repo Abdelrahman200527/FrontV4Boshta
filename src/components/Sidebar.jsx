@@ -33,7 +33,7 @@ import {
 
 const studentNavItems = [
   { title: "لوحة التحكم", icon: LayoutDashboard, path: "/student" },
-  { title: "اسأل مستر محمد", icon: MessageCircle, path: "/student/chat" },
+  // { title: "اسأل مستر محمد", icon: MessageCircle, path: "/student/chat" }, // مُعطّل مؤقتاً بطلب المدرس الحالي - لإعادة التفعيل قم بإلغاء الكومنت
   {
     title: "الحضور والغياب",
     icon: CalendarCheck2,
