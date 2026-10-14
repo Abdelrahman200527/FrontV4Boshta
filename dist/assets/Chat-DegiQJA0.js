@@ -1,0 +1,1 @@
+import{j as r}from"./vendor-react-D5DP1U8h.js";import{c as o}from"./index-BezCwVQX.js";import{A as m}from"./AiChatView-DhOn_2tx.js";import"./vendor-ui-BrRUbF8i.js";import"./notify-CPx017UP.js";function n(){const e=o.c(1);let t;return e[0]===Symbol.for("react.memo_cache_sentinel")?(t=r.jsx(m,{role:"teacher"}),e[0]=t):t=e[0],t}export{n as default};

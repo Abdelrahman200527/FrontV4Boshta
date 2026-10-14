@@ -4,15 +4,43 @@ import MainLayout from "./layouts/MainLayout.jsx";
 import AuthMiddleware from "./middlewares/auth.middleware.jsx";
 import GuestMiddleware from "./middlewares/guest.middleware.jsx";
 import PageLoading from "./components/PageLoading.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import RouteErrorBoundary from "./components/RouteErrorBoundary.jsx";
 
-// Helper to wrap lazy components in Suspense with accessible PageLoading fallback
+// Helper to wrap lazy components with automatic chunk-retry, ErrorBoundary, and Suspense fallback
 const lazyRoute = (factory) => {
-  const LazyComponent = lazy(factory);
+  const LazyComponent = lazy(async () => {
+    try {
+      return await factory();
+    } catch (error) {
+      const msg = error?.message || String(error || "");
+      const isChunkLoadFailed =
+        msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Importing a module script failed") ||
+        msg.includes("error loading dynamically imported module") ||
+        error?.name === "ChunkLoadError" ||
+        /dynamically imported module/i.test(msg);
+
+      const storageKey = "chunk_lazy_reload";
+      const lastReload = Number(sessionStorage.getItem(storageKey) || 0);
+      const now = Date.now();
+
+      if (isChunkLoadFailed && now - lastReload > 8000) {
+        sessionStorage.setItem(storageKey, String(now));
+        window.location.reload();
+        return new Promise(() => {}); // hold until reload completes
+      }
+      throw error;
+    }
+  });
+
   return function SuspenseWrappedRoute(props) {
     return (
-      <Suspense fallback={<PageLoading />}>
-        <LazyComponent {...props} />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoading />}>
+          <LazyComponent {...props} />
+        </Suspense>
+      </ErrorBoundary>
     );
   };
 };
@@ -96,7 +124,15 @@ const SuperAdminSettings = lazyRoute(() => import("./super-admin/Settings.jsx"))
 const SuperAdminChat = lazyRoute(() => import("./super-admin/Chat.jsx"));
 const SuperAdminWhatsApp = lazyRoute(() => import("./super-admin/WhatsApp.jsx"));
 
-export const router = createBrowserRouter([
+const withRouteErrorBoundary = (routes) =>
+  routes.map((route) => ({
+    ...route,
+    ErrorBoundary: route.ErrorBoundary || RouteErrorBoundary,
+    children: route.children ? withRouteErrorBoundary(route.children) : undefined,
+  }));
+
+export const router = createBrowserRouter(
+  withRouteErrorBoundary([
   { path: '/demo', Component: DemoSelector },
   { path: '/demo/student', Component: StudentDemo },
   {
@@ -307,4 +343,4 @@ export const router = createBrowserRouter([
     path: "*",
     Component: NotFound,
   },
-]);
+]));
