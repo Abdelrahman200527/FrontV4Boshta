@@ -573,15 +573,15 @@ const mockData = {
         description: "شرح شامل ومفصل لدروس الوحدة الأولى: الهمزات، التاء المربوطة والمفتوحة، والمشتقات مع حل تدريبات كتاب الوزارة.",
         price: 150,
         videos_count: 2,
-        cover_image: "https://picsum.photos/400/300?random=1",
+        cover_image: "/course-cover.png",
         videos: [
           {
             id: 1,
             video_id: 1,
             title: "همزة الوصل والقطع بالتفصيل - جزء 1",
-            video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-            url: "https://www.youtube.com/embed/03hsHuIXLQE",
-            thumbnail: "https://picsum.photos/400/225?random=1",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "35:00",
             description: "شرح قواعد همزة الوصل وهمزة القطع في الأسماء والأفعال والحروف مع أمثلة شائعة."
           },
@@ -589,9 +589,9 @@ const mockData = {
             id: 2,
             video_id: 2,
             title: "قواعد رسم الهمزة المتوسطة والمتطرفة - جزء 2",
-            video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-            url: "https://www.youtube.com/embed/gbst-g9OMdw",
-            thumbnail: "https://picsum.photos/400/225?random=2",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "42:00",
             description: "تطبيق عملي وحل تدريبات بنك المعرفة على مواضع رسم الهمزات وتفادي الأخطاء الإملائية."
           }
@@ -604,15 +604,15 @@ const mockData = {
         description: "رحلة شيقة في فنون البلاغة العربية لطلاب الثانوية العامة لفهم التشبيه والاستعارة والكناية والمجاز المرسل.",
         price: 120,
         videos_count: 2,
-        cover_image: "https://picsum.photos/400/300?random=2",
+        cover_image: "/course-cover.png",
         videos: [
           {
             id: 3,
             video_id: 3,
             title: "الاستعارة المكنية والتصريحية والفرق بينهما",
-            video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-            url: "https://www.youtube.com/embed/03hsHuIXLQE",
-            thumbnail: "https://picsum.photos/400/225?random=3",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "28:15",
             description: "كيفية استخراج الاستعارة وتحديد نوعها وسر جمالها في الأسئلة الوزارية."
           },
@@ -620,9 +620,9 @@ const mockData = {
             id: 4,
             video_id: 4,
             title: "المحسنات البديعية اللفظية والمعنوية",
-            video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-            url: "https://www.youtube.com/embed/gbst-g9OMdw",
-            thumbnail: "https://picsum.photos/400/225?random=4",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "31:40",
             description: "شرح الطباق، المقابلة، الجناس، السجع، والتورية مع تدريبات مكثفة."
           }
@@ -635,15 +635,15 @@ const mockData = {
         description: "دراسة تحليلية لرواد مدرسة الإحياء والبعث وجيل التطوير مع قراءة وشرح النصوص الشعرية المقررة.",
         price: 100,
         videos_count: 2,
-        cover_image: "https://picsum.photos/400/300?random=3",
+        cover_image: "/course-cover.png",
         videos: [
           {
             id: 5,
             video_id: 5,
             title: "مقدمة مدرسة الإحياء والبعث وجيل التطوير",
-            video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-            url: "https://www.youtube.com/embed/03hsHuIXLQE",
-            thumbnail: "https://picsum.photos/400/225?random=5",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "39:10",
             description: "عوامل التجديد عند تلاميذ البارودي وخصائص شعر أحمد شوقي وحافظ إبراهيم."
           },
@@ -651,9 +651,9 @@ const mockData = {
             id: 6,
             video_id: 6,
             title: "تحليل نص غربة وحنين للشاعر أحمد شوقي",
-            video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-            url: "https://www.youtube.com/embed/gbst-g9OMdw",
-            thumbnail: "https://picsum.photos/400/225?random=6",
+            video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+            url: "https://www.youtube.com/embed/VGw7h63sYoo",
+            thumbnail: "/course-cover.png",
             duration: "45:00",
             description: "المعاني والأفكار ومواطن الجمال في النص المقرر مع أسئلة امتحانات سابقة."
           }

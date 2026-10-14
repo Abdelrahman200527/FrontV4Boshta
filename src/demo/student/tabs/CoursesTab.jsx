@@ -10,8 +10,8 @@ export default function CoursesTab() {
       title: "الوحدة الأولي عربي تالته ثانوي",
       description: "شرح شامل وتدريبات مكثفة على الوحدة الأولى.",
       videos: [
-        { id: 1, title: "همزة الوصل والقطع - جزء 1", url: "https://www.youtube.com/embed/03hsHuIXLQE", thumbnail: "https://picsum.photos/400/225?random=1" },
-        { id: 2, title: "همزة الوصل والقطع - جزء 2", url: "https://www.youtube.com/embed/gbst-g9OMdw", thumbnail: "https://picsum.photos/400/225?random=2" }
+        { id: 1, title: "همزة الوصل والقطع - جزء 1", url: "https://www.youtube.com/embed/VGw7h63sYoo", thumbnail: "/course-cover.png" },
+        { id: 2, title: "همزة الوصل والقطع - جزء 2", url: "https://www.youtube.com/embed/VGw7h63sYoo", thumbnail: "/course-cover.png" }
       ]
     }
   ];

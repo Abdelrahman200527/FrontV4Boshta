@@ -514,8 +514,10 @@ const MOCK_VIDEOS = [
     duration: "38:45",
     grade_id: 3,
     grade_name: "الصف الثالث الثانوي",
-    url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-    video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "شرح تأسيسي مفصل للوحدة الأولى من منهج النحو للثانوية العامة مع تدريبات نموذجية وأسرار استخراج مواضع همزتي الوصل والقطع.",
     created_at: "2026-09-01T10:00:00Z"
   },
@@ -526,8 +528,10 @@ const MOCK_VIDEOS = [
     duration: "42:15",
     grade_id: 3,
     grade_name: "الصف الثالث الثانوي",
-    url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-    video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "تكملة قواعد الوحدة الأولى الإملائية والنحوية مع حل أكثر من 40 جملة وزارية من امتحانات الأعوام السابقة.",
     created_at: "2026-09-08T10:00:00Z"
   },
@@ -538,8 +542,10 @@ const MOCK_VIDEOS = [
     duration: "50:00",
     grade_id: 3,
     grade_name: "الصف الثالث الثانوي",
-    url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-    video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "شرح بلاغي مبسط للتفرقة الدقيقة بين أنواع التشبيه واستخراج سر الجمال (التشخيص والتجسيم والتوضيح).",
     created_at: "2026-09-15T10:00:00Z"
   },
@@ -550,8 +556,10 @@ const MOCK_VIDEOS = [
     duration: "45:30",
     grade_id: 3,
     grade_name: "الصف الثالث الثانوي",
-    url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-    video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "فهم البلاغة وتطبيق عملي على نصوص الشعر العربي الحديث والقديم وطريقة الإجابة النموذجية في الامتحان.",
     created_at: "2026-09-22T10:00:00Z"
   },
@@ -562,8 +570,10 @@ const MOCK_VIDEOS = [
     duration: "35:20",
     grade_id: 2,
     grade_name: "الصف الثاني الثانوي",
-    url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
-    video_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "شرح منهج النحو لطلاب الصف الثاني الثانوي مع شواهد بلاغية وشعرية وتدريبات إعراب خبر كاد.",
     created_at: "2026-09-10T10:00:00Z"
   },
@@ -574,8 +584,10 @@ const MOCK_VIDEOS = [
     duration: "40:10",
     grade_id: 1,
     grade_name: "الصف الأول الثانوي",
-    url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-    video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
+    url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "تأسيس الصرف والنحو لطلاب الصف الأول الثانوي بأسلوب شيق ومبسط يضمن التميز وحل تدريبات الكتاب المدرسي.",
     created_at: "2026-09-12T10:00:00Z"
   }
@@ -590,6 +602,9 @@ const MOCK_PLAYLISTS = [
     grade_name: "الصف الثالث الثانوي",
     videos_count: 2,
     price: 150,
+    cover_image: "/course-cover.png",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "كورس متكامل يغطي جميع قواعد الوحدة الأولى من همزات ورسم الكلمات وإعراب الشواهد وحل بنك المعرفة.",
     created_at: "2026-09-01T10:00:00Z",
     videos: [MOCK_VIDEOS[0], MOCK_VIDEOS[1]]
@@ -602,6 +617,9 @@ const MOCK_PLAYLISTS = [
     grade_name: "الصف الثالث الثانوي",
     videos_count: 2,
     price: 120,
+    cover_image: "/course-cover.png",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "سلسلة البلاغة المتكاملة لشرح التشبيه والاستعارة والكناية والمجاز المرسل وطريقة التعامل مع الأسئلة المتحررة.",
     created_at: "2026-09-15T10:00:00Z",
     videos: [MOCK_VIDEOS[2], MOCK_VIDEOS[3]]
@@ -614,6 +632,9 @@ const MOCK_PLAYLISTS = [
     grade_name: "الصف الثاني الثانوي",
     videos_count: 1,
     price: 100,
+    cover_image: "/course-cover.png",
+    thumbnail: "/course-cover.png",
+    thumbnail_url: "/course-cover.png",
     description: "شرح دروس الترم الأول للصف الثاني الثانوي مع بنك أسئلة الوزارة وتدريبات كاد وأخواتها وتوكيد الفعل بالنون.",
     created_at: "2026-09-10T10:00:00Z",
     videos: [MOCK_VIDEOS[4]]
@@ -1732,7 +1753,8 @@ const confirmTeacherYoutubeUploadAction = async (payload) => {
       description,
       grade_id,
       video_url: `https://www.youtube.com/watch?v=${youtube_video_id}`,
-      thumbnail: `https://img.youtube.com/vi/${youtube_video_id}/hqdefault.jpg`,
+      thumbnail: "/course-cover.png",
+      thumbnail_url: "/course-cover.png",
       created_at: new Date().toISOString(),
     };
     return {
@@ -1832,7 +1854,7 @@ const teacherUploadVideoDirectToYoutubeAction = async ({
       controller,
     );
 
-    const youtubeVideoId = googleRes?.id || "gbst-g9OMdw";
+    const youtubeVideoId = googleRes?.id || "VGw7h63sYoo";
     if (!youtubeVideoId) {
       return {
         success: false,

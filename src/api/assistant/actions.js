@@ -1378,7 +1378,8 @@ export const confirmYoutubeUploadAction = (payload) =>
             description,
             grade_id,
             video_url: `https://www.youtube.com/watch?v=${youtube_video_id}`,
-            thumbnail: `https://img.youtube.com/vi/${youtube_video_id}/hqdefault.jpg`,
+            thumbnail: "/course-cover.png",
+            thumbnail_url: "/course-cover.png",
           },
           playlist_attached: !!playlist_id,
           youtube_video_id,
@@ -1449,7 +1450,7 @@ export const uploadVideoDirectToYoutubeAction = async ({
       controller,
     );
 
-    const youtubeVideoId = googleRes?.id || "gbst-g9OMdw";
+    const youtubeVideoId = googleRes?.id || "VGw7h63sYoo";
     if (!youtubeVideoId) {
       return {
         success: false,

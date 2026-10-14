@@ -88,7 +88,7 @@ export const uploadFileToGoogleWithProgress = async (
         if (current >= 100) {
           clearInterval(interval);
           resolve({
-            id: "gbst-g9OMdw",
+            id: "VGw7h63sYoo",
             kind: "youtube#video",
             snippet: { title: file?.name || "Demo Video" },
           });

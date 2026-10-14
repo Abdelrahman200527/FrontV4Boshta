@@ -50,7 +50,7 @@ const mockLiveSessions = [
     target_type: "group",
     group_id: 1,
     meet_link: "https://meet.google.com/aqx-mmwy-zhv",
-    recording_url: "https://www.youtube.com/watch?v=03hsHuIXLQE",
+    recording_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
     material_name: "ملخص_البلاغة_والنصوص.pdf"
   },
   {
@@ -64,12 +64,12 @@ const mockLiveSessions = [
     target_type: "grade",
     grade_id: 3,
     meet_link: "https://meet.google.com/aqx-mmwy-zhv",
-    recording_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
+    recording_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
     material_name: "دليل_التعبير_المقالي.pdf"
   }
 ];
 
-const LIVE_SESSIONS_STORAGE_KEY = "demo_live_sessions_store_v2";
+const LIVE_SESSIONS_STORAGE_KEY = "demo_live_sessions_store_v3";
 
 const getDemoLiveSessions = () => {
   if (typeof window !== "undefined") {
@@ -232,7 +232,7 @@ export const teacherSyncRecording = async (id) => {
     const sessions = getDemoLiveSessions();
     const s = sessions.find(item => String(item.id) === String(id));
     if (s) {
-      s.recording_url = "https://www.youtube.com/watch?v=gbst-g9OMdw";
+      s.recording_url = "https://www.youtube.com/watch?v=VGw7h63sYoo";
       saveDemoLiveSessions(sessions);
     }
     return { success: true, message: "تمت مزامنة التسجيل بنجاح" };
@@ -388,7 +388,7 @@ export const assistantSyncRecording = async (id) => {
     const sessions = getDemoLiveSessions();
     const s = sessions.find(item => String(item.id) === String(id));
     if (s) {
-      s.recording_url = "https://www.youtube.com/watch?v=03hsHuIXLQE";
+      s.recording_url = "https://www.youtube.com/watch?v=VGw7h63sYoo";
       saveDemoLiveSessions(sessions);
     }
     return { success: true, message: "تمت مزامنة التسجيل بنجاح" };

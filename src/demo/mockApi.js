@@ -7,8 +7,9 @@ const generateResponse = (data) => {
 
 const DUMMY_DATE = "2026-10-15T18:00:00.000Z";
 const MEET_LINK = "https://meet.google.com/aqx-mmwy-zhv";
-const YOUTUBE_URL_1 = "https://www.youtube.com/watch?v=03hsHuIXLQE";
-const YOUTUBE_URL_2 = "https://www.youtube.com/watch?v=gbst-g9OMdw";
+const YOUTUBE_URL_1 = "https://www.youtube.com/watch?v=VGw7h63sYoo";
+const YOUTUBE_URL_2 = "https://www.youtube.com/watch?v=VGw7h63sYoo";
+const DEMO_VIDEO_COVER = "/course-cover.png";
 
 const mockGrades = [
   { id: 1, grade_name: "الصف الأول الثانوي" },
@@ -48,12 +49,12 @@ const mockAssignments = [
 ];
 
 const mockVideos = [
-  { id: 1, title: "همزة الوصل والقطع - جزء 1", description: "شرح القاعدة الأساسية", url: YOUTUBE_URL_1, grade_id: 3, is_free: false, views: 1500, thumbnail: "https://picsum.photos/400/225?random=1" },
-  { id: 2, title: "همزة الوصل والقطع - جزء 2", description: "تطبيقات وحل أسئلة", url: YOUTUBE_URL_2, grade_id: 3, is_free: false, views: 1200, thumbnail: "https://picsum.photos/400/225?random=2" }
+  { id: 1, title: "همزة الوصل والقطع - جزء 1", description: "شرح القاعدة الأساسية", url: YOUTUBE_URL_1, grade_id: 3, is_free: false, views: 1500, thumbnail: DEMO_VIDEO_COVER, thumbnail_url: DEMO_VIDEO_COVER },
+  { id: 2, title: "همزة الوصل والقطع - جزء 2", description: "تطبيقات وحل أسئلة", url: YOUTUBE_URL_2, grade_id: 3, is_free: false, views: 1200, thumbnail: DEMO_VIDEO_COVER, thumbnail_url: DEMO_VIDEO_COVER }
 ];
 
 const mockPlaylists = [
-  { id: 1, title: "الوحدة الأولي عربي تالته ثانوي", description: "شرح شامل وتدريبات مكثفة على الوحدة الأولى.", grade_id: 3, price: 150, cover_image: "https://picsum.photos/400/300?random=3", videos: mockVideos }
+  { id: 1, title: "الوحدة الأولي عربي تالته ثانوي", description: "شرح شامل وتدريبات مكثفة على الوحدة الأولى.", grade_id: 3, price: 150, cover_image: DEMO_VIDEO_COVER, thumbnail_url: DEMO_VIDEO_COVER, videos: mockVideos }
 ];
 
 const mockQuestions = [
@@ -159,8 +160,9 @@ export const handleDemoRequest = async (url, options) => {
         title: "فيديو جديد (تم رفعه بنجاح)",
         description: "تم رفع الفيديو مباشرة إلى يوتيوب بنجاح",
         grade_id: 3,
-        video_url: "https://www.youtube.com/watch?v=gbst-g9OMdw",
-        thumbnail: "https://picsum.photos/400/225?random=9",
+        video_url: "https://www.youtube.com/watch?v=VGw7h63sYoo",
+        thumbnail: DEMO_VIDEO_COVER,
+        thumbnail_url: DEMO_VIDEO_COVER,
         created_at: new Date().toISOString(),
       };
       mockVideos.unshift(newMockVideo);
@@ -170,7 +172,7 @@ export const handleDemoRequest = async (url, options) => {
         data: {
           video: newMockVideo,
           playlist_attached: true,
-          youtube_video_id: "gbst-g9OMdw",
+          youtube_video_id: "VGw7h63sYoo",
         },
       });
     }
@@ -248,7 +250,7 @@ export const handleDemoRequest = async (url, options) => {
       return generateResponse({
         success: true,
         message: "تم تحديث رابط تسجيل الحصة بنجاح",
-        data: { recording_url: "https://www.youtube.com/watch?v=gbst-g9OMdw" },
+        data: { recording_url: "https://www.youtube.com/watch?v=VGw7h63sYoo" },
       });
     }
     if (url.includes("/join")) {

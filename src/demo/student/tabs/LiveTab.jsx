@@ -16,7 +16,7 @@ export default function LiveTab() {
       title: "حل تدريبات النحو",
       status: "ended",
       duration: 120,
-      link: "https://www.youtube.com/watch?v=03hsHuIXLQE",
+      link: "https://www.youtube.com/watch?v=VGw7h63sYoo",
       material: "تدريبات.pdf",
       date: "2026-10-10"
     }
