@@ -1,6 +1,6 @@
 import * as teacherServices from "./services";
 import config from "../../config";
-import { downloadFile } from "../../utils/fileHandler";
+import { downloadFile, previewFile } from "../../utils/fileHandler";
 
 import { isDemoMode } from "../../utils/demo";
 import { uploadFileToGoogleWithProgress } from "../../utils/directUpload";
@@ -2181,46 +2181,96 @@ const downloadAssignmentAction = async (filePath, fileName) => {
   }
 };
 
-const downloadVideoFileAction = async (filePath, fileName) => {
+const downloadVideoFileAction = async (target, fileName) => {
   if (isDemo()) return { success: true };
   try {
-    const fullUrl = `${apiUrl.replace("/api", "")}/${filePath.replace(/^\//, "")}`;
-    await downloadFile(fullUrl, fileName || "ملف_المحاضرة.pdf");
-    return { success: true };
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      const fullUrl = `${apiUrl}/teacher/videos/${target}/download`;
+      return await downloadFile(fullUrl, fileName || "ملف_المحاضرة.pdf");
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await downloadFile(fullUrl, fileName || "ملف_المحاضرة.pdf");
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-const downloadQuestionFileAction = async (filePath, fileName) => {
+const downloadQuestionFileAction = async (target, fileName) => {
   if (isDemo()) return { success: true };
   try {
-    const fullUrl = `${apiUrl.replace("/api", "")}/${filePath.replace(/^\//, "")}`;
-    await downloadFile(fullUrl, fileName || "ملف_السؤال.pdf");
-    return { success: true };
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      const fullUrl = `${apiUrl}/teacher/questions/${target}/download`;
+      return await downloadFile(fullUrl, fileName || "ملف_السؤال.pdf");
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await downloadFile(fullUrl, fileName || "ملف_السؤال.pdf");
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
-const previewAssignmentAction = async () => {
+const previewAssignmentAction = async (target) => {
   if (isDemo()) return { success: true };
-  return { success: true };
+  try {
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      return await previewFile(`${apiUrl}/teacher/assignments/${target}/preview`);
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await previewFile(fullUrl);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
-const previewVideoFileAction = async () => {
+const previewVideoFileAction = async (target) => {
   if (isDemo()) return { success: true };
-  return { success: true };
+  try {
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      return await previewFile(`${apiUrl}/teacher/videos/${target}/preview`);
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await previewFile(fullUrl);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
-const previewQuestionFileAction = async () => {
+const previewQuestionFileAction = async (target) => {
   if (isDemo()) return { success: true };
-  return { success: true };
+  try {
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      return await previewFile(`${apiUrl}/teacher/questions/${target}/preview`);
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await previewFile(fullUrl);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
-const previewStudentAnswerAction = async () => {
+const previewStudentAnswerAction = async (target) => {
   if (isDemo()) return { success: true };
-  return { success: true };
+  try {
+    if (!target) return { success: false, error: "معرف الملف غير صالح" };
+    if (typeof target === "number" || (/^\d+$/.test(target) && !target.toString().includes("/"))) {
+      return await previewFile(`${apiUrl}/teacher/student-answers/${target}/preview`);
+    }
+    const path = typeof target === "string" ? target.replace(/^\//, "") : "";
+    const fullUrl = `${apiUrl.replace("/api", "")}/${path}`;
+    return await previewFile(fullUrl);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 };
 
 const downloadAssignment = downloadAssignmentAction;

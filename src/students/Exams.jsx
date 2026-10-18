@@ -238,13 +238,22 @@ const Exams = () => {
       };
     }
 
-    const now = Date.now();
-    const startTime = new Date(exam.start_at).getTime();
-    const endTime = new Date(exam.end_at).getTime();
+    if (exam.is_absent || exam.status === "absent") {
+      return {
+        label: "غائب",
+        color: "text-red-500",
+        bg: "bg-red-50",
+        isAbsent: true,
+      };
+    }
 
-    if (now > endTime)
+    const now = Date.now();
+    const startTime = exam.start_at ? new Date(exam.start_at).getTime() : 0;
+    const endTime = exam.end_at ? new Date(exam.end_at).getTime() : 0;
+
+    if (endTime && now > endTime)
       return { label: "منتهي", color: "text-red-500", bg: "bg-red-50" };
-    if (now < startTime)
+    if (startTime && now < startTime)
       return {
         label: "قادم",
         color: "text-yellow-600",

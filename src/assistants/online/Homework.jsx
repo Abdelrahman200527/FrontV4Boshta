@@ -83,7 +83,9 @@ const Homeworks = () => {
     formData.append("grade_id", data.gradeId);
     if (data.groupId) formData.append("group_id", data.groupId);
     formData.append("full_mark", data.maxScore || 10);
-    formData.append("deadline", data.deadline || "");
+    if (data.deadline && typeof data.deadline === "string" && data.deadline.trim() !== "") {
+      formData.append("deadline", data.deadline.trim());
+    }
     formData.append("is_closed", data.isClosed || 0);
     if (data.file) formData.append("file", data.file);
 

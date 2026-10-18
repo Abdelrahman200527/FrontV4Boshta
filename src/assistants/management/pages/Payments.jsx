@@ -117,16 +117,26 @@ const formatDateForInput = (dateStr) => {
 
 const getPaymentStatus = (student, currentMonth) => {
   if (!student) return "no_subscription";
-  const isPaid =
-    student.subscription_status === "paid" || student.payment_status === "paid";
-  if (isPaid) return "paid";
+
+  // If student has a subscription_month specified and it doesn't match currentMonth,
+  // then any "paid" status from a past month must NOT count for the current month!
+  if (student.subscription_month && student.subscription_month !== currentMonth) {
+    return "unpaid";
+  }
+
+  // If no subscription record exists for this student
   if (
-    student.subscription_month === currentMonth ||
-    student.payment_status === "no_subscription"
+    student.payment_status === "no_subscription" ||
+    (!student.subscription_id && !student.subscription_status)
   ) {
     return "unpaid";
   }
-  return student.payment_status || "unpaid";
+
+  const isPaid =
+    student.subscription_status === "paid" || student.payment_status === "paid";
+  if (isPaid) return "paid";
+
+  return "unpaid";
 };
 
 // ============================================
@@ -1350,8 +1360,16 @@ const Payments = () => {
 
                   {/* Action Button */}
                   <div className="flex flex-col sm:flex-row gap-2">
-                    {getPaymentStatus(selectedStudent, currentMonthStr) !==
-                      "paid" || isEditing ? (
+                    {(() => {
+                      const currentSub = studentSubscriptions.find(
+                        (s) => s.month === currentMonthStr,
+                      );
+                      const isPaid = currentSub
+                        ? currentSub.status === "paid"
+                        : getPaymentStatus(selectedStudent, currentMonthStr) ===
+                          "paid";
+                      return !isPaid || isEditing;
+                    })() ? (
                       <motion.button
                         whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}

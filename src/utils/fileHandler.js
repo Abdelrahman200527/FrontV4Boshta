@@ -27,6 +27,10 @@ const resolveUrlForRole = (url) => {
         .replace("/api/assistant/", "/api/super-admin/")
         .replace("/api/teacher/", "/api/super-admin/");
     }
+    const isTeacher = window.location.pathname.startsWith("/teacher");
+    if (isTeacher) {
+      return url.replace("/api/assistant/", "/api/teacher/");
+    }
   }
   return url;
 };

@@ -1457,96 +1457,137 @@ const Exams = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="عنوان الامتحان *"
-                  value={examInfo.title}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, title: e.target.value })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB] sm:col-span-2 disabled:bg-gray-50"
-                />
-                <select
-                  value={examInfo.grade_id}
-                  onChange={(e) => handleGradeChange(e.target.value)}
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
-                >
-                  <option value="">الصف *</option>
-                  {grades.map((grade) => (
-                    <option key={grade.id} value={grade.id}>
-                      {grade.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={examInfo.group_id}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, group_id: e.target.value })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
-                >
-                  <option value="">كل المجموعات</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  placeholder="المدة (دقائق) *"
-                  value={examInfo.duration_minutes}
-                  onChange={(e) =>
-                    setExamInfo({
-                      ...examInfo,
-                      duration_minutes: e.target.value,
-                    })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
-                />
-                <input
-                  type="number"
-                  placeholder="الدرجة الكلية *"
-                  value={examInfo.full_mark}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, full_mark: e.target.value })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
-                />
-                <input
-                  type="datetime-local"
-                  value={examInfo.start_at}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, start_at: e.target.value })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
-                />
-                <input
-                  type="datetime-local"
-                  value={examInfo.end_at}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, end_at: e.target.value })
-                  }
-                  disabled={isSaving}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
-                />
-                <textarea
-                  placeholder="وصف الامتحان (اختياري)"
-                  value={examInfo.description}
-                  onChange={(e) =>
-                    setExamInfo({ ...examInfo, description: e.target.value })
-                  }
-                  disabled={isSaving}
-                  rows={2}
-                  className="p-2 rounded-lg border border-gray-200 text-sm outline-none sm:col-span-2 resize-none disabled:bg-gray-50"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700">عنوان الامتحان *</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: امتحان شامل على الوحدة الأولى"
+                    value={examInfo.title}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, title: e.target.value })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#9224EB] disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">الصف الدراسي *</label>
+                  <select
+                    value={examInfo.grade_id}
+                    onChange={(e) => handleGradeChange(e.target.value)}
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
+                  >
+                    <option value="">اختر الصف الدراسي *</option>
+                    {grades.map((grade) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">المجموعة الموجهة</label>
+                  <select
+                    value={examInfo.group_id}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, group_id: e.target.value })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm bg-white outline-none disabled:bg-gray-50"
+                  >
+                    <option value="">كل المجموعات (عام)</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">مدة الامتحان (بالدقائق) *</label>
+                  <input
+                    type="number"
+                    placeholder="مثال: 60"
+                    value={examInfo.duration_minutes}
+                    onChange={(e) =>
+                      setExamInfo({
+                        ...examInfo,
+                        duration_minutes: e.target.value,
+                      })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">الدرجة الكلية *</label>
+                  <input
+                    type="number"
+                    placeholder="مثال: 50"
+                    value={examInfo.full_mark}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, full_mark: e.target.value })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">
+                    تاريخ ووقت بدء الامتحان *
+                    <span className="block text-[10px] text-purple-600 font-normal">
+                      (12:00 م = ظهراً | 12:00 ص = منتصف الليل)
+                    </span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={examInfo.start_at}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, start_at: e.target.value })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-gray-700">
+                    تاريخ ووقت انتهاء الامتحان *
+                    <span className="block text-[10px] text-purple-600 font-normal">
+                      (12:00 م = ظهراً | 12:00 ص = منتصف الليل)
+                    </span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={examInfo.end_at}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, end_at: e.target.value })
+                    }
+                    disabled={isSaving}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none disabled:bg-gray-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700">وصف الامتحان (اختياري)</label>
+                  <textarea
+                    placeholder="ملاحظات أو إرشادات للطلاب قبل بدء الامتحان..."
+                    value={examInfo.description}
+                    onChange={(e) =>
+                      setExamInfo({ ...examInfo, description: e.target.value })
+                    }
+                    disabled={isSaving}
+                    rows={2}
+                    className="p-2.5 rounded-lg border border-gray-200 text-sm outline-none resize-none disabled:bg-gray-50"
+                  />
+                </div>
                 <label className="sm:col-span-2 flex items-center gap-2 p-2.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 disabled:opacity-50">
                   <input
                     type="checkbox"

@@ -164,8 +164,7 @@ function SessionCard({ session, onJoin, joiningId }) {
   const targetLabel = TARGET_LABELS[target_type] ?? target_type ?? "—";
 
   return (
-    <motion.div
-      variants={itemVariants}
+    <div
       className={`bg-white border rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow
         ${status === "live" ? "border-green-300 ring-1 ring-green-200" : "border-gray-200"}`}
     >
@@ -285,7 +284,7 @@ function SessionCard({ session, onJoin, joiningId }) {
           </span>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -377,10 +376,20 @@ const LiveSessions = () => {
           : [];
       // Sort: live first, then scheduled, then ended, then cancelled
       const ORDER = { live: 0, scheduled: 1, ended: 2, cancelled: 3 };
+      const getSafeTime = (val) => {
+        if (!val) return 0;
+        try {
+          const str = typeof val === "string" ? val.replace(" ", "T") : val;
+          const t = new Date(str).getTime();
+          return isNaN(t) ? 0 : t;
+        } catch {
+          return 0;
+        }
+      };
       list.sort((a, b) => {
         const od = (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9);
         if (od !== 0) return od;
-        return new Date(a.start_time.replace(" ", "T")) - new Date(b.start_time.replace(" ", "T"));
+        return getSafeTime(a.start_time) - getSafeTime(b.start_time);
       });
       setSessions(list);
     } catch (err) {
